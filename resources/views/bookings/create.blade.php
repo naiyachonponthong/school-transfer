@@ -75,6 +75,7 @@
                         <div class="fw-semibold small mb-1">ช่วงเวลาที่ถูกจองแล้ว <span class="text-muted fw-normal" id="pDate"></span></div>
                         <div class="day-slots" id="slots"></div>
                         <div class="slot-scale"><span>06:00</span><span>09:00</span><span>12:00</span><span>15:00</span><span>18:00</span><span>21:00</span></div>
+                        <div class="ds-legend"><span><i class="l-booked"></i>จองแล้ว</span><span><i class="l-pending"></i>รออนุมัติ</span><span><i class="l-mine"></i>ของฉัน</span><span><i class="l-pick"></i>ช่วงที่เลือก (แถวล่าง)</span></div>
                         <div class="small mt-2" id="slotList"></div>
                         <div class="small fw-semibold mt-2" id="clash"></div>
                     </div>
@@ -107,14 +108,20 @@
         const r = current();
         if (!r) return;
         const bar = $('slots');
-        bar.innerHTML = booked.map((b) => `<div class="ds ${b.status === 'pending' ? 'pending' : ''} ${b.mine ? 'mine' : ''}" style="left:${pct(mins(b.from))}%;width:${pct(mins(b.to)) - pct(mins(b.from))}%" title="${esc(b.from)}–${esc(b.to)} ${esc(b.title)}">${esc(b.from)}</div>`).join('');
         const f = mins($('from').value), t = mins($('to').value);
-        if (f && t > f) bar.insertAdjacentHTML('beforeend', `<div class="ds pick" style="left:${pct(f)}%;width:${pct(t) - pct(f)}%">เลือก</div>`);
+        const picked = f && t > f;
+        const clash = picked ? booked.find((b) => mins(b.from) < t && mins(b.to) > f) : null;
+        const span = (a, b) => `left:${pct(a)}%;width:${pct(b) - pct(a)}%`;
+        // แถบแคบ: แสดงเท่าที่พอ (รายละเอียดเต็มอยู่ใน title และรายการด้านล่าง)
+        const label = (from, to, a, b) => (b - a >= 210 ? `${from}–${to}` : (b - a >= 90 ? from : ''));
+        // แถวบน = ที่จองไว้แล้ว · แถวล่าง = ช่วงที่กำลังเลือก (ไม่ทับกัน แม้เวลาตรงกัน)
+        const bookedLane = booked.map((b) => `<div class="ds ${b.status === 'pending' ? 'pending' : ''} ${b.mine ? 'mine' : ''}" style="${span(mins(b.from), mins(b.to))}" title="${esc(b.from)}–${esc(b.to)} ${esc(b.title)} · ${esc(b.by || '')}">${esc(label(b.from, b.to, mins(b.from), mins(b.to)))}</div>`).join('');
+        const pickLane = picked ? `<div class="ds pick ${clash ? 'clash' : ''}" style="${span(f, t)}" title="ช่วงที่เลือก ${esc($('from').value)}–${esc($('to').value)}">${t - f >= 45 ? (clash ? 'ชน' : 'ว่าง') : ''}</div>` : '';
+        bar.innerHTML = `<div class="ds-lane">${bookedLane}</div><div class="ds-lane">${pickLane}</div>`;
         $('slotList').innerHTML = booked.length
             ? booked.map((b) => `<div><span class="badge text-bg-${b.status === 'pending' ? 'warning' : 'danger'}">${esc(b.from)}–${esc(b.to)}</span> ${esc(b.title)} <span class="text-muted">· ${esc(b.by || '')}</span></div>`).join('')
             : '<span class="text-success"><i class="bi bi-check-circle"></i> ว่างทั้งวัน</span>';
-        const clash = booked.find((b) => mins(b.from) < t && mins(b.to) > f);
-        $('clash').innerHTML = clash ? `<span class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> ช่วงที่เลือกชนกับ ${esc(clash.from)}–${esc(clash.to)} (${esc(clash.title)})</span>` : (f && t > f ? '<span class="text-success"><i class="bi bi-check-circle-fill"></i> ช่วงที่เลือกว่าง</span>' : '');
+        $('clash').innerHTML = clash ? `<span class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> ช่วงที่เลือกชนกับ ${esc(clash.from)}–${esc(clash.to)} (${esc(clash.title)})</span>` : (picked ? '<span class="text-success"><i class="bi bi-check-circle-fill"></i> ช่วงที่เลือกว่าง</span>' : '');
     };
 
     const load = async () => {
