@@ -20,6 +20,8 @@ class Settings
         'measurement_head_name' => '', // หัวหน้างานวัดผล (ลงนาม ปพ.5)
         'registrar_name' => '',        // นายทะเบียน (ลงนาม ปพ.1 / ปพ.7)
         'facility_manager_ids' => '',  // ครูงานพัสดุ/อาคารสถานที่ (id คั่นด้วย ,)
+        'asset_no_pattern' => AssetNumber::DEFAULT_PATTERN, // รูปแบบเลขครุภัณฑ์อัตโนมัติ
+        'asset_category_codes' => '',  // รหัสประเภทครุภัณฑ์ที่ตั้งเอง (JSON)
         'late_time' => '08:00',        // หลังเวลานี้ถือว่าสาย
         'staff_late_time' => '08:00',
         'periods_per_day' => '7',
@@ -76,6 +78,12 @@ class Settings
         foreach ($values as $key => $value) {
             DB::table('settings')->updateOrInsert(['key' => $key], ['value' => $value]);
         }
+        self::flush();
+    }
+
+    /** ล้างค่าที่จำไว้ (ค่าที่จำในตัวแปร static อยู่ข้ามคำขอได้ในโปรเซสที่รันยาว เช่น เทสต์ / queue) */
+    public static function flush(): void
+    {
         Cache::forget('school.settings');
         self::$cache = null;
     }

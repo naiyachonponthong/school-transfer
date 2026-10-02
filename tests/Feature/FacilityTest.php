@@ -95,9 +95,12 @@ class FacilityTest extends TestCase
         $paste = "เลขครุภัณฑ์\tชื่อครุภัณฑ์\tประเภท\tราคา\tวันที่ได้มา\tสถานที่\n"
             ."IMP-1\tกล้องจุลทรรศน์\tครุภัณฑ์วิทยาศาสตร์\t12,500\t16/5/2567\tห้องวิทย์\n"
             ."IMP-2\tตู้เหล็ก\tครุภัณฑ์สำนักงาน\t4500\t2025-01-10\tห้องพักครู\n"
-            ."\tไม่มีเลข\t\t\t\t\n";
+            ."\tไม่มีเลข\tครุภัณฑ์กีฬา\t\t1/11/2569\t\n"
+            ."IMP-9\t\t\t\t\t\n";
         $this->actingAs($this->facility())->post('/inventory/import', ['data' => $paste])->assertRedirect(route('assets.index'))
-            ->assertSessionHas('success', fn ($m) => str_contains($m, 'ใหม่ 2'));
+            ->assertSessionHas('success', fn ($m) => str_contains($m, 'ใหม่ 3') && str_contains($m, 'ข้าม 1'));
+        // แถวที่ไม่มีเลข → ออกเลขให้ตามรูปแบบ (ปีงบ 2570 เพราะได้มา พ.ย. 2569)
+        $this->assertSame('7810-2570-0001', Asset::where('name', 'ไม่มีเลข')->value('code'));
         $a = Asset::where('code', 'IMP-1')->first();
         $this->assertSame([12500.0, '2024-05-16', 'ห้องวิทย์'], [$a->price, $a->acquired_on->toDateString(), $a->location]);
 
@@ -106,7 +109,7 @@ class FacilityTest extends TestCase
         $this->assertSame('ห้องแล็บ 2', $a->fresh()->location);
         $this->assertSame(12500.0, $a->fresh()->price); // คอลัมน์ที่ไม่ได้ส่งมา ไม่ถูกล้าง
 
-        $this->actingAs($this->facility())->post('/inventory/import', ['data' => "ชื่อ\tราคา\nx\t1"])->assertSessionHasErrors('data');
+        $this->actingAs($this->facility())->post('/inventory/import', ['data' => "เลขครุภัณฑ์\tราคา\nX-1\t1"])->assertSessionHasErrors('data');
     }
 
     public function test_repair_flow_updates_asset_and_notifies(): void

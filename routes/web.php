@@ -263,6 +263,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/inventory/labels', [AssetController::class, 'labels'])->name('assets.labels');
         Route::get('/inventory/import', [AssetController::class, 'importForm'])->name('assets.import');
         Route::post('/inventory/import', [AssetController::class, 'import'])->name('assets.import.store');
+        Route::get('/inventory/next-number', [AssetController::class, 'nextNumber'])->name('assets.next-number');
+        Route::get('/inventory/numbering', [AssetController::class, 'numbering'])->name('assets.numbering');
+        Route::put('/inventory/numbering', [AssetController::class, 'saveNumbering'])->name('assets.numbering.update');
         Route::get('/asset-checks', [AssetCheckController::class, 'index'])->name('asset-checks.index');
         Route::get('/asset-checks/scan', [AssetCheckController::class, 'scan'])->name('asset-checks.scan');
         Route::post('/asset-checks', [AssetCheckController::class, 'record'])->name('asset-checks.record');

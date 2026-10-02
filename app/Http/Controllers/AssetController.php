@@ -4,11 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\Asset;
 use App\Models\User;
+use App\Support\AssetNumber;
 use App\Support\Audit;
+use App\Support\Settings;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /** ทะเบียนครุภัณฑ์ (งานพัสดุ) */
 class AssetController extends Controller
@@ -57,19 +62,52 @@ class AssetController extends Controller
     {
         $this->authorizeManager($request);
 
-        return view('assets.form', ['asset' => new Asset(['status' => 'normal', 'location' => $request->query('location')]), 'locations' => self::locations(), 'staff' => self::staff()]);
+        return view('assets.form', [
+            'asset' => new Asset(['status' => 'normal', 'location' => $request->query('location'), 'category' => $request->query('category')]),
+            'locations' => self::locations(), 'staff' => self::staff(),
+        ]);
     }
 
     public function store(Request $request)
     {
         $this->authorizeManager($request);
         $data = $this->validated($request);
-        $data['photo'] = $request->hasFile('photo') ? $request->file('photo')->store('assets', 'public') : null;
-        $asset = Asset::create($data);
-        Audit::log('asset.create', $asset, "เพิ่มครุภัณฑ์ {$asset->code} {$asset->name}");
+        $count = (int) ($data['quantity'] ?? 1);
+        unset($data['quantity'], $data['photo']);
+        if ($count > 1 && filled($data['code'] ?? null)) {
+            throw ValidationException::withMessages(['code' => 'เพิ่มหลายชิ้นพร้อมกันให้เว้นเลขครุภัณฑ์ว่างไว้ ระบบจะออกเลขเรียงกันให้ทุกชิ้น']);
+        }
+        if ($count > 1) {
+            $data['serial_no'] = null; // หมายเลขเครื่องไม่ซ้ำกัน ค่อยเติมรายชิ้น
+        }
 
-        return redirect()->route($request->boolean('another') ? 'assets.create' : 'assets.show', $request->boolean('another') ? ['location' => $asset->location] : $asset)
-            ->with('success', "บันทึก {$asset->code} แล้ว");
+        // เว้นเลขว่าง = ออกเลขตามรูปแบบที่ตั้งไว้ (หลายชิ้นได้เลขเรียงกัน)
+        $assets = blank($data['code'] ?? null)
+            ? AssetNumber::assign($data['category'] ?? null, self::date($data['acquired_on'] ?? null), fn ($code) => Asset::create(['code' => $code] + $data), $count)
+            : [Asset::create($data)];
+        if ($request->hasFile('photo')) {
+            $photo = $request->file('photo')->store('assets', 'public');
+            foreach ($assets as $i => $asset) {
+                // แต่ละชิ้นมีไฟล์รูปของตัวเอง (ลบ/เปลี่ยนรูปชิ้นหนึ่งไม่กระทบชิ้นอื่น)
+                $path = $i === 0 ? $photo : 'assets/'.Str::random(40).'.'.pathinfo($photo, PATHINFO_EXTENSION);
+                $i === 0 || Storage::disk('public')->copy($photo, $path);
+                $asset->update(['photo' => $path]);
+            }
+        }
+        $first = $assets[0];
+        $last = end($assets);
+        $range = $count > 1 ? "{$first->code} ถึง {$last->code}" : $first->code;
+        Audit::log('asset.create', $first, "เพิ่มครุภัณฑ์ {$range} {$first->name}".($count > 1 ? " {$count} รายการ" : ''));
+
+        if ($request->boolean('another')) {
+            return redirect()->route('assets.create', ['location' => $first->location, 'category' => $first->category])->with('success', "บันทึก {$range} แล้ว");
+        }
+        if ($count > 1) {
+            return redirect()->route('assets.index')->with('success', "เพิ่ม {$first->name} {$count} รายการ เลข {$range}")
+                ->with('created_ids', collect($assets)->pluck('id')->all());
+        }
+
+        return redirect()->route('assets.show', $first)->with('success', "บันทึก {$first->code} แล้ว");
     }
 
     public function show(Request $request, Asset $asset)
@@ -99,11 +137,21 @@ class AssetController extends Controller
         if (($data['status'] ?? null) === 'disposed' && ! $asset->disposed_on && empty($data['disposed_on'])) {
             $data['disposed_on'] = today();
         }
+        unset($data['quantity']);
         $asset->fill($data);
-        if ($diff = Audit::diff($asset)) {
-            Audit::log('asset.update', $asset, "แก้ครุภัณฑ์ {$asset->code} {$asset->name}", $diff);
-        }
-        $asset->save();
+        $save = function () use ($asset) {
+            if ($diff = Audit::diff($asset)) {
+                Audit::log('asset.update', $asset, "แก้ครุภัณฑ์ {$asset->code} {$asset->name}", $diff);
+            }
+            $asset->save();
+        };
+        // ลบเลขเดิมออก = ออกเลขใหม่ตามรูปแบบปัจจุบัน
+        blank($asset->code)
+            ? AssetNumber::assign($asset->category, $asset->acquired_on, function ($code) use ($asset, $save) {
+                $asset->code = $code;
+                $save();
+            })
+            : $save();
 
         return redirect()->route('assets.show', $asset)->with('success', 'บันทึกแล้ว');
     }
@@ -165,8 +213,8 @@ class AssetController extends Controller
                 }
             }
         }
-        if (! isset($map['code'], $map['name'])) {
-            return back()->withInput()->withErrors(['data' => 'ต้องมีคอลัมน์ "เลขครุภัณฑ์" และ "ชื่อครุภัณฑ์" ในแถวแรก']);
+        if (! isset($map['name'])) {
+            return back()->withInput()->withErrors(['data' => 'ต้องมีคอลัมน์ "ชื่อครุภัณฑ์" ในแถวแรก']);
         }
 
         $created = $updated = 0;
@@ -174,8 +222,8 @@ class AssetController extends Controller
         DB::transaction(function () use ($rows, $map, &$created, &$updated, &$errors) {
             foreach ($rows as $n => $row) {
                 $get = fn ($k) => isset($map[$k]) ? trim((string) ($row[$map[$k]] ?? '')) : '';
-                if ($get('code') === '' || $get('name') === '') {
-                    $errors[] = 'แถว '.($n + 2).': ไม่มีเลขหรือชื่อครุภัณฑ์';
+                if ($get('name') === '') {
+                    $errors[] = 'แถว '.($n + 2).': ไม่มีชื่อครุภัณฑ์';
 
                     continue;
                 }
@@ -185,6 +233,13 @@ class AssetController extends Controller
                     'price' => $get('price') !== '' ? (float) str_replace(',', '', $get('price')) : null,
                     'acquired_on' => self::parseDate($get('acquired_on')),
                 ], fn ($v) => $v !== null && $v !== '');
+                // ไม่มีเลข = ออกเลขให้ตามรูปแบบ
+                if ($get('code') === '') {
+                    AssetNumber::assign($values['category'] ?? null, self::date($values['acquired_on'] ?? null), fn ($code) => Asset::create(['code' => $code, 'status' => 'normal'] + $values));
+                    $created++;
+
+                    continue;
+                }
                 $asset = Asset::firstOrNew(['code' => $get('code')]);
                 $asset->exists ? $updated++ : $created++;
                 $asset->fill($values + ['status' => $asset->status ?? 'normal'])->save();
@@ -228,7 +283,8 @@ class AssetController extends Controller
     private function validated(Request $request, ?Asset $asset = null): array
     {
         $data = $request->validate([
-            'code' => ['required', 'string', 'max:50', Rule::unique('assets')->ignore($asset?->id)],
+            'code' => ['nullable', 'string', 'max:50', Rule::unique('assets')->ignore($asset?->id)],
+            'quantity' => ['nullable', 'integer', 'min:1', 'max:200'],
             'name' => ['required', 'string', 'max:255'],
             'category' => ['nullable', 'string', 'max:50'],
             'brand' => ['nullable', 'string', 'max:255'],
@@ -242,11 +298,64 @@ class AssetController extends Controller
             'status' => ['required', Rule::in(array_keys(Asset::STATUSES))],
             'disposed_on' => ['nullable', 'date'],
             'note' => ['nullable', 'string', 'max:2000'],
-            'photo' => ['nullable', 'image', 'max:4096'],
-        ], [], ['code' => 'เลขครุภัณฑ์', 'name' => 'ชื่อครุภัณฑ์']);
+            'photo' => ['nullable', 'image', 'max:8192'],
+        ], [], ['code' => 'เลขครุภัณฑ์', 'name' => 'ชื่อครุภัณฑ์', 'quantity' => 'จำนวน']);
         $data['price'] ??= 0;
 
         return $data;
+    }
+
+    /** เลขที่จะได้ถ้าเว้นช่องเลขว่าง (แสดงในฟอร์มเพิ่มครุภัณฑ์) */
+    public function nextNumber(Request $request)
+    {
+        $this->authorizeManager($request);
+        $data = $request->validate(['category' => ['nullable', 'string', 'max:50'], 'acquired_on' => ['nullable', 'date'], 'quantity' => ['nullable', 'integer', 'min:1', 'max:200']]);
+        $codes = AssetNumber::next($data['category'] ?? null, self::date($data['acquired_on'] ?? null), (int) ($data['quantity'] ?? 1));
+
+        return response()->json(['first' => $codes[0], 'last' => end($codes), 'count' => count($codes),
+            'needs_category' => blank($data['category'] ?? null) && str_contains(AssetNumber::pattern(), '{CAT}')]);
+    }
+
+    /** ตั้งรูปแบบเลขครุภัณฑ์ + รหัสประเภท */
+    public function numbering(Request $request)
+    {
+        $this->authorizeManager($request);
+        $counts = Asset::selectRaw('category, count(*) as n')->groupBy('category')->pluck('n', 'category');
+
+        return view('assets.numbering', [
+            'pattern' => AssetNumber::pattern(),
+            'codes' => AssetNumber::codes(),
+            'counts' => $counts,
+            'next' => collect(Asset::CATEGORIES)->map(fn ($life, $c) => AssetNumber::next($c)[0]),
+            'fy' => AssetNumber::fiscalYear(today()),
+        ]);
+    }
+
+    public function saveNumbering(Request $request)
+    {
+        $this->authorizeManager($request);
+        $data = $request->validate([
+            'pattern' => ['required', 'string', 'max:40', function ($attr, $value, $fail) {
+                ($problem = AssetNumber::problem($value)) && $fail($problem);
+            }],
+            'codes' => ['required', 'array'],
+            'codes.*' => ['required', 'string', 'max:10', 'regex:/^[\pL\pN.\-\/]+$/u'],
+        ], ['codes.*.required' => 'ใส่รหัสทุกประเภท', 'codes.*.regex' => 'รหัสประเภทใช้ได้เฉพาะตัวอักษร ตัวเลข . - /'], ['pattern' => 'รูปแบบเลข']);
+        $codes = collect($data['codes'])->only(array_keys(Asset::CATEGORIES))->map(fn ($c) => trim($c))->all();
+        $values = ['asset_no_pattern' => trim($data['pattern']), 'asset_category_codes' => json_encode($codes, JSON_UNESCAPED_UNICODE)];
+        $old = ['asset_no_pattern' => AssetNumber::pattern(), 'asset_category_codes' => json_encode(AssetNumber::codes(), JSON_UNESCAPED_UNICODE)];
+        if ($values != $old) {
+            Audit::log('setting.update', null, 'แก้รูปแบบเลขครุภัณฑ์ '.$values['asset_no_pattern'], collect($values)
+                ->filter(fn ($v, $k) => $old[$k] !== $v)->map(fn ($v, $k) => [$old[$k], $v])->all());
+        }
+        Settings::set($values);
+
+        return redirect()->route('assets.numbering')->with('success', 'บันทึกรูปแบบเลขครุภัณฑ์แล้ว');
+    }
+
+    private static function date(mixed $value): ?Carbon
+    {
+        return $value ? Carbon::parse($value) : null;
     }
 
     /** ห้อง/สถานที่ที่เคยใช้ (ใช้เป็นตัวเลือก) */

@@ -10,9 +10,17 @@
         <a href="{{ route('assets.labels', request()->only('location', 'category')) }}" class="btn btn-light border"><i class="bi bi-qr-code"></i> พิมพ์สติกเกอร์ QR</a>
         <a href="{{ request()->fullUrlWithQuery(['export' => 'csv']) }}" class="btn btn-light border"><i class="bi bi-filetype-csv"></i> ส่งออก</a>
         <a href="{{ route('assets.import') }}" class="btn btn-light border"><i class="bi bi-clipboard-plus"></i> นำเข้าจาก Excel</a>
+        <a href="{{ route('assets.numbering') }}" class="btn btn-light border"><i class="bi bi-123"></i> รูปแบบเลข</a>
         <a href="{{ route('assets.create') }}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> เพิ่มครุภัณฑ์</a>
     </div>
 </div>
+
+@if ($created = session('created_ids'))
+    <div class="alert alert-success d-flex flex-wrap align-items-center gap-2">
+        <i class="bi bi-collection"></i><div class="flex-grow-1">เพิ่มครุภัณฑ์ชุดใหม่ {{ count($created) }} รายการแล้ว — ติดสติกเกอร์ QR ให้ครบทุกชิ้น</div>
+        <a href="{{ route('assets.labels', ['ids' => implode(',', $created)]) }}" class="btn btn-sm btn-success"><i class="bi bi-qr-code"></i> พิมพ์สติกเกอร์ชุดนี้</a>
+    </div>
+@endif
 
 <div class="d-flex flex-wrap gap-2 mb-3">
     @foreach (\App\Models\Asset::STATUSES as $k => [$label, $color])
