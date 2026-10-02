@@ -16,7 +16,7 @@
 
 <div class="card">
     <div class="table-responsive">
-        <table class="table align-middle">
+        <table class="table table-cards align-middle">
             <thead><tr><th>ห้อง</th><th class="text-center">นักเรียน</th><th class="text-center">ชาย/หญิง</th><th>ครูประจำชั้น</th><th>ครูประจำชั้นร่วม</th><th></th></tr></thead>
             <tbody>
             @forelse ($classrooms as $c)

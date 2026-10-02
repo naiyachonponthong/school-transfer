@@ -15,7 +15,7 @@
 
 <div class="card mb-3">
     <div class="table-responsive">
-        <table class="table align-middle mb-0">
+        <table class="table table-cards align-middle mb-0">
             <thead><tr><th>ไฟล์</th><th>ประเภท</th><th class="text-end">ขนาด</th><th>เวลา</th><th></th></tr></thead>
             <tbody>
             @forelse ($files as $f)

@@ -18,7 +18,7 @@
 </form>
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-hover align-middle">
+        <table class="table table-cards table-hover align-middle">
             <thead><tr><th>รหัส</th><th>ชื่อหนังสือ</th><th>ผู้แต่ง</th><th>หมวด</th><th>ชั้นวาง</th><th class="text-center">คงเหลือ</th><th></th></tr></thead>
             <tbody>
             @forelse ($books as $b)

@@ -34,13 +34,13 @@
 
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-hover align-middle">
+        <table class="table table-cards table-hover align-middle">
             <thead><tr><th>เลขที่</th><th>นักเรียน</th><th>รายการ</th><th>กำหนดชำระ</th><th class="text-end">ยอดสุทธิ</th><th class="text-end">ค้างชำระ</th><th>สถานะ</th></tr></thead>
             <tbody>
             @forelse ($invoices as $inv)
                 <tr data-href="{{ route('invoices.show', $inv) }}" style="cursor:pointer">
                     <td class="text-muted small">{{ $inv->invoice_no }}</td>
-                    <td><span class="fw-semibold">{{ $inv->student->fullName() }}</span> <span class="small text-muted">{{ $inv->student->classroom?->name() }}</span></td>
+                    <td class="tc-title"><span class="fw-semibold">{{ $inv->student->fullName() }}</span> <span class="small text-muted">{{ $inv->student->classroom?->name() }}</span></td>
                     <td>{{ $inv->title }}</td>
                     <td class="small {{ $inv->isOverdue() ? 'text-danger fw-semibold' : '' }}">{{ $inv->due_date ? thai_date($inv->due_date) : '-' }}</td>
                     <td class="text-end">{{ baht($inv->netTotal()) }}</td>

@@ -33,7 +33,7 @@
     <div class="text-center mb-2"><h2 class="h6 fw-bold mb-0">บัญชีวัสดุ</h2><div class="small">{{ school('school_name') }}</div></div>
     <div class="small mb-2">ชื่อวัสดุ <b>{{ $supply->name }}</b>{{ $supply->code ? ' · รหัส '.$supply->code : '' }} · หน่วยนับ {{ $supply->unit }} · ที่เก็บ {{ $supply->storage_location ?: '-' }} · คงเหลือ <b>{{ number_format($supply->stock) }}</b></div>
     <div class="table-responsive">
-        <table class="table table-bordered table-sm small mb-0">
+        <table class="table table-cards table-bordered table-sm small mb-0">
             <thead class="table-light text-center"><tr><th>วันที่</th><th>รายการ</th><th>รับ</th><th>จ่าย</th><th>คงเหลือ</th><th>ผู้บันทึก</th></tr></thead>
             <tbody>
             @forelse ($transactions as $t)

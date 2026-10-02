@@ -383,3 +383,24 @@
         $('.hint', box)?.classList.add('d-none');
     });
 })();
+
+// ตาราง: .table-cards ใส่ป้ายหัวคอลัมน์ให้ทุกช่อง (มือถือแสดงเป็นการ์ด) ·
+// ตารางที่ไม่มีกรอบเลื่อน ห่อด้วย .table-responsive เพื่อไม่ให้ทั้งหน้ากว้างเกินจอ
+document.querySelectorAll('table.table').forEach((t) => {
+    if (t.classList.contains('table-cards')) {
+        const heads = [...t.querySelectorAll(':scope > thead > tr:last-child > th')].map((th) => th.textContent.trim());
+        t.querySelectorAll(':scope > tbody > tr, :scope > tfoot > tr').forEach((tr) => {
+            let col = 0;
+            [...tr.children].forEach((td) => {
+                if (td.colSpan === 1 && heads[col] && !td.hasAttribute('data-label')) td.dataset.label = heads[col];
+                col += td.colSpan || 1;
+            });
+        });
+    }
+    if (!t.closest('.table-responsive')) {
+        const wrap = document.createElement('div');
+        wrap.className = 'table-responsive';
+        t.replaceWith(wrap);
+        wrap.appendChild(t);
+    }
+});

@@ -9,7 +9,7 @@
 <form class="mb-3" method="GET"><input name="q" value="{{ request('q') }}" class="form-control" style="max-width:320px" placeholder="ค้นหาชื่อ / วัตถุประสงค์"></form>
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table class="table table-cards table-hover align-middle mb-0">
             <thead><tr><th>เอกสาร</th><th>เลขที่</th><th>วันที่ออก</th><th>นักเรียน</th><th>ออกให้เพื่อ / หมายเหตุ</th><th>ผู้ออก</th><th></th></tr></thead>
             <tbody>
             @forelse ($issues as $i)

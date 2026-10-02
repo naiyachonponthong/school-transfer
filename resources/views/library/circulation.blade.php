@@ -42,7 +42,7 @@
     <div class="card-header"><i class="bi bi-journal-bookmark"></i> กำลังยืม ({{ $loans->total() }})
         <form class="ms-auto" method="GET"><input name="q" value="{{ request('q') }}" class="form-control form-control-sm" placeholder="ค้นหา"></form></div>
     <div class="table-responsive">
-        <table class="table align-middle">
+        <table class="table table-cards align-middle">
             <thead><tr><th>หนังสือ</th><th>ผู้ยืม</th><th>ยืมเมื่อ</th><th>กำหนดคืน</th><th></th></tr></thead>
             <tbody>
             @forelse ($loans as $l)

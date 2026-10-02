@@ -27,7 +27,7 @@
             <div class="small">{{ school('school_name') }}{{ request('location') ? ' · '.request('location') : '' }}</div>
         </div>
         <div class="table-responsive">
-            <table class="table table-sm align-middle small mb-2">
+            <table class="table table-cards table-sm align-middle small mb-2">
                 <thead class="table-light"><tr><th>ที่</th><th>เลขครุภัณฑ์</th><th>รายการ</th><th>สถานที่</th><th class="text-end">ราคา</th><th>ผลการตรวจ</th><th class="no-print"></th></tr></thead>
                 <tbody>
                 @forelse ($assets as $i => $a)

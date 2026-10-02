@@ -33,7 +33,7 @@
                     <div class="col-6"><span class="text-muted">นักเรียน</span><br><b>{{ $invoice->student->fullName() }}</b><br>{{ $invoice->student->student_code }} · {{ $invoice->student->classroom?->name() }}</div>
                     <div class="col-6 text-end"><span class="text-muted">วันที่ออก</span> {{ thai_date($invoice->created_at) }}<br><span class="text-muted">กำหนดชำระ</span> {{ $invoice->due_date ? thai_date($invoice->due_date) : '-' }}</div>
                 </div>
-                <table class="table">
+                <table class="table table-cards">
                     <thead><tr><th>รายการ</th><th class="text-end">จำนวนเงิน</th></tr></thead>
                     <tbody>
                         @foreach ($invoice->items as $it)<tr><td>{{ $it->description }}</td><td class="text-end">{{ baht($it->amount) }}</td></tr>@endforeach

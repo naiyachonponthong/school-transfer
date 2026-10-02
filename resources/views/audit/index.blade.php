@@ -26,7 +26,7 @@
 
 <div class="card">
     <div class="table-responsive">
-        <table class="table align-middle mb-0">
+        <table class="table table-cards align-middle mb-0">
             <thead><tr><th style="width:150px">เวลา</th><th style="width:160px">ผู้ทำรายการ</th><th style="width:150px">หมวด</th><th>รายละเอียด</th></tr></thead>
             <tbody>
             @forelse ($logs as $log)
@@ -40,11 +40,11 @@
                             <details class="mt-1">
                                 <summary class="text-muted">ดูรายละเอียด</summary>
                                 @if (isset($log->changes['cells']))
-                                    <table class="table table-sm mb-0 mt-1"><tr class="text-muted"><td>นักเรียน</td><td>ช่อง</td><td>เดิม</td><td>ใหม่</td></tr>
+                                    <table class="table table-cards table-sm mb-0 mt-1"><tr class="text-muted"><td>นักเรียน</td><td>ช่อง</td><td>เดิม</td><td>ใหม่</td></tr>
                                         @foreach ($log->changes['cells'] as $c)<tr><td>{{ $c['student'] }}</td><td>{{ $c['assessment'] }}</td><td>{{ $show($c['old']) }}</td><td>{{ $show($c['new']) }}</td></tr>@endforeach
                                     </table>
                                 @else
-                                    <table class="table table-sm mb-0 mt-1">
+                                    <table class="table table-cards table-sm mb-0 mt-1">
                                         @foreach ($log->changes as $field => $pair)
                                             <tr><td class="text-muted" style="width:30%">{{ \App\Models\AuditLog::fieldLabel($field) }}</td>
                                                 @if (is_array($pair) && array_is_list($pair) && count($pair) === 2)<td>{{ $show($pair[0]) }} → {{ $show($pair[1]) }}</td>@else<td>{{ $show($pair) }}</td>@endif

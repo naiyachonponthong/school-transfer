@@ -682,3 +682,39 @@ a.card:hover { box-shadow: var(--sb-shadow-lg); }
 .pick-card.compact .pc-img { aspect-ratio: 16 / 10; font-size: 2.2rem; }
 .panel-photo { height: 190px; display: grid; place-items: center; background: var(--sb-primary-50); color: var(--sb-primary); font-size: 3rem; overflow: hidden; border-radius: 16px 16px 0 0; }
 .panel-photo img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ===== ตารางรายการ → การ์ดในมือถือ (เพิ่ม class table-cards ที่ <table>; app.js ใส่ป้ายหัวคอลัมน์ให้ทุกช่อง) =====
+   td.tc-title = หัวการ์ด (ขึ้นบนสุด ตัวหนา) · td.tc-hide = ซ่อนในมือถือ */
+@media screen and (max-width: 767.98px) {
+    .table-cards, .table-cards > tbody, .table-cards > tfoot { display: block; width: 100%; }
+    .table-cards { border: 0 !important; background: transparent; margin-bottom: 0; }
+    .table-cards > thead { display: none; }
+    .table-cards > tbody > tr, .table-cards > tfoot > tr {
+        display: flex; flex-direction: column; background: var(--bs-body-bg);
+        border: 1px solid var(--bs-border-color-translucent); border-radius: 14px;
+        padding: .65rem .9rem; margin-bottom: .6rem; box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+    }
+    .table-cards > :not(caption) > tr > td, .table-cards > :not(caption) > tr > th {
+        display: block; width: 100% !important; border: 0 !important; padding: .2rem 0;
+        background: transparent !important; box-shadow: none !important; text-align: left !important;
+    }
+    .table-cards > :not(caption) > tr > [data-label] { position: relative; padding-left: 38%; min-height: 1.6em; }
+    .table-cards > :not(caption) > tr > [data-label]::before {
+        content: attr(data-label); position: absolute; left: 0; top: .25rem; width: 35%;
+        color: var(--bs-secondary-color); font-size: .82rem; font-weight: 400; line-height: 1.35;
+    }
+    .table-cards > :not(caption) > tr > .tc-title { order: -1; padding-left: 0; font-weight: 600; font-size: 1.02rem; margin-bottom: .2rem; }
+    .table-cards > :not(caption) > tr > .tc-title::before { display: none; }
+    .table-cards > :not(caption) > tr > .tc-hide { display: none !important; }
+    .table-cards > :not(caption) > tr > td:empty { display: none; }
+    .table-cards .text-nowrap { white-space: normal !important; }
+    .table-cards input.form-control, .table-cards select.form-select { max-width: 160px; }
+    /* การ์ดที่ห่อตารางไม่ต้องมีกรอบซ้อน */
+    .card:has(> .table-responsive > .table-cards), .card:has(> .table-cards) { background: transparent; border: 0; box-shadow: none; }
+    .card:has(> .table-responsive > .table-cards) > .card-header, .card:has(> .table-cards) > .card-header { background: transparent; padding-left: .2rem; border: 0; }
+    .table-responsive:has(> .table-cards) { overflow: visible; }
+    .doc-page .row > .col-4 { flex: 0 0 100%; max-width: 100%; }
+}
+/* ตัวเลขยาว (มูลค่าเป็นบาท) ในกล่องสถิติแคบ ๆ ไม่ดันจอให้กว้างเกิน */
+.stat > div:last-child { min-width: 0; }
+.stat-value { overflow-wrap: anywhere; }

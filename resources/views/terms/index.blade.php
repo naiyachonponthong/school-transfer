@@ -7,7 +7,7 @@
     <div class="col-lg-8">
         <div class="card">
             <div class="table-responsive">
-                <table class="table align-middle">
+                <table class="table table-cards align-middle">
                     <thead><tr><th>ภาคเรียน</th><th>เปิดภาค</th><th>ปิดภาค</th><th class="text-center">รายวิชา</th><th></th></tr></thead>
                     <tbody>
                     @forelse ($terms as $t)

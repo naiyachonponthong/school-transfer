@@ -44,7 +44,7 @@
                 <div class="small">{{ school('school_name') }} · สังกัด {{ school('school_affiliation') ?: '..........' }} · จังหวัด {{ school('school_province') ?: '..........' }} · วันอนุมัติการจบ {{ thai_date($approvedOn, true) }}</div>
             </div>
             <div class="table-responsive">
-                <table class="table table-bordered table-sm small align-middle mb-2">
+                <table class="table table-cards table-bordered table-sm small align-middle mb-2">
                     <thead class="table-light text-center">
                         <tr>
                             <th class="no-print" style="width:30px"><input type="checkbox" class="form-check-input" data-check-all=".pick-grad" aria-label="เลือกทุกคนที่ผ่านเกณฑ์"></th>

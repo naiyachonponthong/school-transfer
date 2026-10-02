@@ -21,15 +21,15 @@
     </div>
     <div class="row g-3 small">
         <div class="col-md-5">
-            <table class="table table-bordered table-sm mb-2"><thead class="table-light"><tr><th>สถานะ</th><th class="text-end">จำนวน</th></tr></thead>
+            <table class="table table-cards table-bordered table-sm mb-2"><thead class="table-light"><tr><th>สถานะ</th><th class="text-end">จำนวน</th></tr></thead>
                 @foreach (\App\Models\RepairRequest::STATUSES as $k => [$label])<tr><td>{{ $label }}</td><td class="text-end">{{ $byStatus[$k] ?? 0 }}</td></tr>@endforeach
             </table>
-            <table class="table table-bordered table-sm"><thead class="table-light"><tr><th>สถานที่ที่แจ้งบ่อย</th><th class="text-end">ครั้ง</th></tr></thead>
+            <table class="table table-cards table-bordered table-sm"><thead class="table-light"><tr><th>สถานที่ที่แจ้งบ่อย</th><th class="text-end">ครั้ง</th></tr></thead>
                 @foreach ($byLocation->take(10) as $loc => $n)<tr><td>{{ $loc }}</td><td class="text-end">{{ $n }}</td></tr>@endforeach
             </table>
         </div>
         <div class="col-md-7">
-            <table class="table table-bordered table-sm"><thead class="table-light"><tr><th>เลขที่</th><th>รายการ</th><th>สถานะ</th><th class="text-end">ค่าใช้จ่าย</th></tr></thead>
+            <table class="table table-cards table-bordered table-sm"><thead class="table-light"><tr><th>เลขที่</th><th>รายการ</th><th>สถานะ</th><th class="text-end">ค่าใช้จ่าย</th></tr></thead>
                 @forelse ($repairs as $r)
                     <tr><td class="text-nowrap">{{ $r->ticket_no }}</td><td>{{ $r->title }}<div class="text-muted">{{ $r->location }}</div></td><td>{{ $r->statusLabel() }}</td><td class="text-end">{{ $r->cost !== null ? number_format($r->cost, 2) : '' }}</td></tr>
                 @empty

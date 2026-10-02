@@ -34,7 +34,7 @@
 
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-hover align-middle">
+        <table class="table table-cards table-hover align-middle">
             <thead><tr><th>ห้อง</th><th>เลขที่</th><th>รหัส</th><th>ชื่อ-สกุล</th><th class="d-none d-md-table-cell">ชื่อเล่น</th><th class="d-none d-md-table-cell">เพศ</th><th>สถานะ</th></tr></thead>
             <tbody>
             @forelse ($students as $s)
@@ -42,7 +42,7 @@
                     <td class="fw-semibold">{{ $s->classroom?->name() ?? '-' }}</td>
                     <td>{{ $s->number }}</td>
                     <td class="text-muted">{{ $s->student_code }}</td>
-                    <td>
+                    <td class="tc-title">
                         <div class="d-flex align-items-center gap-2">
                             <span class="sb-avatar sm">@if($s->photoUrl())<img src="{{ $s->photoUrl() }}" alt="">@else{{ $s->initials() }}@endif</span>
                             <a href="{{ route('students.show', $s) }}" class="text-body fw-semibold text-decoration-none">{{ $s->fullName() }}</a>

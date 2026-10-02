@@ -14,13 +14,13 @@
     <div class="d-flex justify-content-between small"><span></span><span>เลขที่ {{ $req->req_no }}</span></div>
     <div class="text-center mb-3"><h2 class="h6 fw-bold mb-0">ใบเบิกวัสดุ</h2><div class="small">{{ school('school_name') }}</div></div>
     <div class="small mb-2">ข้าพเจ้า <b>{{ $req->requester?->name ?? '-' }}</b> {{ $req->department ? 'กลุ่มสาระ/งาน '.$req->department : '' }} ขอเบิกวัสดุ{{ $req->purpose ? 'เพื่อ'.$req->purpose : '' }} ตามรายการต่อไปนี้ · วันที่ {{ thai_date($req->created_at, true) }}</div>
-    <table class="table table-bordered table-sm small">
+    <table class="table table-cards table-bordered table-sm small">
         <thead class="table-light text-center"><tr><th style="width:40px">ที่</th><th>รายการ</th><th style="width:110px">จำนวนที่ขอ</th><th style="width:130px">จำนวนที่จ่าย</th><th style="width:90px">ราคา/หน่วย</th><th style="width:100px">รวมเงิน</th><th style="width:80px" class="no-print">คงคลัง</th></tr></thead>
         <tbody>
         @foreach ($req->items as $i => $item)
             <tr>
-                <td class="text-center">{{ $i + 1 }}</td>
-                <td><div class="d-flex gap-2 align-items-center"><span class="media-thumb no-print" style="width:36px;height:36px">@if($item->supply->photoUrl())<img src="{{ $item->supply->photoUrl() }}" alt="">@else<i class="bi bi-box"></i>@endif</span><span>{{ $item->supply->name }}{{ $item->supply->code ? ' ('.$item->supply->code.')' : '' }}</span></div></td>
+                <td class="text-center tc-hide">{{ $i + 1 }}</td>
+                <td class="tc-title"><div class="d-flex gap-2 align-items-center"><span class="media-thumb no-print" style="width:36px;height:36px">@if($item->supply->photoUrl())<img src="{{ $item->supply->photoUrl() }}" alt="">@else<i class="bi bi-box"></i>@endif</span><span>{{ $item->supply->name }}{{ $item->supply->code ? ' ('.$item->supply->code.')' : '' }}</span></div></td>
                 <td class="text-center">{{ number_format($item->quantity) }} {{ $item->supply->unit }}</td>
                 <td class="text-center">
                     @if ($manager && $req->status === 'pending')
@@ -36,7 +36,7 @@
             </tr>
         @endforeach
         </tbody>
-        <tfoot><tr class="fw-semibold"><td colspan="5" class="text-end">รวมมูลค่า{{ $req->status === 'issued' ? 'ที่จ่าย' : 'ที่ขอ' }}</td><td class="text-end">{{ number_format($req->items->sum(fn ($i) => ($i->issued ?? $i->quantity) * $i->supply->unit_price), 2) }}</td><td class="no-print"></td></tr></tfoot>
+        <tfoot><tr class="fw-semibold"><td colspan="5" class="text-end fw-semibold">รวมมูลค่า{{ $req->status === 'issued' ? 'ที่จ่าย' : 'ที่ขอ' }}</td><td class="text-end">{{ number_format($req->items->sum(fn ($i) => ($i->issued ?? $i->quantity) * $i->supply->unit_price), 2) }}</td><td class="no-print"></td></tr></tfoot>
     </table>
     @if ($req->review_note)<div class="small mb-2">หมายเหตุงานพัสดุ: {{ $req->review_note }}</div>@endif
     <div class="row g-3 mt-3">

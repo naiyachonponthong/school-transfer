@@ -36,7 +36,7 @@
 
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-hover align-middle">
+        <table class="table table-cards table-hover align-middle">
             <thead><tr><th>เลขที่</th><th>ชื่อ-สกุล</th><th>ชั้น</th><th>โรงเรียนเดิม</th><th class="text-center">GPA</th><th>ผู้ปกครอง</th><th>วันที่ส่ง</th><th>สถานะ</th></tr></thead>
             <tbody>
             @forelse ($items as $a)

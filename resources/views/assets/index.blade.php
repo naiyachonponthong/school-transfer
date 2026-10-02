@@ -41,13 +41,13 @@
 
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table class="table table-cards table-hover align-middle mb-0">
             <thead><tr><th>เลขครุภัณฑ์</th><th>ชื่อ</th><th>สถานที่</th><th class="text-end">ราคา</th><th class="text-end">มูลค่าสุทธิ</th><th>สถานะ</th></tr></thead>
             <tbody>
             @forelse ($assets as $a)
                 <tr>
                     <td class="fw-semibold text-nowrap"><a href="{{ route('assets.show', $a) }}" class="text-reset">{{ $a->code }}</a></td>
-                    <td>{{ $a->name }}<div class="small text-muted">{{ collect([$a->category, $a->brand])->filter()->implode(' · ') }}</div></td>
+                    <td class="tc-title"><a href="{{ route('assets.show', $a) }}" class="text-reset">{{ $a->name }}</a><div class="small text-muted">{{ collect([$a->category, $a->brand])->filter()->implode(' · ') }}</div></td>
                     <td class="small">{{ $a->location ?: '-' }}</td>
                     <td class="text-end small">{{ number_format($a->price, 2) }}</td>
                     <td class="text-end small">{{ $a->bookValue() !== null ? number_format($a->bookValue(), 2) : '-' }}</td>

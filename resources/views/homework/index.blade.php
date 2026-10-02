@@ -12,7 +12,7 @@
 
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-hover align-middle">
+        <table class="table table-cards table-hover align-middle">
             <thead><tr><th>งาน</th><th>วิชา / ห้อง</th><th>กำหนดส่ง</th><th class="text-center">ส่งแล้ว</th><th class="text-center">ตรวจแล้ว</th></tr></thead>
             <tbody>
             @forelse ($assignments as $a)

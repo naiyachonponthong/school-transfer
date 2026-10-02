@@ -26,12 +26,12 @@
 
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table class="table table-cards table-hover align-middle mb-0">
             <thead><tr><th>วัสดุ</th><th>หมวด / ที่เก็บ</th><th style="width:220px">คงเหลือ</th><th class="text-end">ราคา/หน่วย</th><th class="text-end">มูลค่า</th><th class="text-end" style="width:170px"></th></tr></thead>
             <tbody>
             @forelse ($supplies as $s)
                 <tr class="{{ $s->is_active ? '' : 'opacity-50' }}">
-                    <td>
+                    <td class="tc-title">
                         <a href="{{ route('supplies.show', $s) }}" class="d-flex gap-2 align-items-center text-reset text-decoration-none">
                             <span class="media-thumb">@if($s->photoUrl())<img src="{{ $s->photoUrl() }}" alt="">@else<i class="bi bi-box"></i>@endif</span>
                             <span><span class="fw-semibold">{{ $s->name }}</span>@unless($s->is_active) <span class="badge text-bg-light border">เลิกใช้</span>@endunless<div class="small text-muted">{{ $s->code ?: '' }}</div></span>

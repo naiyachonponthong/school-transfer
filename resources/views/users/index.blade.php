@@ -23,12 +23,12 @@
 
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-hover align-middle">
+        <table class="table table-cards table-hover align-middle">
             <thead><tr><th>ชื่อ</th><th>ชื่อผู้ใช้</th><th>เบอร์โทร</th><th>บทบาท</th><th>ข้อมูล</th><th>เข้าระบบล่าสุด</th><th></th></tr></thead>
             <tbody>
             @forelse ($users as $u)
                 <tr class="{{ $u->is_active ? '' : 'opacity-50' }}">
-                    <td><div class="d-flex align-items-center gap-2"><span class="sb-avatar sm">{{ $u->initials() }}</span><div><div class="fw-semibold">{{ $u->name }}</div><div class="small text-muted">{{ $u->position }}</div></div></div></td>
+                    <td class="tc-title"><div class="d-flex align-items-center gap-2"><span class="sb-avatar sm">{{ $u->initials() }}</span><div><div class="fw-semibold">{{ $u->name }}</div><div class="small text-muted">{{ $u->position }}</div></div></div></td>
                     <td class="small">{{ $u->username }}</td>
                     <td class="small">{{ $u->phone }}</td>
                     <td><span class="badge bg-{{ ['admin' => 'danger', 'teacher' => 'primary', 'parent' => 'success'][$u->role] ?? 'secondary' }}-subtle text-{{ ['admin' => 'danger', 'teacher' => 'primary', 'parent' => 'success'][$u->role] ?? 'secondary' }}-emphasis">{{ $u->roleLabel() }}</span> @unless($u->is_active)<span class="badge bg-secondary">ปิดใช้งาน</span>@endunless</td>

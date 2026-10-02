@@ -33,7 +33,7 @@
 @else
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table class="table table-cards table-hover align-middle mb-0">
             <thead><tr><th>ชุดข้อสอบ</th><th>ห้อง</th><th class="text-center">ข้อ</th><th class="text-center">สแกนแล้ว</th><th class="text-center">รอตรวจทาน</th><th class="d-none d-md-table-cell">วันสอบ</th></tr></thead>
             <tbody>
             @foreach ($exams as $e)

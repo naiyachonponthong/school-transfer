@@ -59,7 +59,7 @@
 <div class="card">
     <div class="card-header"><i class="bi bi-clock-history"></i> บันทึกล่าสุด</div>
     <div class="table-responsive">
-        <table class="table align-middle">
+        <table class="table table-cards align-middle">
             <thead><tr><th>วันที่</th><th>นักเรียน</th><th>เรื่อง</th><th class="text-center">คะแนน</th><th>ผู้บันทึก</th><th></th></tr></thead>
             <tbody>
             @forelse ($records as $r)

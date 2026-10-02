@@ -10,7 +10,7 @@
 
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-hover align-middle">
+        <table class="table table-cards table-hover align-middle">
             <thead><tr><th>รหัส</th><th>ชื่อวิชา</th><th>ประเภท</th><th>กลุ่มสาระ</th><th class="text-center">หน่วยกิต</th><th class="text-center">ชั่วโมง</th><th class="text-center">เปิดสอน</th><th></th></tr></thead>
             <tbody>
             @forelse ($subjects as $s)

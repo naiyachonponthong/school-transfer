@@ -26,7 +26,7 @@
 <div class="card">
     <div class="card-header"><i class="bi bi-clock-history"></i> ประวัติการส่ง</div>
     <div class="table-responsive">
-        <table class="table align-middle small">
+        <table class="table table-cards align-middle small">
             <thead><tr><th>เวลา</th><th>ผู้รับ</th><th>ข้อความ</th><th>สถานะ</th></tr></thead>
             <tbody>
             @forelse ($logs as $l)
