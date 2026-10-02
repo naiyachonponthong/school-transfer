@@ -385,10 +385,12 @@ class DatabaseSeeder extends Seeder
 
         // ---------- ใบลา ----------
         $m11first = $m11students->take(3);
+        // ลาวันเรียน (ถ้าวันนี้เป็นเสาร์-อาทิตย์ ใช้วันจันทร์ถัดไป ไม่งั้นอนุมัติแล้วไม่มีวันให้ลงเวลา)
+        $leaveDay = today()->isWeekend() ? today()->nextWeekday() : today();
         foreach ($m11first as $i => $s) {
             LeaveRequest::create([
                 'student_id' => $s->id, 'requested_by' => $s->guardians()->first()->id, 'type' => $i === 1 ? 'personal' : 'sick',
-                'start_date' => today(), 'end_date' => today()->addWeekdays($i === 2 ? 1 : 0),
+                'start_date' => $leaveDay, 'end_date' => $leaveDay->copy()->addWeekdays($i === 2 ? 1 : 0),
                 'reason' => ['มีไข้ ไอ ไปพบแพทย์', 'ไปงานบวชญาติที่ต่างจังหวัด', 'ปวดท้อง อาเจียน'][$i], 'status' => 'pending',
             ]);
         }
