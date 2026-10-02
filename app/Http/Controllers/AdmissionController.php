@@ -202,6 +202,7 @@ class AdmissionController extends Controller
                     'phone' => $admission->parent_phone,
                     'role' => 'parent',
                     'password' => Hash::make(substr($admission->parent_phone, -6)),
+                    'must_change_password' => true,
                 ]);
             $student->guardians()->syncWithoutDetaching([$parent->id => ['relation' => $admission->relation]]);
             $admission->update(['status' => 'enrolled', 'student_id' => $student->id]);

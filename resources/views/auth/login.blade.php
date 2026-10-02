@@ -40,6 +40,7 @@
             <h1 class="h3 fw-bold mb-1">เข้าสู่ระบบ</h1>
             <p class="text-muted mb-4">ครู บุคลากร และผู้ปกครอง ใช้หน้านี้เข้าระบบ</p>
 
+            @if (session('success'))<div class="alert alert-success small">{{ session('success') }}</div>@endif
             <form method="POST" action="{{ route('login') }}">
                 @csrf
                 <div class="mb-3">
@@ -58,9 +59,12 @@
                         <button type="button" class="btn btn-outline-secondary" onclick="const p=document.getElementById('password');p.type=p.type==='password'?'text':'password';this.innerHTML=p.type==='password'?'<i class=\'bi bi-eye\'></i>':'<i class=\'bi bi-eye-slash\'></i>'"><i class="bi bi-eye"></i></button>
                     </div>
                 </div>
-                <div class="form-check mb-4">
-                    <input class="form-check-input" type="checkbox" name="remember" id="remember" checked>
-                    <label class="form-check-label" for="remember">จดจำการเข้าสู่ระบบ</label>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="form-check mb-0">
+                        <input class="form-check-input" type="checkbox" name="remember" id="remember" checked>
+                        <label class="form-check-label" for="remember">จดจำการเข้าสู่ระบบ</label>
+                    </div>
+                    <a href="{{ route('password.forgot') }}" class="small">ลืมรหัสผ่าน?</a>
                 </div>
                 <button class="btn btn-primary btn-lg w-100">เข้าสู่ระบบ</button>
             </form>
@@ -68,7 +72,7 @@
             @if (\App\Support\AdmissionForm::isOpen())
                 <a href="{{ route('apply') }}" class="btn btn-soft w-100 mt-3"><i class="bi bi-person-plus"></i> สมัครเรียนออนไลน์</a>
             @endif
-            <p class="text-muted small mt-4 mb-0"><i class="bi bi-info-circle"></i> ผู้ปกครอง: ใช้เบอร์โทรที่ให้ไว้กับโรงเรียน รหัสผ่านเริ่มต้นคือ 6 หลักท้ายของเบอร์โทร</p>
+            <p class="text-muted small mt-4 mb-0"><i class="bi bi-info-circle"></i> ผู้ปกครอง: ใช้เบอร์โทรที่ให้ไว้กับโรงเรียน รหัสผ่านเริ่มต้นคือ 6 หลักท้ายของเบอร์โทร (เข้าครั้งแรกระบบจะให้ตั้งรหัสใหม่)</p>
         </div>
     </div>
 </div>

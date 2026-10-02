@@ -74,7 +74,7 @@ class StudentAccountController extends Controller
         $password = self::password();
         $user = $student->user;
         if ($user) {
-            $user->update(['password' => Hash::make($password), 'is_active' => true]);
+            $user->update(['password' => Hash::make($password), 'is_active' => true, 'must_change_password' => true]);
         } else {
             $username = $student->student_code;
             if (User::where('username', $username)->exists()) {
@@ -86,6 +86,7 @@ class StudentAccountController extends Controller
                 'role' => 'student',
                 'is_active' => true,
                 'password' => Hash::make($password),
+                'must_change_password' => true,
             ]);
             $student->update(['user_id' => $user->id]);
         }

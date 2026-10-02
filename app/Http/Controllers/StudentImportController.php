@@ -130,7 +130,7 @@ class StudentImportController extends Controller
                 if ($phone !== '') {
                     $parent = User::firstOrCreate(
                         ['phone' => $phone, 'role' => 'parent'],
-                        ['name' => $get('guardian_name') ?: 'ผู้ปกครอง '.$first, 'username' => $phone, 'password' => Hash::make(substr($phone, -6))]
+                        ['name' => $get('guardian_name') ?: 'ผู้ปกครอง '.$first, 'username' => $phone, 'password' => Hash::make(substr($phone, -6)), 'must_change_password' => true]
                     );
                     if ($parent->wasRecentlyCreated) {
                         $result['guardians']++;

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -10,3 +11,12 @@ Artisan::command('inspire', function () {
 
 // สำรองฐานข้อมูลทุกวันตอนตี 2 (ต้องรัน `php artisan schedule:run` ทุกนาทีผ่าน cron/Task Scheduler จึงจะทำงาน — ดู README)
 Schedule::command('backup:database')->dailyAt('02:00')->withoutOverlapping();
+// สำรองไฟล์ที่อัปโหลด (รูป สลิป ใบรับรองแพทย์ ภาพกระดาษคำตอบ) ตามหลังฐานข้อมูล
+Schedule::command('backup:files')->dailyAt('02:15')->withoutOverlapping();
+
+// ให้บัญชีที่ยังใช้รหัสผ่านเริ่มต้นต้องตั้งรหัสใหม่ตอนเข้าระบบครั้งถัดไป (ใช้ตอนเริ่มเปิดระบบบังคับเปลี่ยนรหัส)
+Artisan::command('users:require-password-change {--role=* : เฉพาะบทบาท เช่น parent student (เว้นว่าง = ทุกบัญชี)}', function () {
+    $roles = $this->option('role');
+    $count = User::query()->when($roles, fn ($q) => $q->whereIn('role', $roles))->update(['must_change_password' => true]);
+    $this->info("ตั้งให้ {$count} บัญชีต้องเปลี่ยนรหัสผ่านเมื่อเข้าระบบครั้งถัดไป");
+})->purpose('บังคับให้บัญชีตั้งรหัสผ่านใหม่ตอนเข้าระบบครั้งถัดไป');

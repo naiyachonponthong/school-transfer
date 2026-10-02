@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Auth\PasswordController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
@@ -21,22 +23,24 @@ class ProfileController extends Controller
             'email' => ['nullable', 'email', Rule::unique('users')->ignore($user->id)],
             'phone' => ['nullable', 'string', 'max:20'],
             'current_password' => ['nullable', 'required_with:password', 'current_password'],
-            'password' => ['nullable', 'string', 'min:6', 'confirmed'],
+            'password' => array_merge(['nullable'], array_slice(PasswordController::rules($user), 1)),
             'avatar' => ['nullable', 'image', 'max:4096'],
         ], [
             'current_password.current_password' => 'รหัสผ่านเดิมไม่ถูกต้อง',
+            ...PasswordController::messages(),
         ]);
 
         // ชื่อนักเรียนมาจากทะเบียนนักเรียน แก้เองไม่ได้
         $user->fill(collect($data)->only($user->isStudent() ? ['email', 'phone'] : ['name', 'email', 'phone'])->all());
         if ($request->hasFile('avatar')) {
             if ($user->avatar) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($user->avatar);
+                Storage::disk('public')->delete($user->avatar);
             }
             $user->avatar = $request->file('avatar')->store('avatars', 'public');
         }
         if (! empty($data['password'])) {
             $user->password = Hash::make($data['password']);
+            $user->must_change_password = false;
         }
         $user->save();
 

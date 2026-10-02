@@ -6,7 +6,9 @@ use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\ApplyController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuditController;
+use App\Http\Controllers\BackupController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\BehaviorController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\CertificateController;
@@ -69,10 +71,17 @@ Route::post('/line/webhook', [LineController::class, 'webhook'])->name('line.web
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'show'])->name('login');
     Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:10,1');
+    // ลืมรหัสผ่าน: ส่งรหัสยืนยันทาง LINE
+    Route::get('/forgot-password', [PasswordController::class, 'showForgot'])->name('password.forgot');
+    Route::post('/forgot-password', [PasswordController::class, 'sendCode'])->name('password.forgot.send')->middleware('throttle:5,1');
+    Route::get('/reset-password', [PasswordController::class, 'showReset'])->name('password.reset');
+    Route::post('/reset-password', [PasswordController::class, 'reset'])->name('password.reset.save')->middleware('throttle:10,1');
 });
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+    Route::get('/password/change', [PasswordController::class, 'showChange'])->name('password.change');
+    Route::post('/password/change', [PasswordController::class, 'change'])->name('password.change.save');
     Route::get('/', [DashboardController::class, 'index'])->name('home');
 
     Route::get('/menu', [MenuController::class, 'index'])->name('menu');
@@ -282,6 +291,9 @@ Route::middleware('auth')->group(function () {
         Route::resource('subjects', SubjectController::class)->only(['index', 'store', 'update', 'destroy']);
 
         Route::get('/audit', [AuditController::class, 'index'])->name('audit.index');
+        Route::get('/backups', [BackupController::class, 'index'])->name('backups.index');
+        Route::post('/backups', [BackupController::class, 'run'])->name('backups.run');
+        Route::get('/backups/{name}', [BackupController::class, 'download'])->name('backups.download')->where('name', '[A-Za-z0-9._-]+');
 
         // ปพ.7 ใบรับรองผลการศึกษา + ทะเบียนคุม
         Route::get('/certificates', [CertificateController::class, 'index'])->name('certificates.index');

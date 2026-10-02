@@ -36,6 +36,7 @@ class UserController extends Controller
         $data = $this->validated($request);
         $password = $data['password'] ?: Str::lower(Str::random(8));
         $data['password'] = Hash::make($password);
+        $data['must_change_password'] = true;
         $user = User::create($data);
 
         return redirect()->route('users.index', ['role' => $user->role])
@@ -55,6 +56,8 @@ class UserController extends Controller
         $data = $this->validated($request, $user);
         if ($data['password']) {
             $data['password'] = Hash::make($data['password']);
+            // ผู้ดูแลตั้งรหัสให้คนอื่น → เจ้าของบัญชีต้องตั้งใหม่เอง
+            $data['must_change_password'] = $user->id !== $request->user()->id;
         } else {
             unset($data['password']);
         }
@@ -88,7 +91,7 @@ class UserController extends Controller
     public function resetPassword(User $user)
     {
         $password = $user->isParent() && $user->phone ? substr($user->phone, -6) : Str::lower(Str::random(8));
-        $user->update(['password' => Hash::make($password)]);
+        $user->update(['password' => Hash::make($password), 'must_change_password' => true]);
         Audit::log('user.reset_password', $user, "รีเซ็ตรหัสผ่าน {$user->username} ({$user->name})");
 
         return back()->with('credential', ['username' => $user->username, 'password' => $password])

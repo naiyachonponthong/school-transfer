@@ -72,6 +72,7 @@ class Menu
                 self::item('subjects', 'รายวิชา', 'bi-book', route('subjects.index'), 'slate', 0, ['subjects.*']),
                 self::item('terms', 'ปีการศึกษา', 'bi-calendar-range', route('terms.index'), 'slate', 0, ['terms.*']),
                 self::item('staff', 'เวลาทำงานครู', 'bi-person-check', route('staff-attendance.report'), 'slate', 0, ['staff-attendance.*']),
+                self::item('backups', 'สำรองข้อมูล', 'bi-archive', route('backups.index'), 'slate', 0, ['backups.*']),
                 self::item('audit', 'ประวัติการแก้ไข', 'bi-clock-history', route('audit.index'), 'slate', 0, ['audit.*']),
                 self::item('settings', 'ตั้งค่า', 'bi-gear', route('settings'), 'slate', 0, ['settings*']),
             ];

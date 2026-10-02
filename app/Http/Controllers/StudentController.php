@@ -204,6 +204,7 @@ class StudentController extends Controller
                 'phone' => $phone ?: null,
                 'role' => 'parent',
                 'password' => Hash::make($password),
+                'must_change_password' => true,
             ]);
             $this->newCredential = ['username' => $username, 'password' => $password];
         }

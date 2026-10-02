@@ -21,7 +21,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name', 'username', 'email', 'phone', 'role', 'position', 'is_active', 'password', 'last_login_at',
-        'avatar', 'notifications_seen_at', 'line_user_id', 'line_link_code', 'line_linked_at',
+        'avatar', 'notifications_seen_at', 'line_user_id', 'line_link_code', 'line_linked_at', 'must_change_password',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -31,6 +31,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'must_change_password' => 'boolean',
             'notifications_seen_at' => 'datetime',
             'line_linked_at' => 'datetime',
             'is_active' => 'boolean',
