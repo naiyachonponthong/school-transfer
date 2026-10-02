@@ -50,6 +50,12 @@ class Menu
                 self::item('report', 'รายงาน / ปพ.', 'bi-file-earmark-text', route('reports.index'), 'teal', 0, ['reports.*', 'attendance.report']),
                 self::item('cards', 'บัตรนักเรียน', 'bi-person-vcard', route('students.cards'), 'teal', 0, ['students.cards']),
             ],
+            'บริหารทั่วไป' => array_values(array_filter([
+                self::item('repairs', 'แจ้งซ่อม', 'bi-tools', route('repairs.index'), 'teal',
+                    $user->canManageFacilities() ? \App\Models\RepairRequest::where('status', 'pending')->count() : 0, ['repairs.*']),
+                $user->canManageFacilities() ? self::item('assets', 'ครุภัณฑ์', 'bi-box-seam', route('assets.index'), 'teal', 0, ['assets.*']) : null,
+                $user->canManageFacilities() ? self::item('assetcheck', 'ตรวจสอบพัสดุ', 'bi-clipboard-check', route('asset-checks.index'), 'teal', 0, ['asset-checks.*']) : null,
+            ])),
             'บุคลากร' => [
                 self::item('checkin', 'ลงเวลา', 'bi-fingerprint', route('checkin'), 'primary', 0, ['checkin']),
                 self::item('staffleave', 'ลางาน', 'bi-briefcase', route('staff-leaves.index'), 'primary', $staffLeaves, ['staff-leaves.*']),
@@ -123,7 +129,7 @@ class Menu
         $keys = match (true) {
             $user->isParent() => ['leave', 'homework', 'grades', 'attendance', 'chat', 'fees', 'portfolio', 'calendar'],
             $user->isStudent() => ['homework', 'grades', 'timetable', 'attendance', 'behavior', 'portfolio', 'transcript', 'calendar'],
-            default => ['attendance', 'period', 'gate', 'leaves', 'homework', 'courses', 'exams', 'chat', 'students', 'behavior', 'mytimetable', 'health', 'calendar', 'staffleave', 'surveys', 'library', 'report'],
+            default => ['attendance', 'period', 'gate', 'leaves', 'homework', 'courses', 'exams', 'chat', 'students', 'behavior', 'mytimetable', 'health', 'calendar', 'staffleave', 'repairs', 'surveys', 'library', 'report'],
         };
 
         return collect($keys)->filter(fn ($k) => isset($all[$k]))->map(fn ($k) => $all[$k])->values()->all();

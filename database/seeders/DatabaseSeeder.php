@@ -570,6 +570,48 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
+        // ---------- ครุภัณฑ์ + แจ้งซ่อม (ครูประยุทธ = งานอาคารสถานที่) ----------
+        $facility = $teachers[7];
+        Settings::set(['facility_manager_ids' => (string) $facility->id]);
+        $assetTpl = [
+            ['7440-001-%04d', 'เครื่องคอมพิวเตอร์ตั้งโต๊ะ', 'ครุภัณฑ์คอมพิวเตอร์', 'Dell OptiPlex 3000', 18500, 'ห้องคอมพิวเตอร์ 1', 6],
+            ['7440-007-%04d', 'เครื่องพิมพ์เลเซอร์', 'ครุภัณฑ์คอมพิวเตอร์', 'Brother HL-L2370DN', 6900, 'ห้องธุรการ', 1],
+            ['4110-001-%04d', 'เครื่องปรับอากาศ 24,000 BTU', 'ครุภัณฑ์งานบ้านงานครัว', 'Daikin FTKC24', 32000, 'ห้องประชุม', 2],
+            ['5820-005-%04d', 'เครื่องฉายภาพ (โปรเจกเตอร์)', 'ครุภัณฑ์โฆษณาและเผยแพร่', 'Epson EB-X51', 15900, 'ห้อง ม.1/1', 1],
+            ['7110-006-%04d', 'โต๊ะทำงานครู', 'ครุภัณฑ์สำนักงาน', 'ไม้ ขนาด 120 ซม.', 3500, 'ห้องพักครู', 4],
+        ];
+        $assets = collect();
+        $no = 1;
+        foreach ($assetTpl as [$codeFmt, $aname, $cat, $brand, $price, $loc, $qty]) {
+            for ($i = 0; $i < $qty; $i++) {
+                $assets->push(\App\Models\Asset::create([
+                    'code' => sprintf($codeFmt, $no++), 'name' => $aname, 'category' => $cat, 'brand' => $brand, 'price' => $price,
+                    'acquired_on' => now()->subYears(mt_rand(0, 4))->subDays(mt_rand(0, 300))->toDateString(), 'budget_source' => 'เงินอุดหนุน',
+                    'location' => $loc, 'responsible_id' => $facility->id, 'status' => 'normal',
+                ]));
+            }
+        }
+        $aircon = $assets->firstWhere('name', 'เครื่องปรับอากาศ 24,000 BTU');
+        $repairTpl = [
+            [$aircon, 'แอร์ไม่เย็น มีน้ำหยด', 'urgent', 'in_progress', $teacher, 1],
+            [$assets->firstWhere('name', 'เครื่องพิมพ์เลเซอร์'), 'เครื่องพิมพ์กระดาษติดบ่อย', 'normal', 'pending', $teachers[2], 0],
+            [null, 'หลอดไฟหน้าห้อง ม.2/1 ดับ 2 หลอด', 'normal', 'done', $teachers[3], 6],
+        ];
+        foreach ($repairTpl as $i => [$asset, $title, $priority, $status, $reporter, $daysAgo]) {
+            $r = \App\Models\RepairRequest::create([
+                'ticket_no' => 'R2569-'.str_pad((string) ($i + 1), 4, '0', STR_PAD_LEFT), 'asset_id' => $asset?->id, 'location' => $asset?->location ?? 'อาคาร 1 ชั้น 2',
+                'title' => $title, 'priority' => $priority, 'status' => $status, 'reporter_id' => $reporter->id,
+                'assignee_id' => $status === 'pending' ? null : $facility->id, 'cost' => $status === 'done' ? 240 : null,
+                'result_note' => $status === 'done' ? 'เปลี่ยนหลอด LED 2 หลอด' : null, 'finished_at' => $status === 'done' ? now()->subDays($daysAgo - 1) : null,
+            ]);
+            $r->forceFill(['created_at' => now()->subDays($daysAgo)])->save();
+            $r->updates()->create(['user_id' => $reporter->id, 'status' => 'pending', 'note' => 'แจ้งซ่อม']);
+            if ($status !== 'pending') {
+                $r->updates()->create(['user_id' => $facility->id, 'status' => $status, 'note' => $status === 'done' ? 'เปลี่ยนหลอดเรียบร้อย' : 'รับเรื่องแล้ว ช่างจะเข้าตรวจพรุ่งนี้']);
+            }
+        }
+        $aircon->update(['status' => 'repairing']);
+
         // ---------- ครูลงเวลา ----------
         $staffAll = $teachers->concat([$admin]);
         foreach ($days as $d) {

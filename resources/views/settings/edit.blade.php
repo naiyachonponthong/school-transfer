@@ -87,6 +87,15 @@
                 <div class="col-md-4"><label class="form-label">ระยะยืมหนังสือ (วันทำการ)</label><input type="number" name="library_loan_days" value="{{ $settings['library_loan_days'] }}" class="form-control"></div>
                 <div class="col-md-8 d-flex align-items-end"><a href="{{ route('admissions.form') }}" class="btn btn-light border"><i class="bi bi-ui-checks"></i> เปิด/ปิดรับสมัคร ชั้นที่รับ และคำถามในฟอร์ม → ตั้งค่าฟอร์มรับสมัคร</a></div>
             </div>
+            <div class="card-header border-top" id="facility"><i class="bi bi-tools"></i> งานพัสดุ / อาคารสถานที่</div>
+            <div class="card-body">
+                <label class="form-label">ครูที่จัดการครุภัณฑ์ ตรวจสอบพัสดุ และรับเรื่องแจ้งซ่อมได้ (นอกจากผู้ดูแลระบบ)</label>
+                @php($managers = \App\Models\User::facilityManagerIds())
+                <select name="facility_manager_ids[]" class="form-select" multiple size="5">
+                    @foreach ($staff as $u)<option value="{{ $u->id }}" @selected(in_array($u->id, $managers, true))>{{ $u->name }}{{ $u->position ? ' · '.$u->position : '' }}</option>@endforeach
+                </select>
+                <div class="form-text">กด Ctrl ค้างเพื่อเลือกหลายคน · คนที่เลือกจะได้รับแจ้งเตือน LINE เมื่อมีการแจ้งซ่อมใหม่</div>
+            </div>
             <div class="card-footer bg-transparent"><button class="btn btn-primary"><i class="bi bi-save"></i> บันทึก</button></div>
         </form>
     </div>

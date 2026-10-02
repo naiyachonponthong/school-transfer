@@ -2,9 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\Student;
 use App\Models\User;
-use App\Support\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -30,9 +28,21 @@ class ProductionReadinessTest extends TestCase
         $this->assertFalse(User::where('username', 'z')->exists());
     }
 
-    public function test_backup_command_declines_on_non_mysql_connection(): void
+    public function test_backup_command_declines_when_there_is_no_database_file(): void
     {
-        // การทดสอบใช้ sqlite เสมอ (phpunit.xml) จึงต้องปฏิเสธอย่างปลอดภัย ไม่ error
+        // การทดสอบใช้ sqlite :memory: (phpunit.xml) ไม่มีไฟล์ให้สำรอง จึงต้องปฏิเสธอย่างปลอดภัย ไม่ error
         $this->artisan('backup:database')->assertFailed();
+    }
+
+    /** URL ของหน้าเว็บต้องไม่ขึ้นต้นด้วยชื่อโฟลเดอร์ใน public/ (เช่น /assets) ไม่งั้นเว็บเซิร์ฟเวอร์จะเสิร์ฟโฟลเดอร์แทนหน้าเว็บ */
+    public function test_no_route_collides_with_a_public_directory(): void
+    {
+        $dirs = array_map('basename', glob(public_path('*'), GLOB_ONLYDIR));
+        $clashes = collect(app('router')->getRoutes()->getRoutes())
+            ->filter(fn ($r) => str_starts_with($r->getActionName(), 'App\\')) // route storage/{path} ของ Laravel เองตั้งใจให้ตรงกับ public/storage
+            ->map(fn ($r) => $r->uri())
+            ->filter(fn ($uri) => in_array(strtok($uri, '/'), $dirs, true))
+            ->values()->all();
+        $this->assertSame([], $clashes, 'route ชนกับโฟลเดอร์ใน public/');
     }
 }

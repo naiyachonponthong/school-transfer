@@ -65,6 +65,18 @@ class User extends Authenticatable
         return $this->hasOne(Student::class);
     }
 
+    /** งานพัสดุ/อาคารสถานที่: จัดการครุภัณฑ์ ตรวจสอบพัสดุ รับเรื่องแจ้งซ่อม (ผู้ดูแลระบบ + ครูที่ตั้งไว้ในหน้าตั้งค่า) */
+    public function canManageFacilities(): bool
+    {
+        return $this->isAdmin() || ($this->isStaff() && in_array($this->id, self::facilityManagerIds(), true));
+    }
+
+    /** @return list<int> */
+    public static function facilityManagerIds(): array
+    {
+        return array_values(array_filter(array_map('intval', explode(',', (string) \App\Support\Settings::get('facility_manager_ids')))));
+    }
+
     public function isStaff(): bool
     {
         return in_array($this->role, ['admin', 'teacher'], true);

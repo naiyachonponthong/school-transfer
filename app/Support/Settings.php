@@ -19,6 +19,7 @@ class Settings
         'academic_deputy_name' => '',  // รองผู้อำนวยการฝ่ายวิชาการ (ลงนาม ปพ.5)
         'measurement_head_name' => '', // หัวหน้างานวัดผล (ลงนาม ปพ.5)
         'registrar_name' => '',        // นายทะเบียน (ลงนาม ปพ.1 / ปพ.7)
+        'facility_manager_ids' => '',  // ครูงานพัสดุ/อาคารสถานที่ (id คั่นด้วย ,)
         'late_time' => '08:00',        // หลังเวลานี้ถือว่าสาย
         'staff_late_time' => '08:00',
         'periods_per_day' => '7',

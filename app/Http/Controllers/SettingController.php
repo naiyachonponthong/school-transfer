@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BehaviorRule;
+use App\Models\User;
 use App\Support\Audit;
 use App\Support\Settings;
 use Illuminate\Http\Request;
@@ -13,12 +14,17 @@ class SettingController extends Controller
     {
         return view('settings.edit', [
             'settings' => Settings::all(),
+            'staff' => User::whereIn('role', ['teacher'])->where('is_active', true)->orderBy('name')->get(),
             'rules' => BehaviorRule::orderByDesc('points')->get(),
         ]);
     }
 
     public function update(Request $request)
     {
+        // ฟอร์มส่งเป็นรายการ (multi-select) · รองรับค่าเดิมที่เก็บเป็นข้อความคั่นด้วย , ด้วย
+        if (is_string($request->input('facility_manager_ids'))) {
+            $request->merge(['facility_manager_ids' => array_filter(explode(',', $request->input('facility_manager_ids')))]);
+        }
         $data = $request->validate([
             'school_name' => ['required', 'string', 'max:255'],
             'school_short' => ['nullable', 'string', 'max:100'],
@@ -46,8 +52,11 @@ class SettingController extends Controller
             'school_lng' => ['nullable', 'numeric', 'between:-180,180'],
             'gps_radius' => ['nullable', 'integer', 'min:30', 'max:5000'],
             'library_loan_days' => ['nullable', 'integer', 'min:1', 'max:60'],
+            'facility_manager_ids' => ['nullable', 'array'],
+            'facility_manager_ids.*' => ['integer', 'exists:users,id'],
         ], ['theme_color.regex' => 'รหัสสีต้องเป็นรูปแบบ #RRGGBB']);
         $data['theme_color'] = strtoupper($data['theme_color']);
+        $data['facility_manager_ids'] = implode(',', $data['facility_manager_ids'] ?? []);
         foreach (['line_notify_gate', 'line_notify_absent', 'gps_required'] as $flag) {
             $data[$flag] = $request->boolean($flag) ? '1' : '0';
         }

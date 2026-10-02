@@ -3,6 +3,8 @@
 use App\Http\Controllers\AdmissionController;
 use App\Http\Controllers\AdmissionFormController;
 use App\Http\Controllers\AnnouncementController;
+use App\Http\Controllers\AssetCheckController;
+use App\Http\Controllers\AssetController;
 use App\Http\Controllers\ApplyController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuditController;
@@ -36,6 +38,7 @@ use App\Http\Controllers\PeriodAttendanceController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportCardController;
+use App\Http\Controllers\RepairController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SettingController;
@@ -211,6 +214,26 @@ Route::middleware('auth')->group(function () {
         Route::delete('/assessments/{assessment}', [GradebookController::class, 'destroyAssessment'])->name('assessments.destroy');
         Route::get('/courses/{course}/export', [GradebookController::class, 'export'])->name('gradebook.export');
         Route::get('/courses/{course}/pp5', [GradebookController::class, 'pp5'])->name('gradebook.pp5');
+
+        // แจ้งซ่อม (ครูทุกคนแจ้งได้ · งานอาคารสถานที่จัดการ)
+        Route::get('/repairs', [RepairController::class, 'index'])->name('repairs.index');
+        Route::get('/repairs/create', [RepairController::class, 'create'])->name('repairs.create');
+        Route::post('/repairs', [RepairController::class, 'store'])->name('repairs.store');
+        Route::get('/repairs/report', [RepairController::class, 'report'])->name('repairs.report');
+        Route::get('/repairs/{repair}', [RepairController::class, 'show'])->name('repairs.show');
+        Route::put('/repairs/{repair}', [RepairController::class, 'update'])->name('repairs.update');
+        Route::post('/repairs/{repair}/cancel', [RepairController::class, 'cancel'])->name('repairs.cancel');
+
+        // ครุภัณฑ์ + ตรวจสอบพัสดุประจำปี (งานพัสดุ) · QR บนสติกเกอร์เปิด /a/{token}
+        // ใช้ /inventory ไม่ใช่ /assets เพราะชนกับโฟลเดอร์ public/assets (เว็บเซิร์ฟเวอร์จะเสิร์ฟโฟลเดอร์แทนหน้าเว็บ)
+        Route::get('/a/{token}', [AssetController::class, 'go'])->name('assets.go')->where('token', '[A-Za-z0-9]+');
+        Route::get('/inventory/labels', [AssetController::class, 'labels'])->name('assets.labels');
+        Route::get('/inventory/import', [AssetController::class, 'importForm'])->name('assets.import');
+        Route::post('/inventory/import', [AssetController::class, 'import'])->name('assets.import.store');
+        Route::get('/asset-checks', [AssetCheckController::class, 'index'])->name('asset-checks.index');
+        Route::get('/asset-checks/scan', [AssetCheckController::class, 'scan'])->name('asset-checks.scan');
+        Route::post('/asset-checks', [AssetCheckController::class, 'record'])->name('asset-checks.record');
+        Route::resource('inventory', AssetController::class)->names('assets')->parameters(['inventory' => 'asset']);
 
         // คุณลักษณะอันพึงประสงค์ + อ่าน คิดวิเคราะห์ และเขียน (ครูประจำชั้น)
         Route::get('/evaluations', [EvaluationController::class, 'index'])->name('evaluations.index');
