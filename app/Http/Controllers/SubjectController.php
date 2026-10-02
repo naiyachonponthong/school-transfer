@@ -41,12 +41,19 @@ class SubjectController extends Controller
 
     private function validated(Request $request, ?Subject $subject = null): array
     {
-        return $request->validate([
+        $data = $request->validate([
             'code' => ['required', 'string', 'max:20', Rule::unique('subjects')->ignore($subject?->id)],
             'name' => ['required', 'string', 'max:255'],
             'credit' => ['required', 'numeric', 'min:0', 'max:10'],
+            'hours' => ['nullable', 'integer', 'min:0', 'max:1000'],
             'type' => ['required', Rule::in(array_keys(Subject::TYPES))],
+            'activity_kind' => ['nullable', 'required_if:type,activity', Rule::in(array_keys(Subject::ACTIVITY_KINDS))],
             'group' => ['nullable', 'string', 'max:100'],
-        ], [], ['code' => 'รหัสวิชา']);
+        ], [], ['code' => 'รหัสวิชา', 'hours' => 'เวลาเรียน', 'activity_kind' => 'ประเภทกิจกรรม']);
+        if ($data['type'] !== 'activity') {
+            $data['activity_kind'] = null;
+        }
+
+        return $data;
     }
 }

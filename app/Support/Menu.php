@@ -40,6 +40,7 @@ class Menu
                 // ตัวเลขบนเมนู = แผ่นรอตรวจทาน
                 self::item('exams', 'ตรวจข้อสอบ', 'bi-ui-checks-grid', route('exams.index'), 'primary',
                     \App\Models\ExamResponse::where('status', 'review')->whereHas('exam', fn ($q) => $q->managedBy($user))->count(), ['exams.*']),
+                self::item('evaluations', 'คุณลักษณะ / อ่านคิดเขียน', 'bi-stars', route('evaluations.index'), 'primary', 0, ['evaluations.*']),
                 self::item('timetable', 'ตารางเรียน', 'bi-calendar3-week', route('timetable.index'), 'primary', 0, ['timetable.index']),
                 self::item('mytimetable', 'ตารางสอน', 'bi-calendar-check', route('timetable.mine'), 'primary', 0, ['timetable.mine']),
                 self::item('calendar', 'ปฏิทินโรงเรียน', 'bi-calendar-event', route('calendar'), 'blue', 0, ['calendar']),

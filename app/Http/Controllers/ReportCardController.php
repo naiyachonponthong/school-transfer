@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Student;
+use App\Models\StudentEvaluation;
 use App\Models\Term;
 use App\Support\Grade;
 use Illuminate\Http\Request;
@@ -29,8 +30,10 @@ class ReportCardController extends Controller
             'grades' => $grades,
             'gpa' => Grade::gpa($grades->map(fn ($g) => ['grade' => $g['grade'], 'credit' => (float) $g['course']->subject->credit])),
             'credits' => $grades->sum(fn ($g) => (float) $g['course']->subject->credit),
+            'earned' => $grades->filter(fn ($g) => Grade::passed($g['grade']))->sum(fn ($g) => (float) $g['course']->subject->credit),
             'attendance' => $attendance,
             'behavior' => $student->behaviorScore(),
+            'evaluation' => $term ? StudentEvaluation::where(['term_id' => $term->id, 'student_id' => $student->id])->first() : null,
         ]);
     }
 }

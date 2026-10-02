@@ -4,10 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\Assessment;
 use App\Models\Course;
+use App\Models\CourseResult;
 use App\Models\PeriodAttendance;
 use App\Models\Score;
+use App\Models\Student;
+use App\Support\Grade;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class GradebookController extends Controller
 {
@@ -33,8 +38,12 @@ class GradebookController extends Controller
         $distribution = collect($results)->pluck('grade')->filter(fn ($g) => $g !== null)->countBy();
         // เวลาเรียนรายวิชา (จากเช็คชื่อรายคาบ) — ครูเห็นคนที่ต้องได้ มส. ขณะกรอกคะแนน
         $attendance = PeriodAttendance::summaryFor($course);
+        // คนที่เวลาเรียนไม่ถึงเกณฑ์แต่ยังไม่ได้ตั้ง มส./มผ.
+        $pendingMs = $students->filter(fn ($s) => ($attendance[$s->id]['ms'] ?? false) && ($results[$s->id]['special'] ?? null) === null)->count();
 
-        return view('courses.gradebook', compact('course', 'students', 'scores', 'results', 'distribution', 'attendance'));
+        $outcomes = CourseResult::where('course_id', $course->id)->get()->keyBy('student_id');
+
+        return view('courses.gradebook', compact('course', 'students', 'scores', 'results', 'distribution', 'attendance', 'pendingMs', 'outcomes'));
     }
 
     public function save(Request $request, Course $course)
@@ -89,6 +98,82 @@ class GradebookController extends Controller
         return back()->with('success', $msg);
     }
 
+    /**
+     * บันทึกผลพิเศษ (ร/มส/มผ) และผลการแก้ตัวของนักเรียนหนึ่งคน
+     * ผลพิเศษแก้ได้เฉพาะตอนยังไม่ล็อก (ผู้ดูแลแก้ได้เสมอ) · ผลแก้ตัวบันทึกได้แม้ล็อกแล้ว เพราะการแก้ตัวทำหลังประกาศผล
+     */
+    public function saveOutcome(Request $request, Course $course, Student $student)
+    {
+        $this->authorizeCourse($request, $course);
+        $course->load(['subject', 'assessments']);
+        $inCourse = $student->classroom_id === $course->classroom_id
+            || Score::where('student_id', $student->id)->whereIn('assessment_id', $course->assessments->pluck('id'))->exists()
+            || CourseResult::where(['course_id' => $course->id, 'student_id' => $student->id])->exists();
+        abort_unless($inCourse, 404);
+
+        $activity = $course->isActivity();
+        $data = $request->validate([
+            'special' => ['nullable', Rule::in(array_keys(Grade::specialOptions($activity)))],
+            'remedial_grade' => ['nullable', 'string', 'max:4'],
+            'remedied_on' => ['nullable', 'date'],
+            'note' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $existing = CourseResult::where(['course_id' => $course->id, 'student_id' => $student->id])->first();
+        $special = $data['special'] ?? null;
+        if ($course->locked && ! $request->user()->isAdmin()) {
+            abort_if($request->has('special') && $special !== $existing?->special, 403, 'รายวิชานี้ล็อกแล้ว เปลี่ยน ร/มส ได้เฉพาะฝ่ายวิชาการ (บันทึกผลแก้ตัวได้)');
+            $special = $existing?->special;
+        }
+
+        $remedial = $data['remedial_grade'] ?? null;
+        if ($remedial !== null) {
+            $original = $special ?? ($course->results()[$student->id]['computed'] ?? null);
+            $allowed = Grade::remedialOptions($original);
+            if (! in_array($remedial, $allowed, true)) {
+                throw ValidationException::withMessages(['remedial_grade' => $allowed
+                    ? 'ผล '.$original.' แก้ตัวได้เป็น '.implode(', ', $allowed).' เท่านั้น'
+                    : 'ผล '.($original ?? '-').' ไม่ต้องแก้ตัว (แก้ตัวได้เฉพาะ 0, ร, มส, มผ)']);
+            }
+        }
+
+        if ($special === null && $remedial === null && blank($data['note'] ?? null)) {
+            $existing?->delete();
+        } else {
+            CourseResult::updateOrCreate(['course_id' => $course->id, 'student_id' => $student->id], [
+                'special' => $special,
+                'remedial_grade' => $remedial,
+                'remedied_on' => $remedial !== null ? ($data['remedied_on'] ?? $existing?->remedied_on ?? today()) : null,
+                'note' => $data['note'] ?? null,
+                'recorded_by' => $request->user()->id,
+            ]);
+        }
+
+        return back()->with('success', "บันทึกผลของ {$student->fullName()} แล้ว");
+    }
+
+    /** ตั้ง มส. (กิจกรรม = มผ.) ให้ทุกคนที่เวลาเรียนรายวิชาไม่ถึงเกณฑ์ */
+    public function applyMs(Request $request, Course $course)
+    {
+        $this->authorizeCourse($request, $course, true);
+        $course->load('subject');
+        $special = $course->isActivity() ? 'มผ' : 'มส';
+        $count = 0;
+        foreach (PeriodAttendance::summaryFor($course) as $studentId => $row) {
+            if (! $row['ms'] || ! $course->classroom->students()->whereKey($studentId)->exists()) {
+                continue;
+            }
+            $result = CourseResult::firstOrNew(['course_id' => $course->id, 'student_id' => $studentId]);
+            if ($result->special !== null) {
+                continue;
+            }
+            $result->fill(['special' => $special, 'recorded_by' => $request->user()->id])->save();
+            $count++;
+        }
+
+        return back()->with('success', "ตั้ง {$special}. ให้ {$count} คนที่เวลาเรียนไม่ถึงร้อยละ ".PeriodAttendance::MIN_PERCENT);
+    }
+
     public function storeAssessment(Request $request, Course $course)
     {
         $this->authorizeCourse($request, $course, true);
@@ -140,14 +225,16 @@ class GradebookController extends Controller
             foreach ($course->assessments as $a) {
                 $head[] = "{$a->name} ({$a->max_score})";
             }
-            fputcsv($out, array_merge($head, ['รวม ('.$course->maxTotal().')', 'เกรด']));
+            fputcsv($out, array_merge($head, ['รวม ('.$course->maxTotal().')', 'ผลการเรียน', 'ผลก่อนแก้ตัว']));
             foreach ($students as $s) {
                 $row = [$s->number, $s->student_code, $s->fullName()];
                 foreach ($course->assessments as $a) {
                     $row[] = $scores[$s->id][$a->id] ?? '';
                 }
-                $row[] = $results[$s->id]['total'] ?? '';
-                $row[] = $results[$s->id]['grade'] ?? '';
+                $r = $results[$s->id] ?? [];
+                $row[] = $r['total'] ?? '';
+                $row[] = $r['grade'] ?? '';
+                $row[] = ($r['remedial'] ?? null) !== null ? $r['original'] : '';
                 fputcsv($out, $row);
             }
             fclose($out);

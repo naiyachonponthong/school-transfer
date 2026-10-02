@@ -68,7 +68,20 @@
                             <dt class="col-sm-4 text-muted fw-normal">กรุ๊ปเลือด</dt><dd class="col-sm-8">{{ $student->blood_type ?: '-' }}</dd>
                             <dt class="col-sm-4 text-muted fw-normal">เบอร์โทร</dt><dd class="col-sm-8">{{ $student->phone ?: '-' }}</dd>
                             <dt class="col-sm-4 text-muted fw-normal">ที่อยู่</dt><dd class="col-sm-8">{{ $student->address ?: '-' }}</dd>
-                            <dt class="col-sm-4 text-muted fw-normal">ครูประจำชั้น</dt><dd class="col-sm-8 mb-0">{{ $student->classroom?->homeroomTeacher?->name ?? '-' }}</dd>
+                            <dt class="col-sm-4 text-muted fw-normal">ครูประจำชั้น</dt><dd class="col-sm-8">{{ $student->classroom?->homeroomTeacher?->name ?? '-' }}</dd>
+                            @php
+                                $pp1 = array_filter([
+                                    'สัญชาติ / เชื้อชาติ / ศาสนา' => collect([$student->nationality, $student->ethnicity, $student->religion])->map(fn ($v) => $v ?: '-')->implode(' / '),
+                                    'บิดา' => $student->father_name,
+                                    'มารดา' => $student->mother_name,
+                                    'วันเข้าเรียน' => $student->admitted_on ? thai_date($student->admitted_on, true) : null,
+                                    'โรงเรียนเดิม' => collect([$student->previous_school, $student->previous_level, $student->previous_school_province ? 'จ.'.$student->previous_school_province : null])->filter()->implode(' · '),
+                                    'วันที่จบ/ออก' => $student->left_on ? thai_date($student->left_on, true).($student->leave_reason ? ' ('.$student->leave_reason.')' : '') : null,
+                                ], fn ($v) => $v !== null && $v !== '' && $v !== '- / - / -');
+                            @endphp
+                            @foreach ($pp1 as $label => $value)
+                                <dt class="col-sm-4 text-muted fw-normal">{{ $label }}</dt><dd class="col-sm-8">{{ $value }}</dd>
+                            @endforeach
                         </dl>
                     </div>
                 </div>
@@ -178,7 +191,7 @@
                             <td class="text-center">{{ $g['course']->subject->credit }}</td>
                             <td class="small">{{ $g['course']->teacher?->name ?? '-' }}</td>
                             <td class="text-center">{{ $g['total'] !== null ? $g['total'].' / '.$g['max'] : '-' }}</td>
-                            <td class="text-center">@if($g['grade'] !== null)<span class="grade-badge bg-{{ \App\Support\Grade::color($g['grade']) }}-subtle text-{{ \App\Support\Grade::color($g['grade']) }}-emphasis">{{ $g['grade'] }}</span>@else<span class="text-muted">-</span>@endif</td>
+                            <td class="text-center text-nowrap"><x-grade :grade="$g['grade']" :original="$g['original']" /></td>
                         </tr>
                     @empty
                         <tr><td colspan="6"><div class="empty"><i class="bi bi-journal"></i>ยังไม่มีรายวิชาในภาคเรียนนี้</div></td></tr>

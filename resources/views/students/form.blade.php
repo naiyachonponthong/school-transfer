@@ -83,6 +83,27 @@
                 </div>
             </div>
 
+            <div class="card mb-3">
+                <div class="card-header"><i class="bi bi-file-earmark-text"></i> ข้อมูลสำหรับ ปพ.1 <span class="small text-muted fw-normal">(ระเบียนแสดงผลการเรียน · กรอกทีหลังได้)</span></div>
+                <div class="card-body row g-3">
+                    <div class="col-md-4"><label class="form-label">สัญชาติ</label><input name="nationality" value="{{ old('nationality', $student->nationality) }}" class="form-control" list="nationalities"></div>
+                    <div class="col-md-4"><label class="form-label">เชื้อชาติ</label><input name="ethnicity" value="{{ old('ethnicity', $student->ethnicity) }}" class="form-control" list="nationalities"></div>
+                    <div class="col-md-4"><label class="form-label">ศาสนา</label><input name="religion" value="{{ old('religion', $student->religion) }}" class="form-control" list="religions"></div>
+                    <datalist id="nationalities"><option>ไทย</option></datalist>
+                    <datalist id="religions"><option>พุทธ</option><option>อิสลาม</option><option>คริสต์</option></datalist>
+                    <div class="col-md-6"><label class="form-label">ชื่อ-สกุลบิดา</label><input name="father_name" value="{{ old('father_name', $student->father_name) }}" class="form-control"></div>
+                    <div class="col-md-6"><label class="form-label">ชื่อ-สกุลมารดา</label><input name="mother_name" value="{{ old('mother_name', $student->mother_name) }}" class="form-control"></div>
+                    <div class="col-md-4"><label class="form-label">วันเข้าเรียน</label><input type="date" name="admitted_on" value="{{ old('admitted_on', $student->admitted_on?->toDateString()) }}" class="form-control"></div>
+                    <div class="col-md-8"><label class="form-label">โรงเรียนเดิม</label><input name="previous_school" value="{{ old('previous_school', $student->previous_school) }}" class="form-control"></div>
+                    <div class="col-md-6"><label class="form-label">จังหวัดของโรงเรียนเดิม</label><input name="previous_school_province" value="{{ old('previous_school_province', $student->previous_school_province) }}" class="form-control"></div>
+                    <div class="col-md-6"><label class="form-label">ชั้นเรียนสุดท้ายจากโรงเรียนเดิม</label><input name="previous_level" value="{{ old('previous_level', $student->previous_level) }}" class="form-control" list="levels" placeholder="เช่น ป.6"></div>
+                    <datalist id="levels">@foreach (\App\Models\Classroom::LEVELS as $l)<option>{{ $l }}</option>@endforeach</datalist>
+                    <div class="col-md-4"><label class="form-label">วันที่จบ/ออก</label><input type="date" name="left_on" value="{{ old('left_on', $student->left_on?->toDateString()) }}" class="form-control"></div>
+                    <div class="col-md-8"><label class="form-label">สาเหตุที่ออก</label><input name="leave_reason" value="{{ old('leave_reason', $student->leave_reason) }}" class="form-control" list="leaveReasons"></div>
+                    <datalist id="leaveReasons"><option>จบการศึกษา</option><option>ย้ายสถานศึกษา</option><option>ลาออก</option><option>พ้นสภาพ</option></datalist>
+                </div>
+            </div>
+
             @unless ($student->exists)
                 <div class="card mb-3">
                     <div class="card-header"><i class="bi bi-person-hearts"></i> ผู้ปกครอง <span class="small text-muted fw-normal">(ระบบจะสร้างบัญชีให้ผู้ปกครองเข้าดูข้อมูลได้ทันที)</span></div>

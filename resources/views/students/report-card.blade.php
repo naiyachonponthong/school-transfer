@@ -33,14 +33,14 @@
                     <td>{{ $g['course']->subject->name }} <span class="text-muted">({{ $g['course']->subject->typeLabel() }})</span></td>
                     <td class="text-center">{{ $g['course']->subject->credit }}</td>
                     <td class="text-center">{{ $g['total'] !== null ? rtrim(rtrim(number_format($g['total'], 2), '0'), '.') : '-' }}</td>
-                    <td class="text-center fw-bold">{{ $g['grade'] ?? '-' }}</td>
+                    <td class="text-center fw-bold text-nowrap">@if($g['original'] !== null && $g['original'] !== $g['grade'])<span class="fw-normal text-muted text-decoration-line-through me-1">{{ $g['original'] }}</span>@endif{{ $g['grade'] ?? '-' }}</td>
                 </tr>
             @empty
                 <tr><td colspan="5" class="text-center text-muted py-4">ยังไม่มีผลการเรียน</td></tr>
             @endforelse
             </tbody>
             <tfoot>
-                <tr class="fw-semibold"><td colspan="2" class="text-end">รวมหน่วยกิต</td><td class="text-center">{{ $credits }}</td><td class="text-end">เกรดเฉลี่ย</td><td class="text-center fs-6">{{ $gpa !== null ? number_format($gpa, 2) : '-' }}</td></tr>
+                <tr class="fw-semibold"><td colspan="2" class="text-end">รวมหน่วยกิต (ได้ {{ $earned }})</td><td class="text-center">{{ $credits }}</td><td class="text-end">เกรดเฉลี่ย</td><td class="text-center fs-6">{{ $gpa !== null ? number_format($gpa, 2) : '-' }}</td></tr>
             </tfoot>
         </table>
 
@@ -55,6 +55,22 @@
             <div class="col-sm-5">
                 <div class="fw-semibold mb-1">คะแนนความประพฤติ</div>
                 <div class="border rounded p-2 text-center fs-5 fw-bold">{{ $behavior }} / {{ \App\Models\Student::BASE_BEHAVIOR }}</div>
+            </div>
+        </div>
+
+        <div class="row g-3 small mt-1">
+            <div class="col-sm-8">
+                <div class="fw-semibold mb-1">คุณลักษณะอันพึงประสงค์</div>
+                <table class="table table-bordered table-sm mb-0">
+                    @foreach (\App\Support\Evaluation::TRAITS as $no => $name)
+                        <tr><td>{{ $no }}. {{ $name }}</td><td class="text-center" style="width:90px">{{ \App\Support\Evaluation::label($evaluation?->trait($no)) }}</td></tr>
+                    @endforeach
+                    <tr class="fw-semibold"><td class="text-end">สรุปผลการประเมิน</td><td class="text-center">{{ \App\Support\Evaluation::label($evaluation?->traitsSummary()) }}</td></tr>
+                </table>
+            </div>
+            <div class="col-sm-4">
+                <div class="fw-semibold mb-1">การอ่าน คิดวิเคราะห์ และเขียน</div>
+                <div class="border rounded p-2 text-center fs-6 fw-bold">{{ \App\Support\Evaluation::label($evaluation?->rtw) }}</div>
             </div>
         </div>
 

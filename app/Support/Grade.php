@@ -16,6 +16,21 @@ class Grade
         0 => '0',
     ];
 
+    /** ผลการเรียนพิเศษของรายวิชาทั่วไป (ครู/ฝ่ายวัดผลกำหนดเอง ไม่ได้มาจากคะแนน) */
+    public const SPECIAL = [
+        'ร' => 'รอการตัดสิน',
+        'มส' => 'ไม่มีสิทธิ์สอบ',
+    ];
+
+    /** ผลการประเมินกิจกรรมพัฒนาผู้เรียน */
+    public const ACTIVITY = [
+        'ผ' => 'ผ่าน',
+        'มผ' => 'ไม่ผ่าน',
+    ];
+
+    /** กิจกรรมพัฒนาผู้เรียน: ได้คะแนนประเมินตั้งแต่ร้อยละนี้ = ผ */
+    public const ACTIVITY_PASS_PERCENT = 50;
+
     public static function fromPercent(float $percent): string
     {
         foreach (self::SCALE as $min => $grade) {
@@ -27,10 +42,49 @@ class Grade
         return '0';
     }
 
+    public static function activityFromPercent(float $percent): string
+    {
+        return $percent >= self::ACTIVITY_PASS_PERCENT ? 'ผ' : 'มผ';
+    }
+
+    /** ผลที่ครูกำหนดเองได้ตามประเภทวิชา */
+    public static function specialOptions(bool $activity): array
+    {
+        return $activity ? ['มผ' => self::ACTIVITY['มผ']] : self::SPECIAL;
+    }
+
+    /**
+     * ผลที่บันทึกเป็น "ผลการแก้ตัว" ได้ ตามผลเดิม
+     * - 0 → สอบแก้ตัวได้ไม่เกิน 1
+     * - มส → เรียนเพิ่มจนเวลาครบแล้วสอบ ได้ไม่เกิน 1
+     * - ร → ทำงานที่ค้างครบแล้วได้ผลตามจริง (0–4)
+     * - มผ → ทำกิจกรรมซ่อมจนผ่าน = ผ
+     *
+     * @return list<string>
+     */
+    public static function remedialOptions(?string $original): array
+    {
+        return match ($original) {
+            '0' => ['1'],
+            'มส' => ['0', '1'],
+            'ร' => array_reverse(array_values(self::SCALE)),
+            'มผ' => ['ผ'],
+            default => [],
+        };
+    }
+
+    /** ผ่านรายวิชา (ได้หน่วยกิต) */
+    public static function passed(?string $grade): bool
+    {
+        return $grade === 'ผ' || (is_numeric($grade) && (float) $grade >= 1);
+    }
+
     public static function color(?string $grade): string
     {
         return match (true) {
             $grade === null => 'secondary',
+            $grade === 'ผ' => 'success',
+            ! is_numeric($grade) => 'danger',
             (float) $grade >= 3.5 => 'success',
             (float) $grade >= 2.5 => 'info',
             (float) $grade >= 1 => 'warning',
@@ -39,6 +93,9 @@ class Grade
     }
 
     /**
+     * ผลการเรียนเฉลี่ย: ร และ มส นับเป็นค่าระดับ 0 (หน่วยกิตยังอยู่ในตัวหาร)
+     * ผ/มผ ของกิจกรรมไม่นำมาคิด
+     *
      * @param  iterable<array{grade: string|null, credit: float}>  $rows
      */
     public static function gpa(iterable $rows): ?float
@@ -46,10 +103,17 @@ class Grade
         $points = 0.0;
         $credits = 0.0;
         foreach ($rows as $row) {
-            if ($row['grade'] === null || ! is_numeric($row['grade']) || $row['credit'] <= 0) {
+            $grade = $row['grade'];
+            if ($grade === null || $row['credit'] <= 0) {
                 continue;
             }
-            $points += (float) $row['grade'] * $row['credit'];
+            if (isset(self::SPECIAL[$grade])) {
+                $grade = '0';
+            }
+            if (! is_numeric($grade)) {
+                continue;
+            }
+            $points += (float) $grade * $row['credit'];
             $credits += $row['credit'];
         }
 

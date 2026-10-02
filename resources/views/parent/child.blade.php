@@ -141,11 +141,7 @@
                         @endif
                     </div>
                     <div class="text-end small text-muted" style="width:70px">{{ $g['total'] !== null ? $g['total'].'/'.$g['max'] : '' }}</div>
-                    @if ($g['grade'] !== null)
-                        <span class="grade-badge bg-{{ \App\Support\Grade::color($g['grade']) }}-subtle text-{{ \App\Support\Grade::color($g['grade']) }}-emphasis">{{ $g['grade'] }}</span>
-                    @else
-                        <span class="grade-badge bg-light text-muted">-</span>
-                    @endif
+                    <span class="text-nowrap"><x-grade :grade="$g['grade']" :original="$g['original']" /></span>
                 </div>
             @empty
                 <div class="empty"><i class="bi bi-journal"></i>ยังไม่มีผลการเรียน</div>

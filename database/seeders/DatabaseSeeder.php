@@ -17,6 +17,7 @@ use App\Models\BehaviorRecord;
 use App\Models\BehaviorRule;
 use App\Models\Classroom;
 use App\Models\Course;
+use App\Models\CourseResult;
 use App\Models\FeedPost;
 use App\Models\FeedReaction;
 use App\Models\Invoice;
@@ -26,10 +27,12 @@ use App\Models\PeriodAttendance;
 use App\Models\Score;
 use App\Models\StaffAttendance;
 use App\Models\Student;
+use App\Models\StudentEvaluation;
 use App\Models\Subject;
 use App\Models\Term;
 use App\Models\TimetableSlot;
 use App\Models\User;
+use App\Support\Evaluation;
 use App\Support\Settings;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -318,6 +321,49 @@ class DatabaseSeeder extends Seeder
         }
         foreach (array_chunk($periodRows, 500) as $chunk) {
             PeriodAttendance::insert($chunk);
+        }
+
+        // ---------- ข้อมูล ปพ.1 + กิจกรรมพัฒนาผู้เรียน + คุณลักษณะ ----------
+        foreach ($classrooms as $classroom) {
+            $grade = (int) substr($classroom->level, -1);
+            Student::where('classroom_id', $classroom->id)->update([
+                'nationality' => 'ไทย', 'ethnicity' => 'ไทย', 'religion' => 'พุทธ',
+                'admitted_on' => Carbon::create(2026 - ($grade - 1), 5, 16)->toDateString(),
+                'previous_school' => 'โรงเรียนบ้านหนองบัว', 'previous_school_province' => 'ขอนแก่น', 'previous_level' => 'ป.6',
+            ]);
+        }
+        $activityTpl = [['แนะแนว', 'guidance', 20], ['ลูกเสือ-เนตรนารี', 'scout', 20], ['ชุมนุม', 'club', 20], ['กิจกรรมเพื่อสังคมและสาธารณประโยชน์', 'social', 10]];
+        foreach ($classrooms->unique('level') as $classroom) {
+            $grade = substr($classroom->level, -1);
+            foreach ($activityTpl as $k => [$name, $kind, $hours]) {
+                Subject::create(['code' => "ก2{$grade}90".($k + 1), 'name' => $name, 'credit' => 0, 'hours' => $hours, 'type' => 'activity', 'activity_kind' => $kind, 'group' => 'กิจกรรมพัฒนาผู้เรียน']);
+            }
+        }
+        foreach ($classrooms as $classroom) {
+            $grade = substr($classroom->level, -1);
+            foreach ($activityTpl as $k => $_) {
+                $course = Course::create(['term_id' => $term->id, 'classroom_id' => $classroom->id, 'subject_id' => Subject::where('code', "ก2{$grade}90".($k + 1))->value('id'), 'teacher_id' => $classroom->homeroom_teacher_id]);
+                Assessment::create(['course_id' => $course->id, 'name' => 'ผลการประเมิน', 'max_score' => 100, 'sort' => 1]);
+            }
+        }
+        // ภาคที่แล้วของ ม.1/1: กิจกรรมประเมินครบ (คนสุดท้ายไม่ผ่านชุมนุมแล้วซ่อมผ่าน) + คุณลักษณะ/อ่านคิดเขียน
+        foreach ($activityTpl as $k => $_) {
+            $course = Course::create(['term_id' => $prevTerm->id, 'classroom_id' => $m11->id, 'subject_id' => Subject::where('code', 'ก2190'.($k + 1))->value('id'), 'teacher_id' => $teacher->id, 'locked' => true]);
+            $a = Assessment::create(['course_id' => $course->id, 'name' => 'ผลการประเมิน', 'max_score' => 100, 'sort' => 1]);
+            foreach ($m11students as $i => $s) {
+                $failed = $k === 2 && $i === $m11students->count() - 1;
+                Score::create(['assessment_id' => $a->id, 'student_id' => $s->id, 'score' => $failed ? 35 : mt_rand(70, 100)]);
+                if ($failed) {
+                    CourseResult::create(['course_id' => $course->id, 'student_id' => $s->id, 'remedial_grade' => 'ผ', 'remedied_on' => $prevTerm->end_date, 'note' => 'ทำกิจกรรมซ่อมครบ', 'recorded_by' => $teacher->id]);
+                }
+            }
+        }
+        foreach ($m11students as $s) {
+            $traits = [];
+            foreach (array_keys(Evaluation::TRAITS) as $no) {
+                $traits[$no] = [1, 2, 2, 3, 3, 3][mt_rand(0, 5)];
+            }
+            StudentEvaluation::create(['term_id' => $prevTerm->id, 'student_id' => $s->id, 'traits' => $traits, 'rtw' => [2, 3, 3][mt_rand(0, 2)], 'recorded_by' => $teacher->id]);
         }
 
         // ---------- ความประพฤติ ----------

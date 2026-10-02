@@ -190,7 +190,10 @@ class AdmissionController extends Controller
                 'number' => ! empty($data['classroom_id']) ? ((int) Student::where('classroom_id', $data['classroom_id'])->max('number')) + 1 : null,
                 'status' => 'active',
                 'address' => $admission->address,
-            ] + $admission->only(['prefix', 'first_name', 'last_name', 'nickname', 'gender', 'birthdate', 'citizen_id']));
+                'admitted_on' => today(),
+                'father_name' => $admission->relation === 'บิดา' ? $admission->parent_name : null,
+                'mother_name' => $admission->relation === 'มารดา' ? $admission->parent_name : null,
+            ] + $admission->only(['prefix', 'first_name', 'last_name', 'nickname', 'gender', 'birthdate', 'citizen_id', 'previous_school']));
 
             $parent = User::where('role', 'parent')->where('phone', $admission->parent_phone)->first()
                 ?? User::create([

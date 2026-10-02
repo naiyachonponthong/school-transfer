@@ -48,7 +48,7 @@ class SchoolSmokeTest extends TestCase
             '/students', '/students/create', '/students/import', '/students/import/template',
             "/students/{$student->id}", "/students/{$student->id}/edit", "/report-card/{$student->id}",
             '/leaves', '/leaves?status=all', '/behavior', '/behavior?classroom='.$student->classroom_id,
-            '/courses', "/courses/{$course->id}/grades", "/courses/{$course->id}/export",
+            '/courses', "/courses/{$course->id}/grades", "/courses/{$course->id}/export", '/evaluations',
             '/timetable', '/timetable?edit=1', '/timetable/mine', '/checkin',
             '/announcements', '/announcements/create', '/announcements/'.Announcement::first()->id,
             '/invoices', '/invoices/create', "/invoices/{$invoice->id}", '/payments/'.$invoice->payments->first()->id.'/receipt',

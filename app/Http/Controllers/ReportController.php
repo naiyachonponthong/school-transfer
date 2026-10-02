@@ -17,11 +17,12 @@ class ReportController extends Controller
         abort_unless($student->canBeViewedBy($user), 403);
         $student->load('classroom');
 
-        // ทุกรายวิชาที่นักเรียนเคยเรียน (ตามห้องที่มีคะแนน)
+        // ทุกรายวิชาที่นักเรียนเคยเรียน (มีคะแนน หรือมีผลพิเศษ เช่น มส. ที่ไม่มีคะแนนเลย)
         $courseIds = \App\Models\Score::where('student_id', $student->id)
-            ->join('assessments', 'assessments.id', '=', 'scores.assessment_id')->distinct()->pluck('assessments.course_id');
-        $courses = Course::with(['subject', 'term', 'assessments'])->whereIn('id', $courseIds)->get()
-            ->sortBy(fn ($c) => [$c->term->year, $c->term->term, $c->subject->type, $c->subject->code]);
+            ->join('assessments', 'assessments.id', '=', 'scores.assessment_id')->distinct()->pluck('assessments.course_id')
+            ->merge(\App\Models\CourseResult::where('student_id', $student->id)->pluck('course_id'));
+        $courses = Course::with(['subject', 'term', 'assessments'])->whereIn('id', $courseIds->unique())->get()
+            ->sortBy(fn ($c) => [$c->term->year, $c->term->term, $c->subject->typeOrder(), $c->subject->code]);
 
         $terms = $courses->groupBy('term_id')->map(function ($list) use ($student) {
             $rows = $list->map(function (Course $c) use ($student) {
@@ -39,7 +40,8 @@ class ReportController extends Controller
             'student' => $student,
             'terms' => $terms,
             'gpax' => Grade::gpa($all),
-            'credits' => $all->whereNotNull('grade')->where('grade', '!=', '0')->sum('credit'),
+            // หน่วยกิตที่ได้ = เฉพาะวิชาที่ผ่าน (1 ขึ้นไป) ไม่นับ 0 ร มส
+            'credits' => $all->filter(fn ($r) => Grade::passed($r['grade']))->sum('credit'),
         ]);
     }
 

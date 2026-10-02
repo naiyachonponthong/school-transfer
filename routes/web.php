@@ -12,6 +12,7 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EvaluationController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\ExamScanController;
 use App\Http\Controllers\FeedController;
@@ -190,10 +191,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/courses', [CourseController::class, 'index'])->name('courses.index');
         Route::get('/courses/{course}/grades', [GradebookController::class, 'show'])->name('gradebook.show');
         Route::post('/courses/{course}/grades', [GradebookController::class, 'save'])->name('gradebook.save');
+        Route::post('/courses/{course}/outcomes/ms', [GradebookController::class, 'applyMs'])->name('gradebook.ms');
+        Route::post('/courses/{course}/outcomes/{student}', [GradebookController::class, 'saveOutcome'])->name('gradebook.outcome');
         Route::post('/courses/{course}/assessments', [GradebookController::class, 'storeAssessment'])->name('assessments.store');
         Route::put('/assessments/{assessment}', [GradebookController::class, 'updateAssessment'])->name('assessments.update');
         Route::delete('/assessments/{assessment}', [GradebookController::class, 'destroyAssessment'])->name('assessments.destroy');
         Route::get('/courses/{course}/export', [GradebookController::class, 'export'])->name('gradebook.export');
+
+        // คุณลักษณะอันพึงประสงค์ + อ่าน คิดวิเคราะห์ และเขียน (ครูประจำชั้น)
+        Route::get('/evaluations', [EvaluationController::class, 'index'])->name('evaluations.index');
+        Route::post('/evaluations/{classroom}', [EvaluationController::class, 'save'])->name('evaluations.save');
 
         Route::get('/timetable', [TimetableController::class, 'index'])->name('timetable.index');
         Route::get('/timetable/mine', [TimetableController::class, 'mine'])->name('timetable.mine');

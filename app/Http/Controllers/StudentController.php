@@ -104,7 +104,7 @@ class StudentController extends Controller
             ->where('term_id', $term->id)
             ->where('classroom_id', $student->classroom_id)
             ->get()
-            ->sortBy(fn ($c) => [$c->subject->type, $c->subject->code])
+            ->sortBy(fn ($c) => [$c->subject->typeOrder(), $c->subject->code])
             ->map(function (Course $course) use ($student) {
                 $r = $course->results()[$student->id] ?? null;
 
@@ -113,6 +113,7 @@ class StudentController extends Controller
                     'total' => $r['total'] ?? null,
                     'max' => $course->maxTotal(),
                     'grade' => $r['grade'] ?? null,
+                    'original' => $r['original'] ?? null,
                 ];
             })->values();
     }
@@ -211,7 +212,19 @@ class StudentController extends Controller
             'address' => ['nullable', 'string', 'max:1000'],
             'phone' => ['nullable', 'string', 'max:20'],
             'photo' => ['nullable', 'image', 'max:4096'],
+            'nationality' => ['nullable', 'string', 'max:50'],
+            'ethnicity' => ['nullable', 'string', 'max:50'],
+            'religion' => ['nullable', 'string', 'max:50'],
+            'father_name' => ['nullable', 'string', 'max:255'],
+            'mother_name' => ['nullable', 'string', 'max:255'],
+            'admitted_on' => ['nullable', 'date'],
+            'previous_school' => ['nullable', 'string', 'max:255'],
+            'previous_school_province' => ['nullable', 'string', 'max:100'],
+            'previous_level' => ['nullable', 'string', 'max:20'],
+            'left_on' => ['nullable', 'date', 'after_or_equal:admitted_on'],
+            'leave_reason' => ['nullable', 'string', 'max:255'],
         ], [], [
+            'left_on' => 'วันที่จบ/ออก',
             'student_code' => 'รหัสนักเรียน',
             'first_name' => 'ชื่อ',
             'last_name' => 'นามสกุล',

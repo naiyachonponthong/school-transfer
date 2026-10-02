@@ -23,6 +23,9 @@ class Student extends Model
     protected $fillable = [
         'student_code', 'citizen_id', 'prefix', 'first_name', 'last_name', 'nickname', 'gender', 'birthdate',
         'classroom_id', 'number', 'status', 'photo', 'blood_type', 'medical_note', 'address', 'phone', 'qr_token', 'user_id',
+        // ข้อมูลหัวกระดาษ ปพ.1
+        'nationality', 'ethnicity', 'religion', 'father_name', 'mother_name', 'admitted_on',
+        'previous_school', 'previous_school_province', 'previous_level', 'left_on', 'leave_reason',
     ];
 
     protected static function booted(): void
@@ -78,7 +81,7 @@ class Student extends Model
 
     protected function casts(): array
     {
-        return ['birthdate' => DateOnly::class];
+        return ['birthdate' => DateOnly::class, 'admitted_on' => DateOnly::class, 'left_on' => DateOnly::class];
     }
 
     public function scopeActive(Builder $q): Builder

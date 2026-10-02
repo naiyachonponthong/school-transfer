@@ -138,7 +138,10 @@
         const maxTotal = Number(gb.dataset.max);
         const state = $('#saveState');
         const scale = [[80, '4'], [75, '3.5'], [70, '3'], [65, '2.5'], [60, '2'], [55, '1.5'], [50, '1'], [0, '0']];
-        const gradeColor = (g) => g === null ? 'secondary' : (g >= 3.5 ? 'success' : g >= 2.5 ? 'primary' : g >= 1 ? 'warning' : 'danger');
+        const activity = gb.dataset.activity === '1', passPct = Number(gb.dataset.pass || 50);
+        // ผ = ผ่าน (เขียว) · ร มส มผ = ต้องติดตาม (แดง)
+        const gradeColor = (g) => g === 'ผ' ? 'success' : isNaN(g) ? 'danger' : (g >= 3.5 ? 'success' : g >= 2.5 ? 'primary' : g >= 1 ? 'warning' : 'danger');
+        const badge = (g) => `<span class="grade-badge bg-${gradeColor(g)}-subtle text-${gradeColor(g)}-emphasis">${g}</span>`;
         let dirty = new Map(), timer;
 
         const recalc = (tr) => {
@@ -147,13 +150,16 @@
             cells.forEach((i) => { if (i.value.trim() !== '' && !i.classList.contains('invalid')) { total += Number(i.value); filled++; } });
             $('.total', tr).textContent = filled ? (Math.round(total * 100) / 100) : '-';
             const g = $('.grade', tr);
+            let grade = null;
             if (filled === cells.length && maxTotal > 0) {
                 const pct = total / maxTotal * 100;
-                const grade = scale.find(([m]) => pct >= m)[1];
-                g.innerHTML = `<span class="grade-badge bg-${gradeColor(Number(grade))}-subtle text-${gradeColor(Number(grade))}-emphasis">${grade}</span>`;
-            } else {
-                g.innerHTML = '<span class="text-muted small">-</span>';
+                grade = activity ? (pct >= passPct ? 'ผ' : 'มผ') : scale.find(([m]) => pct >= m)[1];
             }
+            // ผลพิเศษ (ร/มส/มผ) แทนผลจากคะแนน · ผลแก้ตัวแสดงต่อท้ายผลเดิมที่ขีดฆ่า
+            if (tr.dataset.special) grade = tr.dataset.special;
+            const rem = tr.dataset.remedial;
+            if (rem) g.innerHTML = `<span class="small text-muted text-decoration-line-through me-1">${grade ?? '-'}</span>${badge(rem)}`;
+            else g.innerHTML = grade === null ? '<span class="text-muted small">-</span>' : badge(grade);
         };
 
         const validate = (i) => {
@@ -212,6 +218,18 @@
         });
         window.addEventListener('beforeunload', (e) => { if (dirty.size) { save(); e.preventDefault(); e.returnValue = ''; } });
         $$('tr', gb).forEach((tr) => { if ($('.total', tr)) recalc(tr); });
+
+        // ฟอร์มผลพิเศษ/แก้ตัว: เติมค่าของนักเรียนที่กด
+        const outcome = $('#outcome');
+        outcome?.addEventListener('show.bs.modal', (e) => {
+            const b = e.relatedTarget, f = $('#outcomeForm');
+            f.action = b.dataset.outcomeUrl;
+            $('[data-field="name"]', f).textContent = b.dataset.outcomeName;
+            f.special.value = b.dataset.outcomeSpecial;
+            f.remedial_grade.value = b.dataset.outcomeRemedial;
+            f.remedied_on.value = b.dataset.outcomeDate;
+            f.note.value = b.dataset.outcomeNote;
+        });
     }
 
     /* ---------- เลือกนักเรียนหลายคน (บันทึกพฤติกรรม) ---------- */
