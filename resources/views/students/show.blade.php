@@ -27,6 +27,7 @@
         <div class="d-flex gap-2 flex-wrap">
             <a href="{{ route('report-card', ['student' => $student, 'term' => $term?->id]) }}" class="btn btn-light border"><i class="bi bi-file-earmark-text"></i> สมุดพก</a>
             <a href="{{ route('transcript', $student) }}" class="btn btn-light border"><i class="bi bi-journal-text"></i> ปพ.1</a>
+            @if (auth()->user()->isAdmin())<a href="{{ route('certificates.create', $student) }}" class="btn btn-light border"><i class="bi bi-file-earmark-check"></i> ปพ.7</a>@endif
             <a href="{{ route('portfolio.show', $student) }}" class="btn btn-light border"><i class="bi bi-folder2-open"></i> แฟ้มผลงาน</a>
             @if ($student->guardians->isNotEmpty())
                 <form method="POST" action="{{ route('chat.start') }}">@csrf<input type="hidden" name="student_id" value="{{ $student->id }}">

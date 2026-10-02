@@ -2,38 +2,66 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Classroom;
 use App\Models\Student;
 use App\Models\StudentEvaluation;
 use App\Models\Term;
 use App\Support\Grade;
 use Illuminate\Http\Request;
 
-/** สมุดรายงานผลการเรียน (พิมพ์ได้) */
+/** แบบรายงานการพัฒนาคุณภาพผู้เรียนรายบุคคล (ปพ.6) — พิมพ์ทีละคนหรือทั้งห้อง */
 class ReportCardController extends Controller
 {
     public function show(Request $request, Student $student)
     {
-        $user = $request->user();
-        abort_unless($student->canBeViewedBy($user), 403);
-
+        abort_unless($student->canBeViewedBy($request->user()), 403);
         $term = Term::find($request->query('term')) ?? Term::current();
-        $student->load('classroom.homeroomTeacher');
-        $grades = StudentController::gradesFor($student, $term);
 
-        $attendance = $student->attendances()
-            ->when($term?->start_date && $term?->end_date, fn ($q) => $q->whereBetween('date', [$term->start_date->toDateString(), $term->end_date->toDateString()]))
-            ->get()->countBy('status');
+        return view('students.report-card', ['term' => $term, 'cards' => [self::data($student, $term)], 'back' => url()->previous()]);
+    }
+
+    /** พิมพ์ทั้งห้องในครั้งเดียว (หนึ่งคนต่อหนึ่งหน้า) */
+    public function classroom(Request $request)
+    {
+        $term = Term::find($request->query('term')) ?? Term::current();
+        $classroom = Classroom::findOrFail($request->query('classroom'));
+        $students = $classroom->students()->with('classroom.homeroomTeacher')->get();
 
         return view('students.report-card', [
-            'student' => $student,
             'term' => $term,
-            'grades' => $grades,
-            'gpa' => Grade::gpa($grades->map(fn ($g) => ['grade' => $g['grade'], 'credit' => (float) $g['course']->subject->credit])),
-            'credits' => $grades->sum(fn ($g) => (float) $g['course']->subject->credit),
-            'earned' => $grades->filter(fn ($g) => Grade::passed($g['grade']))->sum(fn ($g) => (float) $g['course']->subject->credit),
+            'cards' => $students->map(fn ($s) => self::data($s, $term))->all(),
+            'back' => route('reports.index'),
+            'classroom' => $classroom,
+        ]);
+    }
+
+    public static function data(Student $student, ?Term $term): array
+    {
+        $student->loadMissing('classroom.homeroomTeacher');
+        $grades = StudentController::gradesFor($student, $term);
+        [$activities, $academic] = $grades->partition(fn ($g) => $g['course']->isActivity());
+        $credit = fn ($g) => (float) $g['course']->subject->credit;
+
+        $inTerm = fn ($q, string $col) => $q->when($term?->start_date && $term?->end_date,
+            fn ($w) => $w->whereBetween($col, [$term->start_date->toDateString(), $term->end_date->toDateString()]));
+
+        $attendance = $inTerm($student->attendances(), 'date')->get()->countBy('status');
+        $days = $attendance->sum();
+        $came = ($attendance['present'] ?? 0) + ($attendance['late'] ?? 0);
+
+        return [
+            'student' => $student,
+            'academic' => $academic->values(),
+            'activities' => $activities->values(),
+            'gpa' => Grade::gpa($academic->map(fn ($g) => ['grade' => $g['grade'], 'credit' => $credit($g)])),
+            'credits' => $academic->sum($credit),
+            'earned' => $academic->filter(fn ($g) => Grade::passed($g['grade']))->sum($credit),
             'attendance' => $attendance,
+            'days' => $days,
+            'attendancePercent' => $days ? round($came / $days * 100, 1) : null,
+            'measurement' => $inTerm($student->measurements(), 'measured_on')->first(),
             'behavior' => $student->behaviorScore(),
             'evaluation' => $term ? StudentEvaluation::where(['term_id' => $term->id, 'student_id' => $student->id])->first() : null,
-        ]);
+        ];
     }
 }

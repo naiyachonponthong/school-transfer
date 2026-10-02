@@ -46,6 +46,32 @@ class GradebookController extends Controller
         return view('courses.gradebook', compact('course', 'students', 'scores', 'results', 'distribution', 'attendance', 'pendingMs', 'outcomes'));
     }
 
+    /** ปพ.5 แบบบันทึกผลการพัฒนาคุณภาพผู้เรียนรายวิชา (พิมพ์เสนออนุมัติผลการเรียน) */
+    public function pp5(Request $request, Course $course)
+    {
+        $this->authorizeCourse($request, $course);
+        $course->load(['assessments', 'subject', 'classroom.homeroomTeacher', 'teacher', 'term']);
+        $students = $course->classroom->students()->get();
+        $scores = Score::whereIn('assessment_id', $course->assessments->pluck('id'))->get()
+            ->groupBy('student_id')->map(fn ($rows) => $rows->pluck('score', 'assessment_id'));
+        $results = $course->results();
+        $outcomes = CourseResult::where('course_id', $course->id)->get()->keyBy('student_id');
+        $attendance = PeriodAttendance::summaryFor($course);
+
+        $activity = $course->isActivity();
+        $levels = $activity ? array_keys(Grade::ACTIVITY) : array_merge(array_values(Grade::SCALE), array_keys(Grade::SPECIAL));
+        $final = $students->map(fn ($s) => $results[$s->id]['grade'] ?? null);
+        $distribution = collect($levels)->mapWithKeys(fn ($g) => [$g => $final->filter(fn ($v) => $v === $g)->count()]);
+
+        return view('courses.pp5', [
+            'course' => $course, 'students' => $students, 'scores' => $scores, 'results' => $results,
+            'outcomes' => $outcomes, 'attendance' => $attendance, 'activity' => $activity, 'distribution' => $distribution,
+            'graded' => $final->filter(fn ($g) => $g !== null)->count(),
+            'passed' => $final->filter(fn ($g) => Grade::passed($g))->count(),
+            'good' => $final->filter(fn ($g) => is_numeric($g) && (float) $g >= 3)->count(),
+        ]);
+    }
+
     public function save(Request $request, Course $course)
     {
         $this->authorizeCourse($request, $course, true);

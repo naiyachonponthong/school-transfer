@@ -15,6 +15,7 @@
     </div>
     <div class="actions">
         <span id="saveState" class="save-state align-self-center">@if($readonly)<i class="bi bi-lock-fill" aria-hidden="true"></i> ล็อกแล้ว ดูได้อย่างเดียว@else พิมพ์แล้วบันทึกเอง ไม่ต้องกดปุ่ม@endif</span>
+        <a href="{{ route('gradebook.pp5', $course) }}" class="btn btn-light border"><i class="bi bi-printer"></i> ปพ.5</a>
         <a href="{{ route('gradebook.export', $course) }}" class="btn btn-light border"><i class="bi bi-file-earmark-spreadsheet"></i> ส่งออก</a>
         @unless ($readonly)
             <button class="btn btn-light border" data-bs-toggle="modal" data-bs-target="#columns"><i class="bi bi-layout-three-columns"></i> ช่องคะแนน</button>

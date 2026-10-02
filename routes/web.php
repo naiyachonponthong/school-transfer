@@ -8,6 +8,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BehaviorController;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\CourseController;
@@ -197,6 +198,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/assessments/{assessment}', [GradebookController::class, 'updateAssessment'])->name('assessments.update');
         Route::delete('/assessments/{assessment}', [GradebookController::class, 'destroyAssessment'])->name('assessments.destroy');
         Route::get('/courses/{course}/export', [GradebookController::class, 'export'])->name('gradebook.export');
+        Route::get('/courses/{course}/pp5', [GradebookController::class, 'pp5'])->name('gradebook.pp5');
 
         // คุณลักษณะอันพึงประสงค์ + อ่าน คิดวิเคราะห์ และเขียน (ครูประจำชั้น)
         Route::get('/evaluations', [EvaluationController::class, 'index'])->name('evaluations.index');
@@ -259,6 +261,7 @@ Route::middleware('auth')->group(function () {
 
         // รายงาน
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+        Route::get('/report-cards', [ReportCardController::class, 'classroom'])->name('report-cards.classroom');
         Route::get('/reports/dmc', [ReportController::class, 'dmc'])->name('reports.dmc');
     });
 
@@ -274,6 +277,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/classrooms/promote', [ClassroomController::class, 'promote'])->name('classrooms.promote');
 
         Route::resource('subjects', SubjectController::class)->only(['index', 'store', 'update', 'destroy']);
+
+        // ปพ.7 ใบรับรองผลการศึกษา + ทะเบียนคุม
+        Route::get('/certificates', [CertificateController::class, 'index'])->name('certificates.index');
+        Route::get('/certificates/{issue}', [CertificateController::class, 'show'])->name('certificates.show');
+        Route::get('/students/{student}/certificate', [CertificateController::class, 'create'])->name('certificates.create');
+        Route::post('/students/{student}/certificate', [CertificateController::class, 'store'])->name('certificates.store');
 
         Route::post('/courses', [CourseController::class, 'store'])->name('courses.store');
         Route::post('/courses/bulk', [CourseController::class, 'bulk'])->name('courses.bulk');

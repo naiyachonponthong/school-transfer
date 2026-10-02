@@ -4,23 +4,35 @@ namespace App\Http\Controllers;
 
 use App\Models\Classroom;
 use App\Models\Course;
+use App\Models\CourseResult;
+use App\Models\Score;
 use App\Models\Student;
 use App\Support\Grade;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 /** เอกสารทางการ: ปพ.1 (ระเบียนแสดงผลการเรียน) และไฟล์ส่งออกสำหรับ DMC */
 class ReportController extends Controller
 {
     public function transcript(Request $request, Student $student)
     {
-        $user = $request->user();
-        abort_unless($student->canBeViewedBy($user), 403);
+        abort_unless($student->canBeViewedBy($request->user()), 403);
         $student->load('classroom');
 
+        return view('reports.transcript', ['student' => $student] + self::academicRecord($student));
+    }
+
+    /**
+     * ผลการเรียนทุกภาคเรียน + GPAX + หน่วยกิตที่ได้ (ใช้ทั้ง ปพ.1 และ ปพ.7)
+     *
+     * @return array{terms: Collection, gpax: float|null, credits: float}
+     */
+    public static function academicRecord(Student $student): array
+    {
         // ทุกรายวิชาที่นักเรียนเคยเรียน (มีคะแนน หรือมีผลพิเศษ เช่น มส. ที่ไม่มีคะแนนเลย)
-        $courseIds = \App\Models\Score::where('student_id', $student->id)
+        $courseIds = Score::where('student_id', $student->id)
             ->join('assessments', 'assessments.id', '=', 'scores.assessment_id')->distinct()->pluck('assessments.course_id')
-            ->merge(\App\Models\CourseResult::where('student_id', $student->id)->pluck('course_id'));
+            ->merge(CourseResult::where('student_id', $student->id)->pluck('course_id'));
         $courses = Course::with(['subject', 'term', 'assessments'])->whereIn('id', $courseIds->unique())->get()
             ->sortBy(fn ($c) => [$c->term->year, $c->term->term, $c->subject->typeOrder(), $c->subject->code]);
 
@@ -36,13 +48,12 @@ class ReportController extends Controller
 
         $all = $terms->flatMap(fn ($t) => $t['rows']);
 
-        return view('reports.transcript', [
-            'student' => $student,
+        return [
             'terms' => $terms,
             'gpax' => Grade::gpa($all),
             // หน่วยกิตที่ได้ = เฉพาะวิชาที่ผ่าน (1 ขึ้นไป) ไม่นับ 0 ร มส
             'credits' => $all->filter(fn ($r) => Grade::passed($r['grade']))->sum('credit'),
-        ]);
+        ];
     }
 
     /** CSV ข้อมูลนักเรียนรายบุคคลเตรียมนำเข้า DMC (ตรวจสอบรูปแบบคอลัมน์กับ DMC ปีปัจจุบันก่อนนำเข้า) */

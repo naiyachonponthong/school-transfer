@@ -562,6 +562,14 @@ a.card:hover { box-shadow: var(--sb-shadow-lg); }
     .print-only { display: block; }
     body { background: #fff; font-size: 13px; }
     @page { size: A4; margin: 12mm; }
+    /* เอกสาร ปพ.: หนึ่งการ์ด = หนึ่งหน้ากระดาษ */
+    .doc-page { border: 0; margin-top: 0 !important; break-after: page; }
+    .doc-page:last-of-type { break-after: auto; }
+    .doc-page .card-body { padding: 0 !important; }
+    .doc-page .table { margin-bottom: .4rem !important; }
+    .doc-page .table > :not(caption) > * > * { padding: .12rem .4rem; line-height: 1.35; }
+    .doc-page .mt-4, .doc-page .mt-5 { margin-top: .9rem !important; }
+    .doc-page .mb-3, .doc-page .mb-4 { margin-bottom: .5rem !important; }
 }
 
 /* ---------------- ตรวจข้อสอบ (ScanGrade) ---------------- */

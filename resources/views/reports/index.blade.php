@@ -7,12 +7,22 @@
     @php
         $cards = [
             ['bi-file-earmark-text', 'ปพ.1 ระเบียนแสดงผลการเรียน', 'ผลการเรียนทุกภาคเรียน + GPAX เปิดจากหน้าข้อมูลนักเรียน → ปุ่ม "ปพ.1"', route('students.index'), 'เลือกนักเรียน'],
-            ['bi-journal-text', 'ปพ.6 สมุดรายงานประจำตัว', 'ผลการเรียนภาคเรียนปัจจุบัน เวลาเรียน ความประพฤติ เปิดจากหน้าข้อมูลนักเรียน → "สมุดพก"', route('students.index'), 'เลือกนักเรียน'],
-            ['bi-journal-check', 'ปพ.5 แบบบันทึกผลการเรียนรายวิชา', 'ส่งออกคะแนนทุกช่อง + เกรด ของแต่ละรายวิชาเป็น Excel', route('courses.index'), 'ไปที่รายวิชา'],
+            ['bi-journal-check', 'ปพ.5 บันทึกผลการพัฒนาคุณภาพผู้เรียน', 'รายวิชา: สรุปผล คะแนนรายคน เวลาเรียน ผลแก้ตัว และช่องลงนามเสนออนุมัติผลการเรียน เปิดจากสมุดคะแนน → "ปพ.5"', route('courses.index'), 'ไปที่รายวิชา'],
             ['bi-table', 'รายงานเวลาเรียนรายเดือน', 'ตาราง มา/ขาด/ลา/สาย รายวัน ส่งออก Excel ได้', route('attendance.report'), 'เปิดรายงาน'],
             ['bi-person-check', 'การมาปฏิบัติงานของครู', 'ลงเวลาเข้า-ออก พร้อมระยะห่างจากโรงเรียน (GPS)', auth()->user()->isAdmin() ? route('staff-attendance.report') : route('checkin'), 'เปิดรายงาน'],
         ];
     @endphp
+    <div class="col-md-6 col-xl-4">
+        <form method="GET" action="{{ route('report-cards.classroom') }}" class="card h-100"><div class="card-body d-flex flex-column">
+            <div class="d-flex gap-3 mb-2"><span class="app-ico" style="width:46px;height:46px;font-size:1.2rem"><i class="bi bi-journal-text"></i></span><div class="fw-bold">ปพ.6 รายงานผลรายบุคคล (สมุดพก)</div></div>
+            <div class="small text-muted flex-grow-1">ผลการเรียน กิจกรรม คุณลักษณะ อ่านคิดเขียน เวลามาเรียน น้ำหนัก/ส่วนสูง · พิมพ์ทั้งห้องคนละหน้า (รายคนเปิดจากหน้าข้อมูลนักเรียน → "สมุดพก")</div>
+            <select name="classroom" class="form-select form-select-sm mt-2" required>@foreach ($classrooms as $c)<option value="{{ $c->id }}">{{ $c->name() }}</option>@endforeach</select>
+            <button class="btn btn-soft mt-2"><i class="bi bi-printer"></i> พิมพ์ทั้งห้อง</button>
+        </div></form>
+    </div>
+    @if (auth()->user()->isAdmin())
+        @php($cards[] = ['bi-file-earmark-check', 'ปพ.7 ใบรับรองผลการศึกษา', 'ออกจากหน้าข้อมูลนักเรียน → "ปพ.7" · ระบบให้เลขที่และเก็บทะเบียนคุม พิมพ์ซ้ำได้ตรงฉบับเดิม', route('certificates.index'), 'ทะเบียนคุม'])
+    @endif
     @foreach ($cards as [$icon, $title, $desc, $url, $btn])
         <div class="col-md-6 col-xl-4">
             <div class="card h-100"><div class="card-body d-flex flex-column">
