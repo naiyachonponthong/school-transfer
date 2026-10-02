@@ -1,25 +1,63 @@
 @extends('layouts.app')
-@section('title', 'รายการที่จองได้')
+@section('title', 'ห้อง / รถ / อุปกรณ์ที่จองได้')
 
 @section('content')
-<div class="page-head"><div><h1>ห้อง / รถ / อุปกรณ์ที่จองได้</h1><div class="sub">ติ๊ก "ต้องอนุมัติ" = การจองของครูต้องรองานอาคารสถานที่อนุมัติก่อน (เช่น รถตู้ ห้องประชุมใหญ่)</div></div>
-    <div class="actions"><a href="{{ route('bookings.index') }}" class="btn btn-light border">กลับ</a></div></div>
-<div class="card">
-    <div class="list-group list-group-flush">
-        @foreach ($resources->push(new \App\Models\BookableResource(['type' => 'room', 'is_active' => true])) as $r)
-            <form method="POST" action="{{ $r->exists ? route('bookings.resources.update', $r) : route('bookings.resources.store') }}" class="list-group-item row g-2 align-items-center mx-0 {{ $r->exists ? '' : 'bg-light' }}">
-                @csrf @if ($r->exists) @method('PUT') @endif
-                <div class="col-md-3"><input name="name" value="{{ $r->name }}" class="form-control form-control-sm" placeholder="{{ $r->exists ? '' : 'เพิ่มใหม่: ชื่อ เช่น ห้องประชุม 1' }}" required></div>
-                <div class="col-md-2"><select name="type" class="form-select form-select-sm">@foreach (\App\Models\BookableResource::TYPES as $k => [$label])<option value="{{ $k }}" @selected($r->type === $k)>{{ $label }}</option>@endforeach</select></div>
-                <div class="col-md-1"><input type="number" name="capacity" value="{{ $r->capacity }}" class="form-control form-control-sm" placeholder="คน"></div>
-                <div class="col-md-3"><input name="description" value="{{ $r->description }}" class="form-control form-control-sm" placeholder="รายละเอียด"></div>
-                <div class="col-md-2 small">
-                    <label class="me-2"><input type="checkbox" name="requires_approval" value="1" @checked($r->requires_approval)> ต้องอนุมัติ</label>
-                    <input type="hidden" name="is_active" value="0"><label><input type="checkbox" name="is_active" value="1" @checked($r->is_active)> เปิดให้จอง</label>
-                </div>
-                <div class="col-md-1"><button class="btn btn-sm {{ $r->exists ? 'btn-light border' : 'btn-primary' }} w-100">{{ $r->exists ? 'บันทึก' : 'เพิ่ม' }}</button></div>
-            </form>
-        @endforeach
+<div class="page-head">
+    <div><h1>ห้อง / รถ / อุปกรณ์ที่จองได้</h1><div class="sub">{{ $resources->where('is_active', true)->count() }} รายการเปิดให้จอง · ตั้ง "ต้องอนุมัติ" ให้รายการที่ต้องผ่านงานอาคารสถานที่ก่อน (เช่น รถตู้ หอประชุม)</div></div>
+    <div class="actions">
+        <a href="{{ route('bookings.index') }}" class="btn btn-light border"><i class="bi bi-calendar2-week"></i> ตารางจอง</a>
+        <div class="dropdown">
+            <button class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-plus-lg"></i> เพิ่ม</button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                @foreach (\App\Models\BookableResource::TYPES as $k => [$label, $icon])<li><a class="dropdown-item" href="{{ route('bookings.resources.create', ['type' => $k]) }}"><i class="bi {{ $icon }} me-1"></i> {{ $label }}</a></li>@endforeach
+            </ul>
+        </div>
     </div>
 </div>
+
+@if ($resources->isEmpty())
+    <div class="card"><div class="empty"><i class="bi bi-door-open"></i>ยังไม่มีรายการที่จองได้<div class="mt-2"><a href="{{ route('bookings.resources.create') }}" class="btn btn-primary btn-sm">เพิ่มห้องแรก</a></div></div></div>
+@else
+    <div class="d-flex flex-wrap gap-1 mb-3" id="typeFilter">
+        <button type="button" class="btn btn-sm btn-dark" data-type="">ทั้งหมด {{ $resources->count() }}</button>
+        @foreach ($resources->groupBy('type') as $type => $list)<button type="button" class="btn btn-sm btn-light border" data-type="{{ $type }}"><i class="bi {{ \App\Models\BookableResource::TYPES[$type][1] ?? 'bi-box' }}"></i> {{ \App\Models\BookableResource::TYPES[$type][0] ?? $type }} {{ $list->count() }}</button>@endforeach
+    </div>
+    <div class="pick-grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">
+        @foreach ($resources as $r)
+            <div class="pick-card compact {{ $r->is_active ? '' : 'disabled' }}" data-rtype="{{ $r->type }}">
+                <div class="pc-badge d-flex gap-1">
+                    <span class="badge text-bg-light border"><i class="bi {{ $r->icon() }}"></i> {{ $r->typeLabel() }}</span>
+                    @if ($r->requires_approval)<span class="badge text-bg-warning">ต้องอนุมัติ</span>@endif
+                    @unless ($r->is_active)<span class="badge text-bg-secondary">ปิดให้จอง</span>@endunless
+                </div>
+                <div class="pc-img">@if($r->photoUrl())<img src="{{ $r->photoUrl() }}" alt="" loading="lazy">@else<i class="bi {{ $r->icon() }}"></i>@endif</div>
+                <div class="pc-body">
+                    <div class="pc-title">{{ $r->name }}</div>
+                    <div class="pc-meta">
+                        @if ($r->capacity)<span class="me-2"><i class="bi bi-people"></i> {{ $r->capacity }} {{ $r->type === 'vehicle' ? 'ที่นั่ง' : ($r->type === 'equipment' ? 'ชุด' : 'คน') }}</span>@endif
+                        @if ($r->plate_no)<span class="me-2"><i class="bi bi-card-text"></i> {{ $r->plate_no }}</span>@endif
+                    </div>
+                    @if ($r->location)<div class="pc-meta"><i class="bi bi-geo-alt"></i> {{ $r->location }}</div>@endif
+                    @if ($r->contact)<div class="pc-meta"><i class="bi bi-person"></i> {{ $r->contact }}</div>@endif
+                    @if ($r->amenityList())<div class="tag-list mt-1">@foreach ($r->amenityList() as $a)<span>{{ $a }}</span>@endforeach</div>@endif
+                    <div class="d-flex align-items-center mt-auto pt-2">
+                        <span class="small text-muted"><i class="bi bi-calendar2-check"></i> จองล่วงหน้า {{ $r->upcoming_count }}</span>
+                        <a href="{{ route('bookings.create', ['resource' => $r->id]) }}" class="btn btn-sm btn-soft ms-auto me-1">จอง</a>
+                        <a href="{{ route('bookings.resources.edit', $r) }}" class="btn btn-sm btn-light border"><i class="bi bi-pencil"></i> แก้ไข</a>
+                    </div>
+                </div>
+            </div>
+        @endforeach
+    </div>
+@endif
 @endsection
+
+@push('scripts')
+<script>
+document.getElementById('typeFilter')?.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-type]'); if (!b) return;
+    document.querySelectorAll('#typeFilter button').forEach((x) => x.className = 'btn btn-sm ' + (x === b ? 'btn-dark' : 'btn-light border'));
+    document.querySelectorAll('[data-rtype]').forEach((c) => c.classList.toggle('d-none', !!b.dataset.type && c.dataset.rtype !== b.dataset.type));
+});
+</script>
+@endpush

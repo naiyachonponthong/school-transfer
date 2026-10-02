@@ -10,6 +10,7 @@ use App\Support\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -44,6 +45,21 @@ class BookingController extends Controller
         ]);
     }
 
+    /** ช่วงเวลาที่ถูกจองแล้วของห้อง/รถหนึ่งในวันที่เลือก (ใช้แสดงในหน้าจอง) */
+    public function day(Request $request)
+    {
+        $data = $request->validate(['resource' => ['required', 'exists:bookable_resources,id'], 'date' => ['required', 'date']]);
+        $start = Carbon::parse($data['date'])->startOfDay();
+
+        return response()->json(Booking::with('user')->whereIn('status', Booking::HOLDING)->where('resource_id', $data['resource'])
+            ->where('starts_at', '<', $start->copy()->addDay())->where('ends_at', '>', $start)->orderBy('starts_at')->get()
+            ->map(fn ($b) => [
+                'from' => $b->starts_at->lt($start) ? '00:00' : $b->starts_at->format('H:i'),
+                'to' => $b->ends_at->gte($start->copy()->addDay()) ? '24:00' : $b->ends_at->format('H:i'),
+                'title' => $b->title, 'by' => $b->user?->name, 'status' => $b->status, 'mine' => $b->user_id === $request->user()->id,
+            ]));
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -56,6 +72,7 @@ class BookingController extends Controller
             'attendees' => ['nullable', 'integer', 'min:1', 'max:10000'],
             'destination' => ['nullable', 'string', 'max:255'],
             'note' => ['nullable', 'string', 'max:500'],
+            'contact_phone' => ['nullable', 'string', 'max:20'],
         ], [], ['title' => 'วัตถุประสงค์', 'resource_id' => 'ห้อง/รถ/อุปกรณ์']);
         $start = Carbon::parse($data['date'].' '.$data['start_time']);
         $end = Carbon::parse(($data['end_date'] ?? $data['date']).' '.$data['end_time']);
@@ -79,7 +96,7 @@ class BookingController extends Controller
             return Booking::create([
                 'resource_id' => $resource->id, 'user_id' => $user->id, 'title' => $data['title'],
                 'starts_at' => $start, 'ends_at' => $end, 'attendees' => $data['attendees'] ?? null,
-                'destination' => $data['destination'] ?? null, 'note' => $data['note'] ?? null,
+                'destination' => $data['destination'] ?? null, 'note' => $data['note'] ?? null, 'contact_phone' => $data['contact_phone'] ?? $user->phone,
                 'status' => $resource->requires_approval && ! $user->canManageFacilities() ? 'pending' : 'approved',
             ]);
         });
@@ -125,7 +142,17 @@ class BookingController extends Controller
     {
         abort_unless($request->user()->canManageFacilities(), 403);
 
-        return view('bookings.resources', ['resources' => BookableResource::orderBy('type')->orderBy('name')->get()]);
+        return view('bookings.resources', [
+            'resources' => BookableResource::withCount(['bookings as upcoming_count' => fn ($q) => $q->whereIn('status', Booking::HOLDING)->where('ends_at', '>=', now())])
+                ->orderByDesc('is_active')->orderBy('type')->orderBy('name')->get(),
+        ]);
+    }
+
+    public function resourceForm(Request $request, ?BookableResource $resource = null)
+    {
+        abort_unless($request->user()->canManageFacilities(), 403);
+
+        return view('bookings.resource-form', ['resource' => $resource?->exists ? $resource : new BookableResource(['type' => $request->query('type', 'room'), 'is_active' => true])]);
     }
 
     public function saveResource(Request $request, ?BookableResource $resource = null)
@@ -136,11 +163,28 @@ class BookingController extends Controller
             'type' => ['required', Rule::in(array_keys(BookableResource::TYPES))],
             'capacity' => ['nullable', 'integer', 'min:1', 'max:10000'],
             'description' => ['nullable', 'string', 'max:255'],
-        ]);
+            'location' => ['nullable', 'string', 'max:255'],
+            'amenities' => ['nullable', 'array'],
+            'amenities.*' => ['string', 'max:50'],
+            'amenities_other' => ['nullable', 'string', 'max:300'],
+            'plate_no' => ['nullable', 'string', 'max:30'],
+            'contact' => ['nullable', 'string', 'max:255'],
+            'rules' => ['nullable', 'string', 'max:2000'],
+            'photo' => ['nullable', 'image', 'max:8192'],
+        ], [], ['name' => 'ชื่อ']);
+        // สิ่งอำนวยความสะดวก = ที่ติ๊ก + ที่พิมพ์เพิ่ม (คั่นด้วย ,)
+        $amenities = collect($data['amenities'] ?? [])->merge(explode(',', (string) ($data['amenities_other'] ?? '')))->map(fn ($a) => trim($a))->filter()->unique();
+        $data['amenities'] = $amenities->implode(', ') ?: null;
+        unset($data['amenities_other'], $data['photo']);
         $data += ['requires_approval' => $request->boolean('requires_approval'), 'is_active' => $request->boolean('is_active', true)];
-        $resource && $resource->exists ? $resource->update($data) : BookableResource::create($data);
+        $resource = $resource?->exists ? $resource : new BookableResource;
+        if ($request->hasFile('photo')) {
+            $resource->photo && Storage::disk('public')->delete($resource->photo);
+            $data['photo'] = $request->file('photo')->store('resources', 'public');
+        }
+        $resource->fill($data)->save();
 
-        return back()->with('success', 'บันทึกแล้ว');
+        return redirect()->route('bookings.resources')->with('success', "บันทึก {$resource->name} แล้ว");
     }
 
     private static function managers()

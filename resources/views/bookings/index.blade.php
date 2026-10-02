@@ -45,10 +45,11 @@
         @forelse ($resources as $r)
             @php($list = $bookings->get($r->id, collect()))
             <div class="card mb-2">
-                <div class="card-body py-2 d-flex gap-3 align-items-start">
-                    <span class="app-ico flex-shrink-0" style="width:42px;height:42px"><i class="bi {{ $r->icon() }}"></i></span>
+                <div class="card-body py-2 d-flex gap-3 align-items-center">
+                    <span class="media-thumb" style="width:64px;height:64px">@if($r->photoUrl())<img src="{{ $r->photoUrl() }}" alt="">@else<i class="bi {{ $r->icon() }}"></i>@endif</span>
                     <div class="flex-grow-1">
-                        <div class="fw-semibold">{{ $r->name }} <span class="small text-muted fw-normal">{{ $r->capacity ? $r->capacity.' คน' : '' }}{{ $r->requires_approval ? ' · ต้องอนุมัติ' : '' }}</span></div>
+                        <div class="fw-semibold">{{ $r->name }} @if($r->requires_approval)<span class="badge text-bg-warning">ต้องอนุมัติ</span>@endif</div>
+                        <div class="small text-muted">{{ collect([$r->capacity ? $r->capacity.($r->type === 'vehicle' ? ' ที่นั่ง' : ' คน') : null, $r->location, $r->plate_no])->filter()->implode(' · ') }}</div>
                         @forelse ($list as $b)
                             <div class="small d-flex gap-2 align-items-center mt-1">
                                 <span class="badge text-bg-{{ $b->statusColor() }}">{{ $b->starts_at->isSameDay($date) ? $b->starts_at->format('H:i') : '…' }}–{{ $b->ends_at->isSameDay($date) ? $b->ends_at->format('H:i') : '…' }}</span>

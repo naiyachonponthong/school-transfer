@@ -613,18 +613,21 @@ class DatabaseSeeder extends Seeder
         $aircon->update(['status' => 'repairing']);
 
         // ---------- จองห้อง/รถ + วัสดุสิ้นเปลือง ----------
-        $meeting = \App\Models\BookableResource::create(['name' => 'ห้องประชุม 1', 'type' => 'room', 'capacity' => 30, 'description' => 'มีโปรเจกเตอร์และไมค์']);
-        \App\Models\BookableResource::create(['name' => 'หอประชุม', 'type' => 'room', 'capacity' => 400, 'requires_approval' => true]);
-        $van = \App\Models\BookableResource::create(['name' => 'รถตู้โรงเรียน (นข 1234)', 'type' => 'vehicle', 'capacity' => 12, 'requires_approval' => true]);
-        \App\Models\BookableResource::create(['name' => 'โปรเจกเตอร์พกพา', 'type' => 'equipment']);
+        $meeting = \App\Models\BookableResource::create(['name' => 'ห้องประชุม 1', 'type' => 'room', 'capacity' => 30, 'location' => 'อาคาร 1 ชั้น 2',
+            'description' => 'จัดโต๊ะแบบ U ได้ 20 ที่นั่ง', 'amenities' => 'โปรเจกเตอร์, ไมโครโฟน, เครื่องปรับอากาศ, Wi-Fi', 'contact' => 'งานธุรการ โทร 101', 'rules' => 'ปิดแอร์และไฟหลังใช้ · คืนรีโมตที่ห้องธุรการ']);
+        \App\Models\BookableResource::create(['name' => 'หอประชุม', 'type' => 'room', 'capacity' => 400, 'location' => 'อาคารอเนกประสงค์', 'requires_approval' => true,
+            'amenities' => 'เวที, เครื่องเสียง, ไมโครโฟน, จอทีวี', 'rules' => 'จองล่วงหน้าอย่างน้อย 3 วัน']);
+        $van = \App\Models\BookableResource::create(['name' => 'รถตู้โรงเรียน', 'type' => 'vehicle', 'capacity' => 12, 'plate_no' => 'นข 1234 ขอนแก่น', 'location' => 'โรงจอดรถหลังอาคาร 1',
+            'contact' => 'นายสมศักดิ์ (พนักงานขับรถ) 089-123-4567', 'requires_approval' => true, 'rules' => 'จองล่วงหน้าอย่างน้อย 3 วัน · ผู้จองรับผิดชอบค่าทางด่วน']);
+        \App\Models\BookableResource::create(['name' => 'โปรเจกเตอร์พกพา', 'type' => 'equipment', 'capacity' => 2, 'location' => 'ห้องโสตทัศนูปกรณ์', 'description' => 'Epson EB-X51 พร้อมสาย HDMI']);
         \App\Models\Booking::create(['resource_id' => $meeting->id, 'user_id' => $teachers[1]->id, 'title' => 'ประชุมกลุ่มสาระภาษาไทย',
             'starts_at' => today()->setTime(13, 0), 'ends_at' => today()->setTime(15, 0), 'attendees' => 8, 'status' => 'approved']);
         \App\Models\Booking::create(['resource_id' => $van->id, 'user_id' => $teacher->id, 'title' => 'พานักเรียนแข่งขันคณิตศาสตร์', 'destination' => 'มหาวิทยาลัยขอนแก่น',
             'starts_at' => today()->addDays(3)->setTime(7, 0), 'ends_at' => today()->addDays(3)->setTime(17, 0), 'attendees' => 6, 'status' => 'pending']);
 
-        $paper = \App\Models\Supply::create(['name' => 'กระดาษ A4 80 แกรม', 'unit' => 'รีม', 'category' => 'วัสดุสำนักงาน', 'min_stock' => 20]);
-        $toner = \App\Models\Supply::create(['name' => 'ผงหมึกเครื่องพิมพ์ Brother TN-2460', 'unit' => 'กล่อง', 'category' => 'วัสดุคอมพิวเตอร์', 'min_stock' => 2]);
-        $marker = \App\Models\Supply::create(['name' => 'ปากกาไวท์บอร์ด', 'unit' => 'ด้าม', 'category' => 'วัสดุการศึกษา', 'min_stock' => 24]);
+        $paper = \App\Models\Supply::create(['code' => 'OF-001', 'name' => 'กระดาษ A4 80 แกรม', 'unit' => 'รีม', 'category' => 'วัสดุสำนักงาน', 'min_stock' => 20, 'unit_price' => 115, 'storage_location' => 'ห้องพัสดุ ตู้ 1', 'description' => 'Double A 500 แผ่น/รีม']);
+        $toner = \App\Models\Supply::create(['code' => 'CP-001', 'name' => 'ผงหมึกเครื่องพิมพ์ Brother TN-2460', 'unit' => 'กล่อง', 'category' => 'วัสดุคอมพิวเตอร์', 'min_stock' => 2, 'unit_price' => 890, 'storage_location' => 'ห้องพัสดุ ตู้ 2', 'description' => 'ใช้กับ Brother HL-L2370DN']);
+        $marker = \App\Models\Supply::create(['code' => 'ED-001', 'name' => 'ปากกาไวท์บอร์ด', 'unit' => 'ด้าม', 'category' => 'วัสดุการศึกษา', 'min_stock' => 24, 'unit_price' => 18, 'storage_location' => 'ห้องพัสดุ ลิ้นชัก 3', 'description' => 'สีน้ำเงิน หัวกลม']);
         auth()->setUser($facility);
         $paper->move('in', 120, 'ยอดยกมา');
         $toner->move('in', 2, 'ยอดยกมา');

@@ -371,4 +371,15 @@
         const tick = () => { clock.textContent = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); };
         tick(); setInterval(tick, 1000);
     }
+
+    /* ---------- พรีวิวรูปก่อนอัปโหลด (กล่อง .photo-drop) ---------- */
+    document.addEventListener('change', (e) => {
+        const input = e.target.closest('.photo-drop input[type=file]');
+        if (!input || !input.files?.[0]) return;
+        const box = input.closest('.photo-drop');
+        let img = $('img', box);
+        if (!img) { img = document.createElement('img'); img.alt = ''; box.prepend(img); }
+        img.src = URL.createObjectURL(input.files[0]);
+        $('.hint', box)?.classList.add('d-none');
+    });
 })();

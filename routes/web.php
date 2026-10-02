@@ -230,11 +230,14 @@ Route::middleware('auth')->group(function () {
         // จองห้อง / รถ / อุปกรณ์
         Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
         Route::get('/bookings/create', [BookingController::class, 'create'])->name('bookings.create');
+        Route::get('/bookings/day', [BookingController::class, 'day'])->name('bookings.day');
         Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
         Route::post('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
         Route::post('/bookings/{booking}/review', [BookingController::class, 'review'])->name('bookings.review');
         Route::get('/booking-resources', [BookingController::class, 'resources'])->name('bookings.resources');
         Route::post('/booking-resources', [BookingController::class, 'saveResource'])->name('bookings.resources.store');
+        Route::get('/booking-resources/create', [BookingController::class, 'resourceForm'])->name('bookings.resources.create');
+        Route::get('/booking-resources/{resource}/edit', [BookingController::class, 'resourceForm'])->name('bookings.resources.edit');
         Route::put('/booking-resources/{resource}', [BookingController::class, 'saveResource'])->name('bookings.resources.update');
 
         // วัสดุสิ้นเปลือง: ใบเบิก (ครูทุกคน) + คลัง/บัญชีวัสดุ (งานพัสดุ)
@@ -247,6 +250,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/requisitions/{requisition}/cancel', [RequisitionController::class, 'cancel'])->name('requisitions.cancel');
         Route::get('/supplies', [SupplyController::class, 'index'])->name('supplies.index');
         Route::post('/supplies', [SupplyController::class, 'store'])->name('supplies.store');
+        Route::get('/supplies/create', [SupplyController::class, 'create'])->name('supplies.create');
+        Route::get('/supplies/{supply}/edit', [SupplyController::class, 'edit'])->name('supplies.edit');
         Route::get('/supplies/report', [SupplyController::class, 'report'])->name('supplies.report');
         Route::get('/supplies/{supply}', [SupplyController::class, 'show'])->name('supplies.show');
         Route::put('/supplies/{supply}', [SupplyController::class, 'update'])->name('supplies.update');

@@ -18,7 +18,7 @@ class Booking extends Model
     /** สถานะที่กันเวลาไว้ (ห้ามจองซ้อน) */
     public const HOLDING = ['pending', 'approved'];
 
-    protected $fillable = ['resource_id', 'user_id', 'title', 'starts_at', 'ends_at', 'attendees', 'destination', 'note',
+    protected $fillable = ['resource_id', 'user_id', 'title', 'starts_at', 'ends_at', 'attendees', 'destination', 'note', 'contact_phone',
         'status', 'reviewed_by', 'reviewed_at', 'review_note'];
 
     protected function casts(): array

@@ -9,11 +9,30 @@ use Illuminate\Support\Facades\DB;
 /** วัสดุสิ้นเปลือง (ยอดคงคลังเปลี่ยนผ่าน move() เท่านั้น เพื่อให้บัญชีวัสดุครบทุกรายการ) */
 class Supply extends Model
 {
-    protected $fillable = ['name', 'unit', 'category', 'stock', 'min_stock', 'is_active'];
+    protected $fillable = ['code', 'name', 'unit', 'category', 'stock', 'min_stock', 'is_active', 'photo', 'unit_price', 'storage_location', 'description'];
 
     protected function casts(): array
     {
-        return ['stock' => 'integer', 'min_stock' => 'integer', 'is_active' => 'boolean'];
+        return ['stock' => 'integer', 'min_stock' => 'integer', 'is_active' => 'boolean', 'unit_price' => 'float'];
+    }
+
+    public function photoUrl(): ?string
+    {
+        return $this->photo ? asset('storage/'.$this->photo) : null;
+    }
+
+    /** มูลค่าคงคลัง */
+    public function value(): float
+    {
+        return round($this->stock * $this->unit_price, 2);
+    }
+
+    /** ร้อยละของคงคลังเทียบ 3 เท่าของขั้นต่ำ (ใช้แสดงแถบระดับคงคลัง) */
+    public function level(): int
+    {
+        $full = max(1, $this->min_stock * 3);
+
+        return (int) min(100, round($this->stock / $full * 100));
     }
 
     public function transactions(): HasMany

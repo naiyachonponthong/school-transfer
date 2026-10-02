@@ -8,6 +8,7 @@ use App\Models\SupplyTransaction;
 use App\Support\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 /** คลังวัสดุสิ้นเปลือง (งานพัสดุ): รายการ · รับเข้า · ปรับยอด · บัญชีวัสดุ · สรุปการเบิกรายเดือน */
@@ -22,7 +23,8 @@ class SupplyController extends Controller
     {
         $this->authorizeManager($request);
         $supplies = Supply::query()
-            ->when($request->query('q'), fn ($q, $t) => $q->where('name', 'like', "%{$t}%"))
+            ->when($request->query('q'), fn ($q, $t) => $q->where(fn ($w) => $w->where('name', 'like', "%{$t}%")->orWhere('code', 'like', "%{$t}%")))
+            ->when($request->query('category'), fn ($q, $c) => $q->where('category', $c))
             ->when($request->query('low'), fn ($q) => $q->whereColumn('stock', '<=', 'min_stock')->where('min_stock', '>', 0))
             ->orderByDesc('is_active')->orderBy('category')->orderBy('name')->get();
 
@@ -31,13 +33,29 @@ class SupplyController extends Controller
             'lowCount' => Supply::where('is_active', true)->whereColumn('stock', '<=', 'min_stock')->where('min_stock', '>', 0)->count(),
             'pending' => SupplyRequisition::where('status', 'pending')->count(),
             'categories' => Supply::whereNotNull('category')->distinct()->orderBy('category')->pluck('category'),
+            'totalValue' => Supply::where('is_active', true)->get()->sum(fn ($s) => $s->value()),
         ]);
+    }
+
+    public function create(Request $request)
+    {
+        $this->authorizeManager($request);
+
+        return view('supplies.form', ['supply' => new Supply(['unit' => 'ชิ้น', 'is_active' => true]), 'categories' => self::categories()]);
+    }
+
+    public function edit(Request $request, Supply $supply)
+    {
+        $this->authorizeManager($request);
+
+        return view('supplies.form', ['supply' => $supply, 'categories' => self::categories()]);
     }
 
     public function store(Request $request)
     {
         $this->authorizeManager($request);
         $data = $this->validated($request);
+        $data['photo'] = $request->hasFile('photo') ? $request->file('photo')->store('supplies', 'public') : null;
         $initial = (int) $request->input('initial_stock', 0);
         $supply = Supply::create($data + ['stock' => 0]);
         if ($initial > 0) {
@@ -45,15 +63,25 @@ class SupplyController extends Controller
         }
         Audit::log('supply.create', $supply, "เพิ่มวัสดุ {$supply->name}".($initial ? " ยอดยกมา {$initial} {$supply->unit}" : ''));
 
-        return back()->with('success', "เพิ่ม {$supply->name} แล้ว");
+        return redirect()->route($request->boolean('another') ? 'supplies.create' : 'supplies.index')->with('success', "เพิ่ม {$supply->name} แล้ว");
     }
 
     public function update(Request $request, Supply $supply)
     {
         $this->authorizeManager($request);
-        $supply->update($this->validated($request) + ['is_active' => $request->boolean('is_active', true)]);
+        $data = $this->validated($request, $supply) + ['is_active' => $request->boolean('is_active', true)];
+        unset($data['photo']);
+        if ($request->hasFile('photo')) {
+            $supply->photo && Storage::disk('public')->delete($supply->photo);
+            $data['photo'] = $request->file('photo')->store('supplies', 'public');
+        }
+        $supply->fill($data);
+        if ($diff = Audit::diff($supply)) {
+            Audit::log('supply.update', $supply, "แก้ข้อมูลวัสดุ {$supply->name}", $diff);
+        }
+        $supply->save();
 
-        return back()->with('success', 'บันทึกแล้ว');
+        return redirect()->route('supplies.show', $supply)->with('success', 'บันทึกแล้ว');
     }
 
     /** รับเข้า (ซื้อ/ได้รับบริจาค) หรือปรับยอดตามการตรวจนับ */
@@ -64,12 +92,17 @@ class SupplyController extends Controller
             'type' => ['required', Rule::in(['in', 'adjust'])],
             'quantity' => ['required', 'integer', 'not_in:0', 'min:-100000', 'max:100000'],
             'note' => ['nullable', 'string', 'max:255'],
+            'unit_price' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
         ], [], ['quantity' => 'จำนวน']);
         if ($data['type'] === 'in' && $data['quantity'] < 0) {
             return back()->withErrors(['quantity' => 'รับเข้าต้องเป็นจำนวนบวก (ถ้าจะลดยอดให้ใช้ "ปรับยอด")']);
         }
         if ($supply->stock + $data['quantity'] < 0) {
             return back()->withErrors(['quantity' => "ยอดคงเหลือมีเพียง {$supply->stock} {$supply->unit}"]);
+        }
+        // รับเข้าจากการซื้อ: อัปเดตราคาต่อหน่วยล่าสุดได้พร้อมกัน
+        if ($data['type'] === 'in' && isset($data['unit_price'])) {
+            $supply->update(['unit_price' => $data['unit_price']]);
         }
         $supply->move($data['type'], $data['quantity'], $data['note'] ?? null);
         Audit::log('supply.'.$data['type'], $supply, SupplyTransaction::TYPES[$data['type']]." {$supply->name} ".($data['quantity'] > 0 ? '+' : '')."{$data['quantity']} {$supply->unit} คงเหลือ {$supply->stock}".(! empty($data['note']) ? " ({$data['note']})" : ''));
@@ -102,16 +135,30 @@ class SupplyController extends Controller
         ]);
     }
 
-    private function validated(Request $request): array
+    private function validated(Request $request, ?Supply $supply = null): array
     {
         $data = $request->validate([
+            'code' => ['nullable', 'string', 'max:30', Rule::unique('supplies')->ignore($supply?->id)],
             'name' => ['required', 'string', 'max:255'],
             'unit' => ['required', 'string', 'max:30'],
             'category' => ['nullable', 'string', 'max:50'],
             'min_stock' => ['nullable', 'integer', 'min:0', 'max:100000'],
-        ], [], ['name' => 'ชื่อวัสดุ', 'unit' => 'หน่วยนับ']);
+            'unit_price' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
+            'storage_location' => ['nullable', 'string', 'max:100'],
+            'description' => ['nullable', 'string', 'max:2000'],
+            'photo' => ['nullable', 'image', 'max:8192'],
+            'initial_stock' => ['nullable', 'integer', 'min:0', 'max:1000000'],
+        ], [], ['name' => 'ชื่อวัสดุ', 'unit' => 'หน่วยนับ', 'code' => 'รหัสวัสดุ']);
+        unset($data['initial_stock']);
         $data['min_stock'] ??= 0;
+        $data['unit_price'] ??= 0;
 
         return $data;
+    }
+
+    private static function categories()
+    {
+        return Supply::whereNotNull('category')->distinct()->orderBy('category')->pluck('category')
+            ->merge(['วัสดุสำนักงาน', 'วัสดุคอมพิวเตอร์', 'วัสดุงานบ้านงานครัว', 'วัสดุการศึกษา', 'วัสดุไฟฟ้า', 'วัสดุวิทยาศาสตร์'])->unique()->values();
     }
 }

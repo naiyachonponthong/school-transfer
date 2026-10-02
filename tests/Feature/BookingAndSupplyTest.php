@@ -10,6 +10,8 @@ use App\Models\SupplyRequisition;
 use App\Models\SupplyTransaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /** จองห้อง/รถ/อุปกรณ์ · คลังวัสดุ + ใบเบิก */
@@ -156,5 +158,54 @@ class BookingAndSupplyTest extends TestCase
         $this->actingAs($this->teacher())->post("/requisitions/{$req->id}/cancel")->assertRedirect();
         $this->assertSame('cancelled', $req->fresh()->status);
         $this->assertSame(100, $marker->fresh()->stock);
+    }
+
+    public function test_supply_details_photo_and_value(): void
+    {
+        Storage::fake('public');
+        $m = $this->facility();
+        $this->actingAs($m)->get('/supplies/create')->assertOk()->assertSee('รูปวัสดุ')->assertSee('ราคาต่อหน่วย');
+        $this->actingAs($m)->post('/supplies', [
+            'code' => 'ST-9', 'name' => 'เทปกาวสองหน้า', 'unit' => 'ม้วน', 'category' => 'วัสดุสำนักงาน', 'unit_price' => 35.5,
+            'storage_location' => 'ตู้ 3', 'description' => 'กว้าง 1 นิ้ว', 'initial_stock' => 10,
+            'photo' => UploadedFile::fake()->image('tape.jpg'),
+        ])->assertRedirect(route('supplies.index'));
+        $s = Supply::where('code', 'ST-9')->first();
+        $this->assertSame([10, 355.0, 'ตู้ 3'], [$s->stock, $s->value(), $s->storage_location]);
+        Storage::disk('public')->assertExists($s->photo);
+        $this->actingAs($m)->post('/supplies', ['code' => 'ST-9', 'name' => 'ซ้ำ', 'unit' => 'ชิ้น'])->assertSessionHasErrors('code');
+
+        // รับเข้าพร้อมราคาใหม่
+        $this->actingAs($m)->post("/supplies/{$s->id}/move", ['type' => 'in', 'quantity' => 5, 'unit_price' => 40])->assertSessionHasNoErrors();
+        $this->assertSame([15, 40.0], [$s->fresh()->stock, $s->fresh()->unit_price]);
+        $this->actingAs($m)->get('/supplies')->assertSee('มูลค่าคงคลัง')->assertSee('600.00');
+        $this->actingAs($m)->get("/supplies/{$s->id}")->assertSee('กว้าง 1 นิ้ว')->assertSee('ตู้ 3');
+        $this->actingAs($m)->put("/supplies/{$s->id}", ['code' => 'ST-9', 'name' => 'เทปกาวสองหน้า 1 นิ้ว', 'unit' => 'ม้วน', 'is_active' => 1])->assertRedirect(route('supplies.show', $s));
+        $this->assertSame(15, $s->fresh()->stock); // แก้ข้อมูลไม่กระทบยอดคงเหลือ
+
+        // หน้าเขียนใบเบิกเป็นแคตตาล็อกพร้อมรูปและยอดคงเหลือ
+        $this->actingAs($this->teacher())->get('/requisitions/create')->assertOk()->assertSee('เพิ่มในใบเบิก')->assertSee('เทปกาวสองหน้า 1 นิ้ว')->assertSee($s->photoUrl(), false);
+    }
+
+    public function test_resource_details_and_day_slots(): void
+    {
+        Storage::fake('public');
+        $m = $this->facility();
+        $this->actingAs($m)->get('/booking-resources/create?type=vehicle')->assertOk()->assertSee('ทะเบียนรถ')->assertSee('สิ่งอำนวยความสะดวก');
+        $this->actingAs($m)->post('/booking-resources', [
+            'name' => 'ห้องสมุดชั้น 2', 'type' => 'room', 'capacity' => 40, 'location' => 'อาคาร 3', 'amenities' => ['โปรเจกเตอร์', 'Wi-Fi'],
+            'amenities_other' => 'โซฟา, Wi-Fi', 'rules' => 'ห้ามนำอาหารเข้า', 'is_active' => 1, 'photo' => UploadedFile::fake()->image('lib.jpg'),
+        ])->assertRedirect(route('bookings.resources'));
+        $r = BookableResource::where('name', 'ห้องสมุดชั้น 2')->first();
+        $this->assertSame(['โปรเจกเตอร์', 'Wi-Fi', 'โซฟา'], $r->amenityList()); // รวมที่ติ๊ก + พิมพ์เพิ่ม ไม่ซ้ำ
+        $this->assertNotNull($r->photo);
+        $this->actingAs($m)->get('/booking-resources')->assertSee('ห้องสมุดชั้น 2')->assertSee('โซฟา')->assertSee('อาคาร 3');
+
+        $this->book($this->teacher(), $r, '10:00', '11:30');
+        $this->assertSame($this->teacher()->phone, Booking::latest('id')->value('contact_phone')); // เบอร์ติดต่อตั้งต้นจากบัญชี
+        $this->actingAs($this->otherTeacher())->getJson('/bookings/day?resource='.$r->id.'&date='.today()->addDay()->toDateString())
+            ->assertOk()->assertJsonPath('0.from', '10:00')->assertJsonPath('0.to', '11:30')->assertJsonPath('0.mine', false);
+        $this->actingAs($this->teacher())->get('/bookings/create?resource='.$r->id)->assertOk()->assertSee('ช่วงเวลาที่ถูกจองแล้ว')
+            ->assertSee(trim(json_encode('ห้ามนำอาหารเข้า'), '"'), false); // ข้อปฏิบัติอยู่ในข้อมูล JSON ของหน้า (แสดงเมื่อเลือก)
     }
 }
