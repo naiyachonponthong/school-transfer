@@ -6,6 +6,7 @@
     <div><h1>รับสมัครนักเรียน ปี {{ $year }}</h1><div class="sub">{{ $open ? 'เปิดรับสมัครอยู่' : 'ปิดรับสมัคร' }} · ลิงก์สำหรับผู้ปกครอง: <a href="{{ route('apply') }}" target="_blank">{{ route('apply') }}</a></div></div>
     <div class="actions">
         <button class="btn btn-light border" onclick="navigator.clipboard.writeText('{{ route('apply') }}');this.innerHTML='<i class=\'bi bi-check2\'></i> คัดลอกแล้ว'"><i class="bi bi-link-45deg"></i> คัดลอกลิงก์สมัคร</button>
+        <a href="{{ route('admission-exams.index', ['year' => $year]) }}" class="btn btn-light border"><i class="bi bi-trophy"></i> สอบคัดเลือก</a>
         <a href="{{ route('admissions.export', ['year' => $year]) }}" class="btn btn-light border"><i class="bi bi-file-earmark-spreadsheet"></i> ส่งออก Excel</a>
         <a href="{{ route('admissions.form') }}" class="btn btn-primary"><i class="bi bi-ui-checks"></i> ตั้งค่าฟอร์มรับสมัคร</a>
     </div>

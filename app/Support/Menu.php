@@ -85,6 +85,7 @@ class Menu
             $groups['สื่อสารและการเงิน'][] = self::item('slips', 'ตรวจสลิป', 'bi-receipt-cutoff', route('slips.index'), 'teal', $slips, ['slips.*']);
             $groups['ผู้ดูแลระบบ'] = [
                 self::item('admissions', 'รับสมัครนักเรียน', 'bi-person-plus', route('admissions.index'), 'slate', $admissions, ['admissions.*']),
+                self::item('admissionexams', 'สอบคัดเลือก', 'bi-trophy', route('admission-exams.index'), 'slate', 0, ['admission-exams.*']),
                 self::item('line', 'LINE แจ้งเตือน', 'bi-chat-dots', route('settings.messages'), 'slate', 0, ['settings.messages']),
                 self::item('users', 'ผู้ใช้งาน', 'bi-person-gear', route('users.index'), 'slate', 0, ['users.*']),
                 self::item('classrooms', 'ห้องเรียน', 'bi-door-open', route('classrooms.index'), 'slate', 0, ['classrooms.*']),

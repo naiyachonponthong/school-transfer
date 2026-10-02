@@ -28,9 +28,17 @@
             <div class="fs-4 fw-bold my-1">{{ $a->fullName() }}</div>
             <span class="badge bg-{{ $a->statusColor() }} fs-6 px-3 py-2">{{ $a->statusLabel() }}</span>
             @if ($a->staff_note)<div class="mt-3">{{ $a->staff_note }}</div>@endif
-            @if ($a->exam_room || $a->exam_seat)
-                <div class="mt-3"><span class="badge bg-light text-dark border fs-6 fw-normal"><i class="bi bi-door-open"></i> ห้องสอบ <b>{{ $a->exam_room ?: '-' }}</b> · เลขที่นั่งสอบ <b>{{ $a->exam_seat ?: '-' }}</b></span></div>
+            @if ($a->exam_room || $a->exam_seat || $a->exam_no)
+                <div class="mt-3"><span class="badge bg-light text-dark border fs-6 fw-normal text-wrap"><i class="bi bi-door-open"></i>
+                    @if ($a->exam_no) เลขประจำตัวสอบ <b>{{ $a->exam_no }}</b> · @endif ห้องสอบ <b>{{ $a->exam_room ?: '-' }}</b> · เลขที่นั่งสอบ <b>{{ $a->exam_seat ?: '-' }}</b></span></div>
+                @if ($a->exam_no && ($round = $a->round()) && $round->exam_date && ! $round->isPublished())
+                    <div class="small text-muted mt-1">สอบวันที่ {{ thai_date($round->exam_date) }} · นำส่วนที่ 2 ของใบสมัครและบัตรประชาชนมาในวันสอบ</div>
+                @endif
             @endif
+            @if ($a->exam_total !== null && in_array($a->status, ['accepted', 'reserve', 'rejected', 'enrolled'], true))
+                <div class="mt-2 small">คะแนนสอบรวม <b>{{ rtrim(rtrim(number_format($a->exam_total, 2), '0'), '.') }}</b>@if ($a->exam_rank) · อันดับที่ <b>{{ $a->exam_rank }}</b>@endif</div>
+            @endif
+            @if ($a->status === 'reserve')<div class="mt-3 text-warning-emphasis fw-semibold">อยู่ในรายชื่อสำรอง{{ $a->reserve_no ? ' ลำดับที่ '.$a->reserve_no : '' }} — โรงเรียนจะติดต่อเมื่อมีที่ว่างจากผู้ไม่มารายงานตัว</div>@endif
             @if ($a->status === 'accepted')<div class="mt-3 text-success fw-semibold">ขอแสดงความยินดี กรุณาพิมพ์ใบมอบตัว กรอกให้ครบ แล้วนำมามอบตัวตามวันที่โรงเรียนประกาศ</div>@endif
         </div>
         <div class="card-footer bg-transparent d-flex flex-wrap justify-content-center gap-2">

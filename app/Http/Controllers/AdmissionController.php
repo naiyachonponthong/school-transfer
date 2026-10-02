@@ -60,7 +60,7 @@ class AdmissionController extends Controller
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
             fputcsv($out, array_merge(['เลขที่ใบสมัคร', 'สถานะ', 'ระดับชั้น', 'คำนำหน้า', 'ชื่อ', 'นามสกุล', 'ชื่อเล่น', 'เพศ', 'วันเกิด', 'เลขบัตรประชาชน',
-                'โรงเรียนเดิม', 'เกรดเฉลี่ย', 'ผู้ปกครอง', 'ความสัมพันธ์', 'เบอร์โทร', 'ที่อยู่', 'หมายเหตุ', 'ค่าสมัคร', 'ห้องสอบ', 'เลขที่นั่งสอบ', 'วันที่ส่ง'], array_values($cols)));
+                'โรงเรียนเดิม', 'เกรดเฉลี่ย', 'ผู้ปกครอง', 'ความสัมพันธ์', 'เบอร์โทร', 'ที่อยู่', 'หมายเหตุ', 'ค่าสมัคร', 'ห้องสอบ', 'เลขที่นั่งสอบ', 'เลขประจำตัวสอบ', 'คะแนนสอบรวม', 'อันดับ', 'วันที่ส่ง'], array_values($cols)));
             foreach ($items as $a) {
                 $ans = collect($a->answers ?? [])->keyBy('id');
                 fputcsv($out, array_merge([
@@ -68,7 +68,7 @@ class AdmissionController extends Controller
                     $a->app_no, $a->statusLabel(), $a->level, $a->prefix, $a->first_name, $a->last_name, $a->nickname,
                     ['M' => 'ชาย', 'F' => 'หญิง'][$a->gender] ?? '', $a->birthdate?->toDateString(), "\t".$a->citizen_id,
                     $a->previous_school, $a->gpa, $a->parent_name, $a->relation, "\t".$a->parent_phone, $a->address, $a->note,
-                    $a->feeLabel(), $a->exam_room, $a->exam_seat, $a->submitted_at?->toDateTimeString(),
+                    $a->feeLabel(), $a->exam_room, $a->exam_seat, $a->exam_no, $a->exam_total, $a->exam_rank, $a->submitted_at?->toDateTimeString(),
                 ], array_map(fn ($id) => $ans->has($id) ? AdmissionForm::display($ans[$id]) : '', array_keys($cols))));
             }
             fclose($out);
@@ -114,7 +114,7 @@ class AdmissionController extends Controller
     {
         abort_if(in_array($admission->status, ['enrolled', 'draft'], true), 422, 'แก้สถานะใบสมัครนี้ไม่ได้');
         $admission->update($request->validate([
-            'status' => ['required', Rule::in(['submitted', 'reviewing', 'accepted', 'rejected'])],
+            'status' => ['required', Rule::in(['submitted', 'reviewing', 'accepted', 'reserve', 'rejected'])],
             'staff_note' => ['nullable', 'string', 'max:255'],
         ]));
 
@@ -124,7 +124,11 @@ class AdmissionController extends Controller
     /** ห้องสอบ/เลขที่นั่งสอบ (พิมพ์ในส่วนที่ 2 ของใบสมัคร และแสดงในหน้าตรวจสถานะ) */
     public function exam(Request $request, Admission $admission)
     {
-        $admission->update($request->validate(['exam_room' => ['nullable', 'string', 'max:60'], 'exam_seat' => ['nullable', 'string', 'max:20']]));
+        $admission->update($request->validate([
+            'exam_room' => ['nullable', 'string', 'max:60'], 'exam_seat' => ['nullable', 'string', 'max:20'],
+            // เลขประจำตัวสอบ 5 หลัก ห้ามซ้ำในชั้น/ปีเดียวกัน (ใช้จับคู่กระดาษคำตอบ)
+            'exam_no' => ['nullable', 'digits_between:1,5', Rule::unique('applications')->where('year', $admission->year)->where('level', $admission->level)->ignore($admission->id)],
+        ], [], ['exam_no' => 'เลขประจำตัวสอบ']));
 
         return back()->with('success', 'บันทึกห้องสอบแล้ว');
     }

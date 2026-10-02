@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use App\Casts\DateOnly;
+use App\Support\ExamTaker;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection as BaseCollection;
 
 /**
  * ชุดข้อสอบปรนัย 4 ตัวเลือก ตรวจด้วยกล้องมือถือ (ตัวอ่านกระดาษจาก ScanGrade)
@@ -30,13 +32,13 @@ class Exam extends Model
         'low_conf' => 'อ่านไม่ชัด', 'warp' => 'กระดาษโค้ง/ภาพเพี้ยน',
     ];
 
-    protected $fillable = ['term_id', 'subject_id', 'title', 'n_items', 'exam_date', 'answer_key', 'cancelled', 'cancel_mode',
-        'points', 'key_version', 'assessment_name', 'published', 'created_by'];
+    protected $fillable = ['term_id', 'subject_id', 'admission_round_id', 'subject_name', 'title', 'n_items', 'exam_date', 'answer_key', 'cancelled', 'cancel_mode',
+        'points', 'weight', 'key_version', 'assessment_name', 'published', 'created_by'];
 
     protected function casts(): array
     {
         return [
-            'exam_date' => DateOnly::class, 'answer_key' => 'array', 'cancelled' => 'array', 'points' => 'float',
+            'exam_date' => DateOnly::class, 'answer_key' => 'array', 'cancelled' => 'array', 'points' => 'float', 'weight' => 'float',
             'n_items' => 'integer', 'key_version' => 'integer', 'published' => 'boolean',
         ];
     }
@@ -49,6 +51,61 @@ class Exam extends Model
     public function subject(): BelongsTo
     {
         return $this->belongsTo(Subject::class);
+    }
+
+    /** รอบสอบคัดเลือก (ชุดข้อสอบสอบเข้า) — null = สอบในรายวิชา */
+    public function round(): BelongsTo
+    {
+        return $this->belongsTo(AdmissionRound::class, 'admission_round_id');
+    }
+
+    public function isAdmission(): bool
+    {
+        return $this->admission_round_id !== null;
+    }
+
+    public function subjectLabel(): string
+    {
+        return $this->subject?->name ?? $this->subject_name ?? '-';
+    }
+
+    public function subjectCode(): string
+    {
+        return $this->subject?->code ?? 'สอบคัดเลือก';
+    }
+
+    /** คอลัมน์ในแผ่นคำตอบที่ชี้เจ้าของแผ่น */
+    public function takerColumn(): string
+    {
+        return $this->isAdmission() ? 'application_id' : 'student_id';
+    }
+
+    /**
+     * ผู้เข้าสอบทั้งหมด (นักเรียนในห้องที่สอบ หรือผู้สมัครที่มีเลขประจำตัวสอบ) เรียงตามห้อง → เลขที่
+     *
+     * @return BaseCollection<int, ExamTaker>
+     */
+    public function takers(): BaseCollection
+    {
+        if ($this->isAdmission()) {
+            return $this->round->takers()->get()
+                ->sortBy(fn ($a) => [(string) $a->exam_room, (int) $a->exam_seat, $a->exam_no])
+                ->map(fn ($a) => ExamTaker::fromApplication($a))->values();
+        }
+
+        return $this->students()->map(fn ($s) => ExamTaker::fromStudent($s))->values();
+    }
+
+    /** ห้องของผู้เข้าสอบ [{id, name}] ตามลำดับ (ใช้กรองตอนพิมพ์กระดาษ/วิเคราะห์ข้อสอบ) */
+    public function takerRooms(): BaseCollection
+    {
+        if ($this->isAdmission()) {
+            return $this->takers()->filter(fn ($t) => $t->room)->unique('roomKey')->map(fn ($t) => ['id' => $t->roomKey, 'name' => $t->room])->values();
+        }
+        $this->loadMissing('courses.classroom');
+
+        return $this->courses->pluck('classroom')->filter()->sortBy(fn ($c) => [$c->level_order, $c->room])
+            ->map(fn ($c) => ['id' => (string) $c->id, 'name' => $c->name()])->values();
     }
 
     public function courses(): BelongsToMany
@@ -72,6 +129,9 @@ class Exam extends Model
         if ($user->isAdmin() || $this->created_by === $user->id) {
             return true;
         }
+        if ($this->isAdmission()) {
+            return false; // สอบคัดเลือก: เฉพาะผู้ดูแล (งานรับสมัคร) และคนสร้าง
+        }
 
         return $this->courses()->where('teacher_id', $user->id)->exists();
     }
@@ -94,7 +154,7 @@ class Exam extends Model
 
     public function label(): string
     {
-        return $this->title.' · '.$this->subject?->name;
+        return $this->title.' · '.$this->subjectLabel();
     }
 
     /** เฉลยที่ทำความสะอาดแล้ว ยาว n_items: '' ยังไม่ใส่ · '2' · '24' */

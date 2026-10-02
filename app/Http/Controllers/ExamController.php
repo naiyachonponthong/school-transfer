@@ -8,6 +8,7 @@ use App\Models\Score;
 use App\Models\Term;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 /**
@@ -35,7 +36,8 @@ class ExamController extends Controller
 
     public function index(Request $request)
     {
-        $exams = Exam::managedBy($request->user())->with(['subject', 'courses.classroom'])
+        // ชุดข้อสอบคัดเลือกจัดการจากหน้าสอบคัดเลือก
+        $exams = Exam::managedBy($request->user())->whereNull('admission_round_id')->with(['subject', 'courses.classroom'])
             ->withCount(['responses as sheets_count' => fn ($q) => $q->where('status', '!=', 'void'),
                 'responses as review_count' => fn ($q) => $q->where('status', 'review')])
             ->latest()->paginate(20);
@@ -109,7 +111,10 @@ class ExamController extends Controller
             'title' => $data['title'], 'n_items' => $data['n_items'], 'exam_date' => $data['exam_date'] ?? null,
             'assessment_name' => $data['assessment_name'] ?? $exam->assessment_name,
             'published' => $request->boolean('published'),
-        ]);
+        ] + ($exam->isAdmission() ? $request->validate([
+            'subject_name' => ['required', 'string', 'max:100'],
+            'weight' => ['required', 'numeric', 'gt:0', 'max:100'],
+        ]) : []));
 
         return back()->with('success', 'บันทึกชุดข้อสอบแล้ว');
     }
@@ -149,10 +154,11 @@ class ExamController extends Controller
     {
         $this->authorizeExam($request, $exam);
         // แผ่นคำตอบถูกลบด้วย cascade ของฐานข้อมูล ส่วนภาพสแกนต้องลบโฟลเดอร์เอง
-        \Illuminate\Support\Facades\Storage::disk('local')->deleteDirectory('scans/'.$exam->id);
+        Storage::disk('local')->deleteDirectory('scans/'.$exam->id);
         $exam->delete();
 
-        return redirect()->route('exams.index')->with('success', 'ลบชุดข้อสอบแล้ว');
+        return ($exam->isAdmission() ? redirect()->route('admission-exams.show', [$exam->admission_round_id, 'tab' => 'subjects']) : redirect()->route('exams.index'))
+            ->with('success', 'ลบชุดข้อสอบแล้ว');
     }
 
     /** ใช้ข้อสอบ + เฉลยเดิมกับห้อง/เทอมใหม่ (ไม่คัดลอกผลตรวจ) */
@@ -171,12 +177,13 @@ class ExamController extends Controller
     {
         $this->authorizeExam($request, $exam);
         $exam->load('subject', 'courses.classroom');
-        $students = $exam->students()->map(fn ($s) => [
-            'name' => $s->fullName(), 'code' => $s->student_code, 'seat_no' => $s->number, 'seat_group' => $s->number ? 'ก' : '',
-            'classroom' => $s->classroom?->name(), 'classroom_id' => $s->classroom_id,
+        // สอบคัดเลือก: ไม่ใช้กลุ่ม ก/ข · ช่อง "ชั้น" บนกระดาษพิมพ์ห้องสอบ
+        $students = $exam->takers()->map(fn ($t) => [
+            'name' => $t->name, 'code' => $t->code, 'seat_no' => $t->seat, 'seat_group' => $t->seat !== '' && ! $exam->isAdmission() ? 'ก' : '',
+            'classroom' => $t->room, 'classroom_id' => $t->roomKey,
         ])->values();
 
-        return view('exams.sheets', ['exam' => $exam, 'students' => $students]);
+        return view('exams.sheets', ['exam' => $exam, 'students' => $students, 'rooms' => $exam->takerRooms()]);
     }
 
     /** ผลตรวจ: คิวตรวจทาน · ทุกแผ่น · ตารางคะแนน */
@@ -184,13 +191,13 @@ class ExamController extends Controller
     {
         $this->authorizeExam($request, $exam);
         $exam->load('subject', 'courses.classroom');
-        $responses = $exam->responses()->with(['student.classroom', 'scanner'])->orderByDesc('scanned_at')->get();
+        $responses = $exam->responses()->with(['student.classroom', 'application', 'scanner'])->orderByDesc('scanned_at')->get();
         $active = $responses->where('status', '!=', 'void');
-        $students = $exam->students();
-        $byStudent = $active->whereNotNull('student_id')->groupBy('student_id');
+        $col = $exam->takerColumn();
+        $byTaker = $active->whereNotNull($col)->groupBy($col);
 
-        $rows = $students->map(fn ($s) => ['student' => $s, 'response' => $byStudent->get($s->id)?->sortBy(fn ($r) => $r->status === 'ok' ? 0 : 1)->first()]);
-        $scores = $active->where('status', 'ok')->whereNotNull('student_id')->pluck('score')->filter(fn ($v) => $v !== null)->sort()->values();
+        $rows = $exam->takers()->map(fn ($t) => ['taker' => $t, 'response' => $byTaker->get($t->id)?->sortBy(fn ($r) => $r->status === 'ok' ? 0 : 1)->first()]);
+        $scores = $active->where('status', 'ok')->whereNotNull($col)->pluck('score')->filter(fn ($v) => $v !== null)->sort()->values();
 
         return view('exams.results', [
             'exam' => $exam, 'tab' => $request->query('tab', $active->where('status', 'review')->isNotEmpty() ? 'review' : 'scores'),
@@ -222,11 +229,13 @@ class ExamController extends Controller
         $this->authorizeExam($request, $exam);
         $exam->load('subject');
         $evana = $request->query('format') === 'evana';
-        $responses = $exam->responses()->with('student.classroom')->where('status', 'ok')->whereNotNull('student_id')->get()->keyBy('student_id');
-        $students = $exam->students();
-        $name = ($exam->subject->code ?? 'exam').'_'.$exam->title.($evana ? '_EVANA' : '').'.csv';
+        $col = $exam->takerColumn();
+        $responses = $exam->responses()->where('status', 'ok')->whereNotNull($col)->get()->keyBy($col);
+        $students = $exam->takers();
+        $name = ($exam->subject->code ?? $exam->subjectLabel()).'_'.$exam->title.($evana ? '_EVANA' : '').'.csv';
+        $admission = $exam->isAdmission();
 
-        return response()->streamDownload(function () use ($exam, $evana, $responses, $students) {
+        return response()->streamDownload(function () use ($exam, $evana, $responses, $students, $admission) {
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
             if ($evana) {
@@ -235,14 +244,15 @@ class ExamController extends Controller
                 foreach ($students as $s) {
                     if ($r = $responses->get($s->id)) {
                         // รหัสผู้สอบแบบ EVANA = เลขที่ + ห้อง เช่น 7ม11
-                        fputcsv($out, array_merge([$s->number.str_replace(['.', '/'], '', $s->classroom?->name() ?? '')], str_split($r->answers)));
+                        fputcsv($out, array_merge([$admission ? $s->code : $s->evanaId()], str_split($r->answers)));
                     }
                 }
             } else {
-                fputcsv($out, ['ห้อง', 'เลขที่', 'เลขประจำตัว', 'ชื่อ-สกุล', 'คะแนน', 'คะแนนเต็ม', 'สถานะ']);
+                fputcsv($out, $admission ? ['ห้องสอบ', 'เลขที่นั่ง', 'เลขประจำตัวสอบ', 'ชื่อ-สกุล', 'คะแนน', 'คะแนนเต็ม', 'สถานะ']
+                    : ['ห้อง', 'เลขที่', 'เลขประจำตัว', 'ชื่อ-สกุล', 'คะแนน', 'คะแนนเต็ม', 'สถานะ']);
                 foreach ($students as $s) {
                     $r = $responses->get($s->id);
-                    fputcsv($out, [$s->classroom?->name(), $s->number, $s->student_code, $s->fullName(), $r?->score, $r?->max_score, $r ? 'ตรวจแล้ว' : 'ไม่มีผล']);
+                    fputcsv($out, [$s->room, $s->seat, $s->code, $s->name, $r?->score, $r?->max_score, $r ? 'ตรวจแล้ว' : ($admission ? 'ขาดสอบ / ไม่มีผล' : 'ไม่มีผล')]);
                 }
             }
             fclose($out);
@@ -253,6 +263,7 @@ class ExamController extends Controller
     public function sync(Request $request, Exam $exam)
     {
         $this->authorizeExam($request, $exam);
+        abort_if($exam->isAdmission(), 422, 'ชุดข้อสอบคัดเลือกไม่มีสมุดคะแนน');
         $data = $request->validate(['assessment_name' => ['required', 'string', 'max:255']]);
         $exam->update(['assessment_name' => $data['assessment_name']]);
         $responses = $exam->responses()->where('status', 'ok')->whereNotNull('student_id')->whereNotNull('score')->get()->keyBy('student_id');
@@ -283,15 +294,18 @@ class ExamController extends Controller
     {
         $this->authorizeExam($request, $exam);
         $exam->load('subject', 'courses.classroom', 'creator');
-        $all = $exam->responses()->with('student.classroom')->where('status', '!=', 'void')->get();
+        $col = $exam->takerColumn();
+        $all = $exam->responses()->where('status', '!=', 'void')->get();
         // เรียงตามห้อง → เลขที่ (EVANA ใช้ลำดับนี้ตัดสินตอนคะแนนเท่ากันที่รอยตัดกลุ่ม)
-        $order = $exam->students()->pluck('id')->flip();
-        $papers = $all->where('status', 'ok')->whereNotNull('student_id')->sortBy(fn ($r) => $order[$r->student_id] ?? PHP_INT_MAX)->values()
-            ->map(fn ($r) => ['id' => $r->student->number.str_replace(['.', '/'], '', $r->student->classroom?->name() ?? ''), 'room' => $r->student->classroom_id, 'answers' => $r->answers]);
+        $takers = $exam->takers()->keyBy('id');
+        $order = $takers->keys()->flip();
+        $papers = $all->where('status', 'ok')->filter(fn ($r) => $r->{$col} && $takers->has($r->{$col}))
+            ->sortBy(fn ($r) => $order[$r->{$col}])->values()
+            ->map(fn ($r) => ['id' => $exam->isAdmission() ? $takers[$r->{$col}]->code : $takers[$r->{$col}]->evanaId(), 'room' => $takers[$r->{$col}]->roomKey, 'answers' => $r->answers]);
 
         return view('exams.analysis', [
             'exam' => $exam, 'papers' => $papers, 'pendingReview' => $all->where('status', 'review')->count(),
-            'rooms' => $exam->courses->pluck('classroom')->filter()->values(),
+            'rooms' => $exam->takerRooms(),
         ]);
     }
 }

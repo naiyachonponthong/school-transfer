@@ -5,7 +5,6 @@
 @include('exams._nav')
 
 @php
-    $rooms = $exam->courses->pluck('classroom')->filter()->sortBy(fn ($c) => [$c->level_order, $c->room])->values();
     // กระดาษมีช่องเลขประจำตัว 5 หลัก — รหัสยาวกว่านั้นระบายไม่ได้ ต้องระบุเจ้าของแผ่นตอนตรวจทาน
     $longCodes = $students->filter(fn ($s) => strlen(ltrim(preg_replace('/\D/', '', (string) $s['code']), '0')) > 5)->count();
 @endphp
@@ -34,7 +33,7 @@
                     <label class="form-label">ห้อง</label>
                     <select name="room" class="form-select">
                         <option value="">ทุกห้อง ({{ $students->count() }} แผ่น)</option>
-                        @foreach ($rooms as $r)<option value="{{ $r->id }}">{{ $r->name() }} ({{ $students->where('classroom_id', $r->id)->count() }} แผ่น)</option>@endforeach
+                        @foreach ($rooms as $r)<option value="{{ $r['id'] }}">{{ $r['name'] }} ({{ $students->where('classroom_id', $r['id'])->count() }} แผ่น)</option>@endforeach
                     </select>
                 </div>
                 <div data-show="blank" class="mb-3 d-none">
@@ -44,8 +43,8 @@
             </div>
             <div class="card-header border-top"><i class="bi bi-pencil-square"></i> พิมพ์ลงหัวกระดาษ <span class="ms-auto small text-muted fw-normal">เว้นว่าง = ให้นักเรียนเขียน</span></div>
             <div class="card-body row g-2">
-                <div class="col-12"><label class="form-label">รายวิชา</label><input name="subject" class="form-control" value="{{ $exam->subject->code }} {{ $exam->subject->name }}"></div>
-                <div class="col-7"><label class="form-label">วิชา (ในกรอบ)</label><input name="subject_short" class="form-control" value="{{ $exam->title }}"></div>
+                <div class="col-12"><label class="form-label">รายวิชา</label><input name="subject" class="form-control" value="{{ $exam->isAdmission() ? $exam->round->label() : $exam->subjectCode().' '.$exam->subjectLabel() }}"></div>
+                <div class="col-7"><label class="form-label">วิชา (ในกรอบ)</label><input name="subject_short" class="form-control" value="{{ $exam->isAdmission() ? $exam->subjectLabel() : $exam->title }}"></div>
                 <div class="col-5"><label class="form-label">วันสอบ</label><input name="exam_date" class="form-control" value="{{ $exam->exam_date ? thai_date($exam->exam_date) : '' }}"></div>
                 <div class="col-12"><label class="form-check"><input type="checkbox" name="show_school" class="form-check-input" checked> พิมพ์ชื่อโรงเรียนและตรา</label></div>
             </div>

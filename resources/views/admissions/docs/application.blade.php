@@ -65,6 +65,7 @@
         <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:start;gap:1rem">
             <div><b class="small">(ส่วนที่ 2 สำหรับผู้สมัคร)</b>
                 <div class="box" style="padding:.4rem .7rem;margin-top:.3rem;line-height:2">
+                    เลขประจำตัวสอบ <span class="fill">{{ $a->exam_no }}</span><br>
                     ห้องสอบที่ <span class="fill">{{ $a->exam_room }}</span><br>
                     เลขที่นั่งสอบ <span class="fill">{{ $a->exam_seat }}</span><br>
                     เลขที่ใบสมัคร <span class="fill">{{ $a->app_no }}</span>

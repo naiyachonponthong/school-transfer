@@ -17,6 +17,7 @@ class Admission extends Model
         'submitted' => ['ส่งใบสมัครแล้ว', 'secondary'],
         'reviewing' => ['กำลังตรวจสอบ', 'info'],
         'accepted' => ['ผ่านการคัดเลือก', 'success'],
+        'reserve' => ['สำรอง', 'warning'],
         'rejected' => ['ไม่ผ่าน', 'danger'],
         'enrolled' => ['มอบตัวแล้ว', 'primary'],
     ];
@@ -32,7 +33,7 @@ class Admission extends Model
         'app_no', 'year', 'level', 'prefix', 'first_name', 'last_name', 'nickname', 'gender', 'birthdate', 'citizen_id',
         'previous_school', 'gpa', 'parent_name', 'parent_phone', 'relation', 'address', 'document', 'note', 'answers', 'steps_done',
         'submitted_at', 'fee_amount', 'fee_status', 'fee_slip', 'fee_note', 'fee_receipt_no', 'fee_paid_at', 'fee_verified_by',
-        'exam_room', 'exam_seat', 'status', 'staff_note', 'student_id',
+        'exam_room', 'exam_seat', 'exam_no', 'exam_total', 'exam_rank', 'reserve_no', 'status', 'staff_note', 'student_id',
     ];
 
     protected function casts(): array
@@ -40,12 +41,26 @@ class Admission extends Model
         return [
             'birthdate' => DateOnly::class, 'gpa' => 'float', 'answers' => 'array', 'steps_done' => 'array',
             'submitted_at' => 'datetime', 'fee_amount' => 'float', 'fee_paid_at' => 'datetime',
+            'exam_total' => 'float', 'exam_rank' => 'integer', 'reserve_no' => 'integer',
         ];
     }
 
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class);
+    }
+
+    /** รอบสอบคัดเลือกของชั้นนี้ (ถ้ามี) */
+    public function round(): ?AdmissionRound
+    {
+        return AdmissionRound::where('year', $this->year)->where('level', $this->level)->first();
+    }
+
+    public function statusLabel(): string
+    {
+        $label = self::STATUSES[$this->status][0] ?? $this->status;
+
+        return $this->status === 'reserve' && $this->reserve_no ? "{$label} ลำดับที่ {$this->reserve_no}" : $label;
     }
 
     public function feeVerifier(): BelongsTo
@@ -67,11 +82,6 @@ class Admission extends Model
     public function fullName(): string
     {
         return trim("{$this->prefix}{$this->first_name} {$this->last_name}") ?: 'ยังไม่ระบุชื่อ';
-    }
-
-    public function statusLabel(): string
-    {
-        return self::STATUSES[$this->status][0] ?? $this->status;
     }
 
     public function statusColor(): string

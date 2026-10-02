@@ -13,7 +13,7 @@
 
 @php
     // หัวรายงาน/ไฟล์ .txt แบบ EVANA
-    $meta = ['subject_code' => $exam->subject->code, 'subject_name' => $exam->subject->name.' · '.$exam->title, 'term' => $exam->term?->term,
+    $meta = ['subject_code' => $exam->subjectCode(), 'subject_name' => $exam->subjectLabel().' · '.$exam->title, 'term' => $exam->term?->term,
         'year' => $exam->term?->year, 'teacher' => $exam->creator?->name, 'school' => school('school_name')];
 @endphp
 <div id="anApp" data-papers='@json($papers)' data-key='@json($exam->key())' data-cancelled='@json($exam->cancelledItems())'
@@ -31,7 +31,7 @@
                 <label class="form-label small">ห้อง</label>
                 <select id="anRoom" class="form-select">
                     <option value="">ทุกห้องรวมกัน</option>
-                    @foreach ($rooms as $r)<option value="{{ $r->id }}">{{ $r->name() }}</option>@endforeach
+                    @foreach ($rooms as $r)<option value="{{ $r['id'] }}">{{ $r['name'] }}</option>@endforeach
                 </select>
             </div>
             <div class="ms-auto d-flex gap-2">
@@ -43,7 +43,7 @@
 
     <div class="print-only text-center mb-2">
         <h5 class="mb-0">{{ school('school_name') }}</h5>
-        <div>การวิเคราะห์ข้อสอบรายข้อ วิชา {{ $exam->subject->code }} {{ $exam->subject->name }} · {{ $exam->title }}</div>
+        <div>การวิเคราะห์ข้อสอบรายข้อ วิชา {{ $exam->subjectCode() }} {{ $exam->subjectLabel() }} · {{ $exam->title }}</div>
     </div>
 
     <div id="anBody"></div>

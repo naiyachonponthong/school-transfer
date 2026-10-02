@@ -68,7 +68,7 @@
                 <input type="search" class="form-control form-control-sm mb-1" id="stuFilter" placeholder="พิมพ์เลขประจำตัว ชื่อ หรือเลขที่เพื่อกรอง">
                 <select name="student_id" id="stuSelect" class="form-select @error('student_id') is-invalid @enderror">
                     @foreach ($students as $s)
-                        <option value="{{ $s['id'] }}" @selected(old('student_id', $r->student_id) == $s['id'])>{{ $s['label'] }}{{ $s['taken'] ? ' · มีแผ่นอื่นแล้ว' : '' }}</option>
+                        <option value="{{ $s['id'] }}" @selected(old('student_id', $r->takerId()) == $s['id'])>{{ $s['label'] }}{{ $s['taken'] ? ' · มีแผ่นอื่นแล้ว' : '' }}</option>
                     @endforeach
                 </select>
                 @error('student_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror

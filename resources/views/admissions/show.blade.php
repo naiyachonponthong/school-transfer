@@ -73,11 +73,15 @@
         @unless ($a->isDraft())
             <form method="POST" action="{{ route('admissions.exam', $a) }}" class="card mb-3">
                 @csrf @method('PUT')
-                <div class="card-header"><i class="bi bi-door-open"></i> ห้องสอบ <span class="small text-muted fw-normal ms-1">พิมพ์ในส่วนที่ 2 ของใบสมัคร</span></div>
-                <div class="card-body d-flex gap-2">
-                    <input name="exam_room" value="{{ $a->exam_room }}" class="form-control form-control-sm" placeholder="ห้องสอบ เช่น 321">
-                    <input name="exam_seat" value="{{ $a->exam_seat }}" class="form-control form-control-sm" placeholder="เลขที่นั่งสอบ">
+                <div class="card-header"><i class="bi bi-door-open"></i> ห้องสอบ <span class="small text-muted fw-normal ms-1">พิมพ์ในส่วนที่ 2 ของใบสมัคร</span>
+                    <a href="{{ route('admission-exams.index', ['year' => $a->year]) }}" class="small ms-auto">จัดทั้งชั้นอัตโนมัติ →</a></div>
+                <div class="card-body d-flex flex-wrap gap-2">
+                    <input name="exam_no" value="{{ old('exam_no', $a->exam_no) }}" class="form-control form-control-sm font-monospace @error('exam_no') is-invalid @enderror" style="max-width:130px" placeholder="เลขประจำตัวสอบ" inputmode="numeric">
+                    <input name="exam_room" value="{{ $a->exam_room }}" class="form-control form-control-sm" style="max-width:150px" placeholder="ห้องสอบ เช่น 321">
+                    <input name="exam_seat" value="{{ $a->exam_seat }}" class="form-control form-control-sm" style="max-width:120px" placeholder="เลขที่นั่งสอบ">
                     <button class="btn btn-sm btn-light border text-nowrap">บันทึก</button>
+                    @error('exam_no')<div class="text-danger small w-100">{{ $message }}</div>@enderror
+                    @if ($a->exam_total !== null)<div class="small w-100 text-muted">คะแนนสอบรวม <b class="text-body">{{ rtrim(rtrim(number_format($a->exam_total, 2), '0'), '.') }}</b> · อันดับ <b class="text-body">{{ $a->exam_rank }}</b></div>@endif
                 </div>
             </form>
         @endunless
@@ -91,7 +95,7 @@
                 <div class="card-header">ผลการพิจารณา</div>
                 <div class="card-body">
                     <div class="d-grid gap-2 mb-2" style="grid-template-columns:1fr 1fr">
-                        @foreach (['reviewing', 'accepted', 'rejected', 'submitted'] as $k)
+                        @foreach (['reviewing', 'accepted', 'reserve', 'rejected', 'submitted'] as $k)
                             <input type="radio" class="btn-check" name="status" value="{{ $k }}" id="st{{ $k }}" @checked($a->status === $k)>
                             <label class="btn btn-outline-{{ \App\Models\Admission::STATUSES[$k][1] === 'secondary' ? 'secondary' : \App\Models\Admission::STATUSES[$k][1] }}" for="st{{ $k }}">{{ \App\Models\Admission::STATUSES[$k][0] }}</label>
                         @endforeach

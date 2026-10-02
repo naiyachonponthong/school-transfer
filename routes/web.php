@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdmissionController;
+use App\Http\Controllers\AdmissionExamController;
 use App\Http\Controllers\AdmissionFormController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AssetCheckController;
@@ -400,6 +401,18 @@ Route::middleware('auth')->group(function () {
 
         Route::post('/staff-leaves/{leave}/approve', [StaffLeaveController::class, 'approve'])->name('staff-leaves.approve');
         Route::post('/staff-leaves/{leave}/reject', [StaffLeaveController::class, 'reject'])->name('staff-leaves.reject');
+
+        // สอบคัดเลือก: ห้องสอบ/เลขประจำตัวสอบ · วิชาสอบ (ตรวจด้วยระบบตรวจข้อสอบ) · จัดอันดับ · ประกาศผล
+        Route::get('/admission-exams', [AdmissionExamController::class, 'index'])->name('admission-exams.index');
+        Route::post('/admission-exams', [AdmissionExamController::class, 'store'])->name('admission-exams.store');
+        Route::get('/admission-exams/{round}', [AdmissionExamController::class, 'show'])->name('admission-exams.show');
+        Route::put('/admission-exams/{round}', [AdmissionExamController::class, 'update'])->name('admission-exams.update');
+        Route::post('/admission-exams/{round}/seats', [AdmissionExamController::class, 'seats'])->name('admission-exams.seats');
+        Route::post('/admission-exams/{round}/subjects', [AdmissionExamController::class, 'addSubject'])->name('admission-exams.subjects');
+        Route::post('/admission-exams/{round}/publish', [AdmissionExamController::class, 'publish'])->name('admission-exams.publish');
+        Route::delete('/admission-exams/{round}/publish', [AdmissionExamController::class, 'unpublish'])->name('admission-exams.unpublish');
+        Route::get('/admission-exams/{round}/print/{doc}', [AdmissionExamController::class, 'print'])->name('admission-exams.print');
+        Route::get('/admission-exams/{round}/export', [AdmissionExamController::class, 'export'])->name('admission-exams.export');
 
         Route::get('/admissions', [AdmissionController::class, 'index'])->name('admissions.index');
         Route::get('/admissions/form', [AdmissionFormController::class, 'edit'])->name('admissions.form');

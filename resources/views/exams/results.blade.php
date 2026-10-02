@@ -35,7 +35,7 @@
             @forelse ($review->sortBy('scanned_at') as $r)
                 <a href="{{ route('exams.review', [$exam, $r]) }}" class="d-flex align-items-center gap-3 px-3 py-2 border-bottom text-decoration-none text-body list-link">
                     <div class="flex-grow-1 min-w-0">
-                        <div class="fw-semibold">{{ $r->student?->fullName() ?? 'ไม่ทราบเจ้าของ (รหัส '.$r->code_read.')' }}</div>
+                        <div class="fw-semibold">{{ $r->taker()?->name ?? 'ไม่ทราบเจ้าของ (รหัส '.$r->code_read.')' }}</div>
                         <div class="small text-muted">
                             @foreach ($r->reasons() as $why)<span class="badge bg-warning-subtle text-warning-emphasis me-1">{{ $why }}</span>@endforeach
                             {{ $r->scanned_at?->format('H:i') }} น. · {{ $r->source === 'photo' ? 'จากรูป' : 'กล้อง' }}
@@ -53,6 +53,9 @@
     <div class="tab-pane fade {{ $tab === 'scores' ? 'show active' : '' }}" id="t-scores">
         <div class="card mb-3">
             <div class="card-body d-flex flex-wrap gap-2 align-items-end">
+                @if ($exam->isAdmission())
+                <a href="{{ route('admission-exams.show', [$exam->admission_round_id, 'tab' => 'results']) }}" class="btn btn-primary"><i class="bi bi-trophy"></i> รวมคะแนนทุกวิชา / จัดอันดับ</a>
+                @else
                 <form method="POST" action="{{ route('exams.sync', $exam) }}" class="d-flex gap-2 align-items-end flex-wrap" data-confirm="ส่งคะแนนที่ตรวจแล้วเข้าสมุดคะแนนทุกห้อง? (แปลงสัดส่วนตามคะแนนเต็มของช่อง · คะแนนเดิมในช่องนี้จะถูกแทนที่)">
                     @csrf
                     <div>
@@ -64,6 +67,7 @@
                     </div>
                     <button class="btn btn-primary" @disabled(! $done)><i class="bi bi-journal-arrow-down"></i> ส่งเข้าสมุดคะแนน</button>
                 </form>
+                @endif
                 <div class="ms-auto d-flex gap-2">
                     <a href="{{ route('exams.export', $exam) }}" class="btn btn-light border"><i class="bi bi-file-earmark-spreadsheet"></i> ส่งออกคะแนน</a>
                     <a href="{{ route('exams.export', [$exam, 'format' => 'evana']) }}" class="btn btn-light border" title="แถว KEY + คำตอบรายคน สำหรับโปรแกรม EVANA"><i class="bi bi-filetype-csv"></i> แบบ EVANA</a>
@@ -73,15 +77,15 @@
         <div class="card">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead><tr><th>ห้อง</th><th>เลขที่</th><th class="d-none d-md-table-cell">เลขประจำตัว</th><th>ชื่อ-สกุล</th><th class="text-center">คะแนน</th><th>สถานะ</th></tr></thead>
+                    <thead><tr><th>{{ $exam->isAdmission() ? 'ห้องสอบ' : 'ห้อง' }}</th><th>{{ $exam->isAdmission() ? 'ที่นั่ง' : 'เลขที่' }}</th><th class="d-none d-md-table-cell">{{ $exam->isAdmission() ? 'เลขประจำตัวสอบ' : 'เลขประจำตัว' }}</th><th>ชื่อ-สกุล</th><th class="text-center">คะแนน</th><th>สถานะ</th></tr></thead>
                     <tbody>
                     @forelse ($rows as $row)
                         @php($r = $row['response'])
                         <tr @if($r) data-href="{{ route('exams.review', [$exam, $r]) }}" style="cursor:pointer" @endif>
-                            <td class="small">{{ $row['student']->classroom?->name() }}</td>
-                            <td>{{ $row['student']->number }}</td>
-                            <td class="text-muted d-none d-md-table-cell">{{ $row['student']->student_code }}</td>
-                            <td>{{ $row['student']->fullName() }}</td>
+                            <td class="small">{{ $row['taker']->room }}</td>
+                            <td>{{ $row['taker']->seat }}</td>
+                            <td class="text-muted d-none d-md-table-cell">{{ $row['taker']->code }}</td>
+                            <td class="tc-title">{{ $row['taker']->name }}</td>
                             <td class="text-center fw-semibold">{{ $r ? $fmt($r->score).' / '.$fmt($r->max_score) : '' }}</td>
                             <td>
                                 @if ($r)<span class="badge bg-{{ $r->statusColor() }}-subtle text-{{ $r->statusColor() }}-emphasis">{{ $r->statusLabel() }}</span>
@@ -89,7 +93,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="6"><div class="empty">ห้องที่สอบยังไม่มีนักเรียน</div></td></tr>
+                        <tr><td colspan="6"><div class="empty">{{ $exam->isAdmission() ? 'ยังไม่ได้จัดห้องสอบ/เลขประจำตัวสอบให้ผู้สมัคร' : 'ห้องที่สอบยังไม่มีนักเรียน' }}</div></td></tr>
                     @endforelse
                     </tbody>
                 </table>
@@ -102,12 +106,12 @@
         <div class="card">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead><tr><th>เวลา</th><th>นักเรียน</th><th class="text-center">คะแนน</th><th>สถานะ</th><th class="d-none d-md-table-cell">สแกนโดย</th></tr></thead>
+                    <thead><tr><th>เวลา</th><th>{{ $exam->isAdmission() ? 'ผู้สอบ' : 'นักเรียน' }}</th><th class="text-center">คะแนน</th><th>สถานะ</th><th class="d-none d-md-table-cell">สแกนโดย</th></tr></thead>
                     <tbody>
                     @forelse ($responses as $r)
                         <tr data-href="{{ route('exams.review', [$exam, $r]) }}" style="cursor:pointer" class="{{ $r->status === 'void' ? 'text-muted' : '' }}">
                             <td class="small text-nowrap">{{ $r->scanned_at ? thai_date($r->scanned_at).' '.$r->scanned_at->format('H:i') : '' }}</td>
-                            <td>{{ $r->student?->fullName() ?? 'รหัส '.$r->code_read }} <span class="small text-muted">{{ $r->student?->classroom?->name() }}</span></td>
+                            <td>{{ $r->taker()?->name ?? 'รหัส '.$r->code_read }} <span class="small text-muted">{{ $r->taker()?->room }}</span></td>
                             <td class="text-center">{{ $fmt($r->score) }}</td>
                             <td><span class="badge bg-{{ $r->statusColor() }}-subtle text-{{ $r->statusColor() }}-emphasis">{{ $r->statusLabel() }}</span></td>
                             <td class="small d-none d-md-table-cell">{{ $r->scanner?->name }}</td>

@@ -76,6 +76,11 @@
                 <div class="col-12"><label class="form-label">ชื่อการสอบ</label><input name="title" value="{{ $exam->title }}" class="form-control" required></div>
                 <div class="col-6"><label class="form-label">จำนวนข้อ</label><input type="number" name="n_items" min="1" max="100" value="{{ $exam->n_items }}" class="form-control" @readonly(($counts->sum() ?? 0) > 0)></div>
                 <div class="col-6"><label class="form-label">วันสอบ</label><input type="date" name="exam_date" value="{{ $exam->exam_date?->toDateString() }}" class="form-control"></div>
+                @if ($exam->isAdmission())
+                <div class="col-7"><label class="form-label">วิชาสอบ</label><input name="subject_name" value="{{ $exam->subject_name }}" class="form-control" required></div>
+                <div class="col-5"><label class="form-label">น้ำหนัก (×)</label><input type="number" name="weight" min="0.01" step="0.01" max="100" value="{{ rtrim(rtrim(number_format($exam->weight, 2), '0'), '.') }}" class="form-control" required></div>
+                <div class="col-12 small text-muted">ผู้เข้าสอบ = ผู้สมัครที่ได้เลขประจำตัวสอบแล้วใน{{ $exam->round->label() }} · คะแนนรวมคิดจาก คะแนนวิชา × น้ำหนัก</div>
+                @else
                 <div class="col-12">
                     <label class="form-label">ห้องที่สอบ</label>
                     <div class="d-flex flex-wrap gap-2">
@@ -98,6 +103,7 @@
                         <label class="form-check-label" for="pub">ให้นักเรียน/ผู้ปกครองเห็นคะแนนสอบนี้</label>
                     </div>
                 </div>
+                @endif
                 <div class="col-12 d-flex gap-2">
                     <button class="btn btn-primary">บันทึก</button>
                 </div>

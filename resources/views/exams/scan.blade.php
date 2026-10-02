@@ -23,7 +23,7 @@
         <a class="iconbtn" href="{{ route('exams.show', $exam) }}" aria-label="กลับ"><i class="bi bi-chevron-left"></i></a>
         <div class="grow">
             <h1>{{ $exam->title }}</h1>
-            <div class="sub">{{ $exam->subject->name }} · {{ $exam->n_items }} ข้อ · {{ count($roster['students']) }} คน</div>
+            <div class="sub">{{ $exam->subjectLabel() }} · {{ $exam->n_items }} ข้อ · {{ count($roster['students']) }} คน</div>
         </div>
     </div>
 
