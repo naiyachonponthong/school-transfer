@@ -465,17 +465,49 @@ class DatabaseSeeder extends Seeder
             SchoolEvent::create(['title' => $title, 'start_date' => today()->addDays($from), 'end_date' => today()->addDays($to), 'type' => $type, 'audience' => $aud, 'description' => $desc, 'created_by' => $admin->id]);
         }
 
-        // ---------- ห้องสมุด ----------
+        // ---------- ห้องสมุด (ลงรายการตามหลักบรรณารักษ์: DDC · เลขผู้แต่ง · ตัวเล่มมีบาร์โค้ด/เลขทะเบียน) ----------
+        $isbn = function (string $body) {
+            $sum = 0;
+            foreach (str_split($body) as $i => $d) {
+                $sum += (int) $d * ($i % 2 ? 3 : 1);
+            }
+
+            return $body.((10 - $sum % 10) % 10);
+        };
         $books = [
-            ['เจ้าชายน้อย', 'อ็องตวน เดอ แซ็งแตก-ซูเปรี', 'นวนิยาย', 3], ['แฮร์รี่ พอตเตอร์กับศิลาอาถรรพ์', 'J.K. Rowling', 'นวนิยาย', 2],
-            ['ความลับของจักรวาล', 'ทีมวิทย์สนุก', 'วิทยาศาสตร์', 2], ['คณิตคิดสนุก ม.ต้น', 'ครูสมชาย', 'คณิตศาสตร์', 4],
-            ['ประวัติศาสตร์ไทยฉบับการ์ตูน', 'สำนักพิมพ์เด็กดี', 'การ์ตูนความรู้', 3], ['English Grammar in Use', 'Raymond Murphy', 'ภาษาอังกฤษ', 2],
-            ['สัตว์โลกน่ารู้', 'สารคดีเด็ก', 'สารคดี', 2], ['หนูน้อยนักประดิษฐ์', 'ทีมวิทย์สนุก', 'วิทยาศาสตร์', 1],
+            // [ชื่อเรื่อง, ผู้แต่ง, ประเภท, เลขหมู่, เลขผู้แต่ง, สำนักพิมพ์, ปี, หน้า, ชั้น, เล่ม, หัวเรื่อง]
+            ['เจ้าชายน้อย', 'แซ็งแตก-ซูเปรี, อ็องตวน เดอ', 'fiction', null, 'ซ513จ', 'ผีเสื้อ', '2565', 128, 'ชั้นนวนิยาย', 3, 'นวนิยายฝรั่งเศส ; วรรณกรรมเยาวชน'],
+            ['แฮร์รี่ พอตเตอร์กับศิลาอาถรรพ์', 'โรว์ลิ่ง, เจ. เค.', 'fiction', null, 'ร859ฮ', 'นานมีบุ๊คส์', '2564', 360, 'ชั้นนวนิยาย', 2, 'นวนิยายอังกฤษ ; แฟนตาซี'],
+            ['ความลับของจักรวาล', 'ทีมวิทย์สนุก', 'general', '520', 'ท153ค', 'สำนักพิมพ์วิทย์สนุก', '2566', 96, 'ชั้น 500', 2, 'ดาราศาสตร์ ; อวกาศ'],
+            ['คณิตคิดสนุก ม.ต้น', 'สมชาย ใจดี', 'general', '510', 'ส274ค', 'สำนักพิมพ์เด็กเก่ง', '2566', 180, 'ชั้น 500', 4, 'คณิตศาสตร์ -- แบบฝึกหัด'],
+            ['ประวัติศาสตร์ไทยฉบับการ์ตูน', 'วิชัย นิลสุวรรณ', 'youth', '959.3', 'ว552ป', 'สำนักพิมพ์เด็กดี', '2565', 144, 'ชั้นหนังสือเด็ก', 3, 'ไทย -- ประวัติศาสตร์ ; หนังสือการ์ตูน'],
+            ['English Grammar in Use', 'Murphy, Raymond', 'general', '428.2', 'M978e', 'Cambridge University Press', '2019', 380, 'ชั้น 400', 2, 'ภาษาอังกฤษ -- ไวยากรณ์'],
+            ['สัตว์โลกน่ารู้', 'กองบรรณาธิการสารคดีเด็ก', 'youth', '590', 'ก187ส', 'สารคดีเด็ก', '2564', 72, 'ชั้นหนังสือเด็ก', 2, 'สัตว์'],
+            ['หนูน้อยนักประดิษฐ์', 'ทีมวิทย์สนุก', 'youth', '600', 'ท153ห', 'สำนักพิมพ์วิทย์สนุก', '2563', 64, 'ชั้นหนังสือเด็ก', 1, 'สิ่งประดิษฐ์ ; เทคโนโลยี'],
+            ['100 เรื่องไดโนเสาร์', 'กิตติ กาญจนวงศ์', 'youth', '567.9', 'ก111ร', 'สำนักพิมพ์เด็กดี', '2566', 112, 'ชั้นหนังสือเด็ก', 1, 'ไดโนเสาร์ ; สัตว์ดึกดำบรรพ์'],
+            ['พจนานุกรม ฉบับราชบัณฑิตยสถาน', 'ราชบัณฑิตยสถาน', 'reference', '495.913', 'ร141พ', 'ราชบัณฑิตยสถาน', '2556', 1544, 'ชั้นอ้างอิง', 1, 'ภาษาไทย -- พจนานุกรม'],
         ];
-        $bookModels = collect($books)->map(fn ($b, $i) => Book::create(['code' => 'B'.str_pad((string) ($i + 1), 5, '0', STR_PAD_LEFT), 'title' => $b[0], 'author' => $b[1], 'category' => $b[2], 'copies' => $b[3], 'location' => 'ชั้น '.chr(65 + $i % 4)]));
+        $barcodeNo = 0;
+        $bookModels = collect($books)->map(function ($b, $i) use ($isbn, &$barcodeNo) {
+            [$title, $author, $coll, $class, $mark, $pub, $year, $pages, $loc, $n, $subjects] = $b;
+            $book = Book::create(['title' => $title, 'author' => $author, 'collection' => $coll, 'class_number' => $class, 'author_mark' => $mark,
+                'publisher' => $pub, 'pub_place' => $coll === 'general' && $i === 5 ? 'Cambridge' : 'กรุงเทพฯ', 'pub_year' => $year, 'pages' => $pages,
+                'illustrated' => $coll === 'youth', 'size_cm' => 21, 'language' => $i === 5 ? 'อังกฤษ' : 'ไทย', 'subjects' => $subjects,
+                'isbn' => $isbn('978616'.str_pad((string) (100000 + $i * 7919), 6, '0', STR_PAD_LEFT)), 'copies' => 0]);
+            for ($c = 1; $c <= $n; $c++) {
+                $barcodeNo++;
+                $book->items()->create(['barcode' => 'B'.str_pad((string) $barcodeNo, 8, '0', STR_PAD_LEFT), 'accession_no' => str_pad((string) $barcodeNo, 5, '0', STR_PAD_LEFT),
+                    'copy_no' => $c, 'location' => $loc, 'price' => [195, 395, 165, 220, 180, 650, 145, 120, 159, 850][$i], 'acquired_on' => today()->subMonths(6 + $i), 'source' => 'จัดซื้อ',
+                    'label_printed_at' => $i < 8 ? now()->subMonths(5) : null]);
+            }
+
+            return $book;
+        });
         foreach ($allStudents->random(9) as $i => $s) {
             $borrowed = today()->subDays(mt_rand(1, 14));
-            BookLoan::create(['book_id' => $bookModels[$i % 8]->id, 'student_id' => $s->id, 'borrowed_on' => $borrowed, 'due_on' => $borrowed->copy()->addWeekdays(7), 'returned_on' => $i % 3 === 0 ? today() : null, 'recorded_by' => $teachers[7]->id]);
+            $book = $bookModels[$i % 8];
+            $copy = $book->items()->whereDoesntHave('activeLoan')->first();
+            BookLoan::create(['book_id' => $book->id, 'book_copy_id' => $copy?->id, 'student_id' => $s->id, 'borrowed_on' => $borrowed, 'due_on' => $borrowed->copy()->addWeekdays(7), 'returned_on' => $i % 3 === 0 ? today() : null, 'recorded_by' => $teachers[7]->id]);
         }
 
         // ---------- ห้องพยาบาล ----------

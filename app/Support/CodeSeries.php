@@ -13,8 +13,10 @@ use InvalidArgumentException;
  */
 abstract class CodeSeries
 {
-    /** โมเดลที่เก็บเลขในคอลัมน์ code */
+    /** โมเดล + คอลัมน์ที่เก็บเลข */
     protected const MODEL = '';
+
+    protected const COLUMN = 'code';
 
     protected const PATTERN_KEY = '';
 
@@ -33,7 +35,7 @@ abstract class CodeSeries
 
     protected const FALLBACK = '9999';
 
-    private const SEQ_REGEX = '/\{SEQ([3-6])?\}/';
+    private const SEQ_REGEX = '/\{SEQ([3-9])?\}/';
 
     public static function pattern(): string
     {
@@ -64,8 +66,12 @@ abstract class CodeSeries
     /** บันทึกรูปแบบ + รหัสหมวด (คืนค่าเดิม/ใหม่ของที่เปลี่ยน) */
     public static function save(string $pattern, array $codes): array
     {
-        $old = [static::PATTERN_KEY => static::pattern(), static::CODES_KEY => json_encode(static::codes(), JSON_UNESCAPED_UNICODE)];
-        $new = [static::PATTERN_KEY => $pattern, static::CODES_KEY => json_encode(array_merge(static::codes(), $codes), JSON_UNESCAPED_UNICODE)];
+        $old = [static::PATTERN_KEY => static::pattern()];
+        $new = [static::PATTERN_KEY => $pattern];
+        if (static::CODES_KEY !== '') {
+            $old[static::CODES_KEY] = json_encode(static::codes(), JSON_UNESCAPED_UNICODE);
+            $new[static::CODES_KEY] = json_encode(array_merge(static::codes(), $codes), JSON_UNESCAPED_UNICODE);
+        }
         Settings::set($new);
 
         return collect($new)->filter(fn ($v, $k) => $old[$k] !== $v)->map(fn ($v, $k) => [$old[$k], $v])->all();
@@ -117,12 +123,13 @@ abstract class CodeSeries
     }
 
     /** เลขลำดับสูงสุดที่ใช้ไปแล้วในชุดนี้ */
-    protected static function lastSequence(string $prefix, string $suffix): int
+    protected static function lastSequence(string $prefix, string $suffix, int $digits = 1): int
     {
         $like = fn ($s) => str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $s);
-        $regex = '/^'.preg_quote($prefix, '/').'(\d+)'.preg_quote($suffix, '/').'$/u';
+        // นับเฉพาะเลขที่มีจำนวนหลักตามรูปแบบขึ้นไป (B00001 แบบเก่าไม่ปนกับชุด B00000001)
+        $regex = '/^'.preg_quote($prefix, '/').'(\d{'.$digits.',})'.preg_quote($suffix, '/').'$/u';
 
-        return (int) (static::MODEL)::where('code', 'like', $like($prefix).'%'.$like($suffix))->pluck('code')
+        return (int) (static::MODEL)::where(static::COLUMN, 'like', $like($prefix).'%'.$like($suffix))->pluck(static::COLUMN)
             ->map(fn ($c) => preg_match($regex, $c, $m) ? (int) $m[1] : 0)->max();
     }
 
@@ -134,7 +141,7 @@ abstract class CodeSeries
     public static function next(?string $category = null, ?Carbon $date = null, int $count = 1, ?string $pattern = null): array
     {
         [$prefix, $suffix, $digits] = static::series($pattern ?? static::pattern(), $category, $date);
-        $last = static::lastSequence($prefix, $suffix);
+        $last = static::lastSequence($prefix, $suffix, $digits);
 
         return array_map(fn ($i) => $prefix.str_pad((string) ($last + $i), $digits, '0', STR_PAD_LEFT).$suffix, range(1, max(1, $count)));
     }

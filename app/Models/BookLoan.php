@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BookLoan extends Model
 {
-    protected $fillable = ['book_id', 'student_id', 'borrowed_on', 'due_on', 'returned_on', 'recorded_by'];
+    protected $fillable = ['book_id', 'book_copy_id', 'student_id', 'borrowed_on', 'due_on', 'returned_on', 'recorded_by'];
 
     protected function casts(): array
     {
@@ -18,6 +18,11 @@ class BookLoan extends Model
     public function book(): BelongsTo
     {
         return $this->belongsTo(Book::class);
+    }
+
+    public function copy(): BelongsTo
+    {
+        return $this->belongsTo(BookCopy::class, 'book_copy_id');
     }
 
     public function student(): BelongsTo

@@ -33,6 +33,7 @@ use App\Http\Controllers\HomeworkController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\LeaveRequestController;
 use App\Http\Controllers\LibraryController;
+use App\Http\Controllers\LibraryLabelController;
 use App\Http\Controllers\LineController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\ManifestController;
@@ -307,10 +308,22 @@ Route::middleware('auth')->group(function () {
         Route::post('/health/measure', [HealthController::class, 'saveMeasure'])->name('health.measure.save');
 
         // ห้องสมุด
+        // ห้องสมุด: ระเบียนบรรณานุกรม (DDC) + ตัวเล่ม + ป้ายสัน/บาร์โค้ด
         Route::get('/library', [LibraryController::class, 'index'])->name('library.index');
         Route::post('/library', [LibraryController::class, 'store'])->name('library.store');
+        Route::get('/library/create', [LibraryController::class, 'create'])->name('library.create');
+        Route::get('/library/{book}', [LibraryController::class, 'show'])->name('library.show');
+        Route::get('/library/{book}/edit', [LibraryController::class, 'edit'])->name('library.edit');
         Route::put('/library/{book}', [LibraryController::class, 'update'])->name('library.update');
         Route::delete('/library/{book}', [LibraryController::class, 'destroy'])->name('library.destroy');
+        Route::post('/library/{book}/copies', [LibraryController::class, 'storeCopies'])->name('library.copies.store');
+        Route::put('/library-copies/{copy}', [LibraryController::class, 'updateCopy'])->name('library.copies.update');
+        Route::delete('/library-copies/{copy}', [LibraryController::class, 'destroyCopy'])->name('library.copies.destroy');
+        Route::post('/library-accession', [LibraryController::class, 'assignAccession'])->name('library.accession');
+        Route::get('/library-labels', [LibraryLabelController::class, 'index'])->name('library.labels');
+        Route::post('/library-labels/printed', [LibraryLabelController::class, 'printed'])->name('library.labels.printed');
+        Route::get('/library-numbering/{kind}', [NumberingController::class, 'show'])->whereIn('kind', ['library-barcode', 'library-accession'])->name('library.numbering');
+        Route::put('/library-numbering/{kind}', [NumberingController::class, 'save'])->whereIn('kind', ['library-barcode', 'library-accession'])->name('library.numbering.update');
         Route::get('/library-loans', [LibraryController::class, 'circulation'])->name('library.loans');
         Route::post('/library-loans/borrow', [LibraryController::class, 'borrow'])->name('library.borrow');
         Route::post('/library-loans/return', [LibraryController::class, 'returnByCode'])->name('library.return.code');

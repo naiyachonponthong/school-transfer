@@ -45,6 +45,8 @@ class Settings
         'school_lng' => '',
         'gps_radius' => '300',
         // ห้องสมุด
+        'library_barcode_pattern' => 'B{SEQ8}',   // บาร์โค้ดตัวเล่ม
+        'library_accession_pattern' => '{SEQ5}',  // เลขทะเบียนหนังสือ
         'library_loan_days' => '7',
         // รับสมัคร
         'admission_open' => '1',

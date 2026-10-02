@@ -7,7 +7,7 @@
     <div class="actions"><a href="{{ route($k['index']) }}" class="btn btn-light border"><i class="bi bi-arrow-left"></i> กลับรายการ{{ $k['item'] }}</a></div>
 </div>
 
-<form method="POST" action="{{ route($k['update']) }}">
+<form method="POST" action="{{ route($k['update'], $k['params'] ?? []) }}">
     @csrf @method('PUT')
     <div class="row g-3">
         <div class="col-lg-5">
@@ -19,12 +19,12 @@
                                class="form-control form-control-lg font-monospace @error('pattern') is-invalid @enderror">
                         @error('pattern')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         <div class="d-flex flex-wrap gap-1 mt-2">
-                            @foreach (['{CAT}', '{FY}', '{FY2}', '{YEAR}', '{SEQ}', '{SEQ3}', '{SEQ5}', '-', '/', '.'] as $t)
+                            @foreach (array_merge(array_keys($series::TOKENS), ['{SEQ3}', '{SEQ5}'], $categories ? [] : ['{SEQ8}'], ['-', '/', '.']) as $t)
                                 <button type="button" class="btn btn-sm btn-light border font-monospace" data-token="{{ $t }}">{{ $t }}</button>
                             @endforeach
                         </div>
                         <div class="rounded-3 p-3 mt-3 text-center" style="background:var(--bs-tertiary-bg)">
-                            <div class="small text-muted">ตัวอย่าง: {{ $k['example'] }} รายการแรก (ปีงบประมาณ {{ $fy }})</div>
+                            <div class="small text-muted">ตัวอย่าง: {{ $k['example'] ? $k['example'].' ' : '' }}รายการแรก (ปีงบประมาณ {{ $fy }})</div>
                             <div id="preview" class="font-monospace fs-3 fw-bold text-break">&nbsp;</div>
                             <div id="previewWarn" class="small text-danger"></div>
                         </div>
@@ -52,6 +52,15 @@
         </div>
 
         <div class="col-lg-7">
+            @if (! $categories)
+            <div class="card">
+                <div class="card-body">
+                    <div class="small text-muted">เลขถัดไป (ตามรูปแบบที่บันทึกไว้)</div>
+                    <div class="font-monospace fs-2 fw-bold">{{ $nextPlain }}</div>
+                    <div class="small text-muted mt-2"><i class="bi bi-info-circle"></i> เลขลำดับนับต่อจากเลขสูงสุดที่มีอยู่แล้วในชุดเดียวกัน · {{ $k['note'] }}</div>
+                </div>
+            </div>
+            @else
             <div class="card">
                 <div class="card-header"><i class="bi bi-tags"></i> รหัส{{ $k['cat'] }}{{ $k['item'] }} <span class="text-muted small">ใช้แทน <span class="font-monospace">{CAT}</span></span></div>
                 <div class="table-responsive">
@@ -79,6 +88,7 @@
                     {{ $k['note'] }}
                 </div>
             </div>
+            @endif
             <div class="d-flex gap-2 mt-3">
                 <button class="btn btn-primary btn-lg"><i class="bi bi-save"></i> บันทึก</button>
                 <a href="{{ route($k['create']) }}" class="btn btn-light border btn-lg"><i class="bi bi-plus-lg"></i> ไปเพิ่ม{{ $k['item'] }}</a>
@@ -99,11 +109,11 @@
     const catCode = () => [...document.querySelectorAll('[data-code]')].find((el) => el.dataset.code === example)?.value || '';
 
     const render = (pattern) => {
-        const seq = pattern.match(/\{SEQ([3-6])?\}/g) || [];
-        const unknown = (pattern.match(/\{[^}]*\}/g) || []).filter((t) => !known.includes(t) && !/^\{SEQ([3-6])?\}$/.test(t));
+        const seq = pattern.match(/\{SEQ([3-9])?\}/g) || [];
+        const unknown = (pattern.match(/\{[^}]*\}/g) || []).filter((t) => !known.includes(t) && !/^\{SEQ([3-9])?\}$/.test(t));
         const text = pattern
             .replaceAll('{CAT}', catCode()).replaceAll('{FY2}', String(fy).slice(-2)).replaceAll('{FY}', fy).replaceAll('{YEAR}', year)
-            .replace(/\{SEQ([3-6])?\}/g, (_, n) => '1'.padStart(Number(n || 4), '0'));
+            .replace(/\{SEQ([3-9])?\}/g, (_, n) => '1'.padStart(Number(n || 4), '0'));
         const warn = seq.length !== 1 ? 'ต้องมี {SEQ} หนึ่งตำแหน่ง' : (unknown.length ? 'ไม่รู้จัก ' + unknown.join(' ') : '');
         return { text, warn };
     };

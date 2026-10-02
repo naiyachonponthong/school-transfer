@@ -17,7 +17,7 @@
             <div class="card-header"><i class="bi bi-box-arrow-up-right text-primary"></i> ยืม</div>
             <div class="card-body row g-2">
                 <div class="col-sm-6"><label class="form-label">นักเรียน (รหัส / สแกนบัตร)</label><input name="student" value="{{ old('student') }}" class="form-control" required autofocus></div>
-                <div class="col-sm-4"><label class="form-label">รหัสหนังสือ</label><input name="book" class="form-control" required></div>
+                <div class="col-sm-4"><label class="form-label">บาร์โค้ดหนังสือ</label><input name="book" class="form-control font-monospace" required placeholder="สแกนบาร์โค้ดปก"></div>
                 <div class="col-sm-2"><label class="form-label">วัน</label><input name="days" type="number" value="{{ $loanDays }}" class="form-control"></div>
                 <div class="col-12"><button class="btn btn-primary"><i class="bi bi-check-lg"></i> บันทึกการยืม</button> <span class="small text-muted ms-2">นับเฉพาะวันทำการ · ยืมได้ต่อเนื่อง ช่องนักเรียนจะค้างไว้ให้</span></div>
             </div>
@@ -28,8 +28,9 @@
             @csrf
             <div class="card-header"><i class="bi bi-box-arrow-in-down-left text-success"></i> คืน</div>
             <div class="card-body">
-                <label class="form-label">สแกนรหัสหนังสือที่คืน</label>
-                <div class="input-group"><input name="book" class="form-control" required><button class="btn btn-success">คืน</button></div>
+                <label class="form-label">สแกนบาร์โค้ดหนังสือที่คืน</label>
+                <div class="input-group"><input name="book" class="form-control font-monospace" required><button class="btn btn-success">คืน</button></div>
+                @error('return')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                 @if ($recentReturns->isNotEmpty())
                     <div class="small text-muted mt-3">คืนล่าสุด: {{ $recentReturns->take(3)->map(fn ($l) => $l->book->title)->implode(', ') }}</div>
                 @endif
@@ -47,7 +48,7 @@
             <tbody>
             @forelse ($loans as $l)
                 <tr class="{{ $l->isOverdue() ? 'table-danger' : '' }}">
-                    <td><div class="fw-semibold">{{ $l->book->title }}</div><div class="small text-muted">{{ $l->book->code }}</div></td>
+                    <td class="tc-title"><div class="fw-semibold">{{ $l->book->title }}</div><div class="small text-muted font-monospace">{{ $l->copy?->barcode ?? $l->book->code }} · {{ $l->book->callNumberText($l->copy) }}</div></td>
                     <td>{{ $l->student->fullName() }} <span class="small text-muted">{{ $l->student->classroom?->name() }}</span></td>
                     <td class="small">{{ thai_date($l->borrowed_on) }}</td>
                     <td class="small {{ $l->isOverdue() ? 'text-danger fw-bold' : '' }}">{{ thai_date($l->due_on) }}@if($l->isOverdue()) (เกิน {{ $l->due_on->diffInDays(today()) }} วัน)@endif</td>
