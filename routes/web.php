@@ -5,6 +5,7 @@ use App\Http\Controllers\AdmissionFormController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AssetCheckController;
 use App\Http\Controllers\AssetController;
+use App\Http\Controllers\NumberingController;
 use App\Http\Controllers\ApplyController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuditController;
@@ -251,6 +252,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/supplies', [SupplyController::class, 'index'])->name('supplies.index');
         Route::post('/supplies', [SupplyController::class, 'store'])->name('supplies.store');
         Route::get('/supplies/create', [SupplyController::class, 'create'])->name('supplies.create');
+        Route::get('/supplies/next-number', [SupplyController::class, 'nextNumber'])->name('supplies.next-number');
+        Route::get('/supplies/numbering', [NumberingController::class, 'show'])->defaults('kind', 'supplies')->name('supplies.numbering');
+        Route::put('/supplies/numbering', [NumberingController::class, 'save'])->defaults('kind', 'supplies')->name('supplies.numbering.update');
         Route::get('/supplies/{supply}/edit', [SupplyController::class, 'edit'])->name('supplies.edit');
         Route::get('/supplies/report', [SupplyController::class, 'report'])->name('supplies.report');
         Route::get('/supplies/{supply}', [SupplyController::class, 'show'])->name('supplies.show');
@@ -264,8 +268,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/inventory/import', [AssetController::class, 'importForm'])->name('assets.import');
         Route::post('/inventory/import', [AssetController::class, 'import'])->name('assets.import.store');
         Route::get('/inventory/next-number', [AssetController::class, 'nextNumber'])->name('assets.next-number');
-        Route::get('/inventory/numbering', [AssetController::class, 'numbering'])->name('assets.numbering');
-        Route::put('/inventory/numbering', [AssetController::class, 'saveNumbering'])->name('assets.numbering.update');
+        Route::get('/inventory/numbering', [NumberingController::class, 'show'])->defaults('kind', 'assets')->name('assets.numbering');
+        Route::put('/inventory/numbering', [NumberingController::class, 'save'])->defaults('kind', 'assets')->name('assets.numbering.update');
         Route::get('/asset-checks', [AssetCheckController::class, 'index'])->name('asset-checks.index');
         Route::get('/asset-checks/scan', [AssetCheckController::class, 'scan'])->name('asset-checks.scan');
         Route::post('/asset-checks', [AssetCheckController::class, 'record'])->name('asset-checks.record');

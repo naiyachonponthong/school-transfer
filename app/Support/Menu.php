@@ -2,6 +2,14 @@
 
 namespace App\Support;
 
+use App\Models\Admission;
+use App\Models\Booking;
+use App\Models\Conversation;
+use App\Models\ExamResponse;
+use App\Models\PaymentSlip;
+use App\Models\RepairRequest;
+use App\Models\StaffLeave;
+use App\Models\SupplyRequisition;
 use App\Models\User;
 
 /**
@@ -20,9 +28,9 @@ class Menu
         }
 
         $admin = $user->isAdmin();
-        $slips = $admin ? \App\Models\PaymentSlip::where('status', 'pending')->count() : 0;
-        $staffLeaves = $admin ? \App\Models\StaffLeave::where('status', 'pending')->count() : 0;
-        $admissions = $admin ? \App\Models\Admission::where('status', 'submitted')->count() : 0;
+        $slips = $admin ? PaymentSlip::where('status', 'pending')->count() : 0;
+        $staffLeaves = $admin ? StaffLeave::where('status', 'pending')->count() : 0;
+        $admissions = $admin ? Admission::where('status', 'submitted')->count() : 0;
 
         $groups = [
             'งานประจำวัน' => [
@@ -39,7 +47,7 @@ class Menu
                 self::item('courses', 'คะแนน', 'bi-journal-check', route('courses.index'), 'primary', 0, ['courses.*', 'gradebook.*']),
                 // ตัวเลขบนเมนู = แผ่นรอตรวจทาน
                 self::item('exams', 'ตรวจข้อสอบ', 'bi-ui-checks-grid', route('exams.index'), 'primary',
-                    \App\Models\ExamResponse::where('status', 'review')->whereHas('exam', fn ($q) => $q->managedBy($user))->count(), ['exams.*']),
+                    ExamResponse::where('status', 'review')->whereHas('exam', fn ($q) => $q->managedBy($user))->count(), ['exams.*']),
                 self::item('evaluations', 'คุณลักษณะ / อ่านคิดเขียน', 'bi-stars', route('evaluations.index'), 'primary', 0, ['evaluations.*']),
                 self::item('timetable', 'ตารางเรียน', 'bi-calendar3-week', route('timetable.index'), 'primary', 0, ['timetable.index']),
                 self::item('mytimetable', 'ตารางสอน', 'bi-calendar-check', route('timetable.mine'), 'primary', 0, ['timetable.mine']),
@@ -52,11 +60,11 @@ class Menu
             ],
             'บริหารทั่วไป' => array_values(array_filter([
                 self::item('repairs', 'แจ้งซ่อม', 'bi-tools', route('repairs.index'), 'teal',
-                    $user->canManageFacilities() ? \App\Models\RepairRequest::where('status', 'pending')->count() : 0, ['repairs.*']),
+                    $user->canManageFacilities() ? RepairRequest::where('status', 'pending')->count() : 0, ['repairs.*']),
                 self::item('bookings', 'จองห้อง/รถ', 'bi-calendar2-check', route('bookings.index'), 'teal',
-                    $user->canManageFacilities() ? \App\Models\Booking::where('status', 'pending')->count() : 0, ['bookings.*']),
+                    $user->canManageFacilities() ? Booking::where('status', 'pending')->count() : 0, ['bookings.*']),
                 self::item('requisitions', 'เบิกวัสดุ', 'bi-bag-check', route('requisitions.index'), 'teal',
-                    $user->canManageFacilities() ? \App\Models\SupplyRequisition::where('status', 'pending')->count() : 0, ['requisitions.*']),
+                    $user->canManageFacilities() ? SupplyRequisition::where('status', 'pending')->count() : 0, ['requisitions.*']),
                 $user->canManageFacilities() ? self::item('supplies', 'คลังวัสดุ', 'bi-boxes', route('supplies.index'), 'teal', 0, ['supplies.*']) : null,
                 $user->canManageFacilities() ? self::item('assets', 'ครุภัณฑ์', 'bi-box-seam', route('assets.index'), 'teal', 0, ['assets.*']) : null,
                 $user->canManageFacilities() ? self::item('assetcheck', 'ตรวจสอบพัสดุ', 'bi-clipboard-check', route('asset-checks.index'), 'teal', 0, ['asset-checks.*']) : null,
@@ -66,7 +74,7 @@ class Menu
                 self::item('staffleave', 'ลางาน', 'bi-briefcase', route('staff-leaves.index'), 'primary', $staffLeaves, ['staff-leaves.*']),
             ],
             'สื่อสารและการเงิน' => [
-                self::item('chat', 'ข้อความ', 'bi-chat-dots', route('chat.index'), 'blue', \App\Models\Conversation::unreadTotal($user), ['chat.*']),
+                self::item('chat', 'ข้อความ', 'bi-chat-dots', route('chat.index'), 'blue', Conversation::unreadTotal($user), ['chat.*']),
                 self::item('feed', 'ฟีดข่าว', 'bi-newspaper', route('feed.index'), 'blue', 0, ['feed.*']),
                 self::item('announcements', 'ประกาศ', 'bi-megaphone', route('announcements.index'), 'primary', 0, ['announcements.*']),
                 self::item('invoices', 'ค่าธรรมเนียม', 'bi-wallet2', route('invoices.index'), 'teal', 0, ['invoices.*', 'payments.*']),
@@ -102,7 +110,7 @@ class Menu
             }
             $items[] = self::item('leave', 'ส่งใบลา', 'bi-envelope-paper', route('parent.leave'), 'primary', 0, ['parent.leave']);
             $items[] = self::item('homework', 'การบ้าน', 'bi-journal-text', route('parent.homework'), 'primary', 0, ['parent.homework']);
-            $items[] = self::item('chat', 'ข้อความ', 'bi-chat-dots', route('chat.index'), 'primary', \App\Models\Conversation::unreadTotal($user), ['chat.*']);
+            $items[] = self::item('chat', 'ข้อความ', 'bi-chat-dots', route('chat.index'), 'primary', Conversation::unreadTotal($user), ['chat.*']);
             $items[] = self::item('feed', 'ฟีดข่าว', 'bi-newspaper', route('feed.index'), 'primary', 0, ['feed.*']);
             $items[] = self::item('announcements', 'ประกาศ', 'bi-megaphone', route('announcements.index'), 'primary', 0, ['announcements.*']);
 
@@ -173,7 +181,7 @@ class Menu
             'บุตรหลาน' => [
                 self::item('leave', 'ส่งใบลา', 'bi-envelope-paper', route('parent.leave'), 'primary', 0, ['parent.leave']),
                 self::item('homework', 'การบ้าน', 'bi-journal-text', route('parent.homework'), 'primary', 0, ['parent.homework']),
-                self::item('chat', 'คุยกับครู', 'bi-chat-dots', route('chat.index'), 'blue', \App\Models\Conversation::unreadTotal($user), ['chat.*']),
+                self::item('chat', 'คุยกับครู', 'bi-chat-dots', route('chat.index'), 'blue', Conversation::unreadTotal($user), ['chat.*']),
                 self::item('portfolio', 'แฟ้มผลงาน', 'bi-folder2-open', $child ? route('portfolio.show', $child) : route('parent.home'), 'primary', 0, ['portfolio.*']),
                 self::item('survey', 'แบบประเมิน', 'bi-clipboard-heart', $tab('survey'), 'primary'),
                 self::item('attendance', 'การมาเรียน', 'bi-calendar-check', $tab('overview'), 'primary'),

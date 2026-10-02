@@ -4,15 +4,17 @@ namespace Tests\Feature;
 
 use App\Models\Asset;
 use App\Models\AuditLog;
+use App\Models\Supply;
 use App\Models\User;
 use App\Support\AssetNumber;
+use App\Support\SupplyNumber;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
-/** ออกเลขครุภัณฑ์อัตโนมัติ · ตั้งรูปแบบเลข · เพิ่มหลายชิ้นพร้อมกัน */
+/** ออกเลขครุภัณฑ์ / รหัสวัสดุอัตโนมัติ · ตั้งรูปแบบเลข · เพิ่มหลายชิ้นพร้อมกัน */
 class AssetNumberTest extends TestCase
 {
     use RefreshDatabase;
@@ -111,5 +113,37 @@ class AssetNumberTest extends TestCase
         $this->actingAs($m)->post('/inventory', ['name' => 'ลูกฟุตบอล', 'category' => 'ครุภัณฑ์กีฬา', 'acquired_on' => '2026-11-01', 'quantity' => 2, 'status' => 'normal']);
         $this->assertSame(['สธ.KH-001/70', 'สธ.KH-002/70'], Asset::where('name', 'ลูกฟุตบอล')->orderBy('code')->pluck('code')->all());
         $this->actingAs($m)->get('/inventory/numbering')->assertSee('สธ.KH-003/70');
+    }
+
+    public function test_supply_codes_are_assigned_automatically(): void
+    {
+        $m = $this->facility();
+        $base = ['unit' => 'ชิ้น', 'min_stock' => 0];
+        // ต่อจากรหัสที่มีอยู่ (seeder มี OF-001)
+        $this->actingAs($m)->post('/supplies', $base + ['name' => 'แฟ้มเอกสาร', 'category' => 'วัสดุสำนักงาน'])->assertRedirect();
+        $this->assertSame('OF-002', Supply::where('name', 'แฟ้มเอกสาร')->value('code'));
+        // หมวดที่พิมพ์ใหม่ยังไม่มีรหัส → ใช้รหัส "วัสดุอื่น ๆ"
+        $this->actingAs($m)->post('/supplies', $base + ['name' => 'ปุ๋ย', 'category' => 'วัสดุการเกษตร']);
+        $this->assertSame('OT-001', Supply::where('name', 'ปุ๋ย')->value('code'));
+        $this->actingAs($m)->getJson('/supplies/next-number?category='.urlencode('วัสดุการเกษตร'))->assertOk()->assertJson(['first' => 'OT-002', 'needs_category' => true]);
+        $this->actingAs($m)->getJson('/supplies/next-number?category='.urlencode('วัสดุสำนักงาน'))->assertJson(['first' => 'OF-003', 'needs_category' => false]);
+        // พิมพ์เองได้
+        $this->actingAs($m)->post('/supplies', $base + ['name' => 'กาว', 'code' => 'GLUE-1']);
+        $this->assertTrue(Supply::where('code', 'GLUE-1')->exists());
+
+        // หน้าตั้งรหัส: หมวดที่ใช้อยู่ขึ้นในตารางให้ตั้งรหัสได้
+        $this->actingAs(User::where('username', 'teacher')->first())->get('/supplies/numbering')->assertForbidden();
+        $this->actingAs($m)->get('/supplies/numbering')->assertOk()->assertSee('รูปแบบรหัสวัสดุ')->assertSee('วัสดุการเกษตร')->assertSee('OF-003');
+        $codes = SupplyNumber::codes();
+        $this->actingAs($m)->put('/supplies/numbering', ['pattern' => '{CAT}{SEQ}', 'codes' => $codes + ['วัสดุการเกษตร' => 'AG']])->assertRedirect(route('supplies.numbering'));
+        $this->actingAs($m)->post('/supplies', $base + ['name' => 'จอบ', 'category' => 'วัสดุการเกษตร']);
+        $this->assertSame('AG0001', Supply::where('name', 'จอบ')->value('code'));
+        $this->assertSame('{CAT}-{FY}-{SEQ}', AssetNumber::pattern()); // ไม่กระทบเลขครุภัณฑ์
+
+        // แก้ไข: ลบรหัสออก = ออกรหัสใหม่
+        $paper = Supply::where('code', 'OF-001')->first();
+        $this->actingAs($m)->put("/supplies/{$paper->id}", ['name' => $paper->name, 'unit' => $paper->unit, 'category' => $paper->category, 'code' => ''])->assertRedirect();
+        $this->assertSame('OF0001', $paper->fresh()->code);
+        $this->actingAs($m)->get('/supplies/create')->assertOk()->assertSee('เว้นว่าง = ออกรหัสอัตโนมัติ');
     }
 }

@@ -7,6 +7,7 @@
     <div><h1>คลังวัสดุสิ้นเปลือง</h1><div class="sub">รับเข้า · จ่ายตามใบเบิก · บัญชีวัสดุ</div></div>
     <div class="actions">
         <a href="{{ route('supplies.report') }}" class="btn btn-light border"><i class="bi bi-bar-chart"></i> สรุปรายเดือน</a>
+        <a href="{{ route('supplies.numbering') }}" class="btn btn-light border"><i class="bi bi-123"></i> รูปแบบรหัส</a>
         <a href="{{ route('supplies.create') }}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> เพิ่มวัสดุ</a>
     </div>
 </div>

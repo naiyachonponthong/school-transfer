@@ -95,7 +95,7 @@
                     @foreach ($staff as $u)<option value="{{ $u->id }}" @selected(in_array($u->id, $managers, true))>{{ $u->name }}{{ $u->position ? ' · '.$u->position : '' }}</option>@endforeach
                 </select>
                 <div class="form-text">กด Ctrl ค้างเพื่อเลือกหลายคน · คนที่เลือกจะได้รับแจ้งเตือน LINE เมื่อมีการแจ้งซ่อมใหม่</div>
-                <a href="{{ route('assets.numbering') }}" class="btn btn-light border mt-3"><i class="bi bi-123"></i> ตั้งรูปแบบเลขครุภัณฑ์อัตโนมัติ / รหัสประเภท</a>
+                <a href="{{ route('assets.numbering') }}" class="btn btn-light border mt-3"><i class="bi bi-123"></i> ตั้งรูปแบบเลขครุภัณฑ์อัตโนมัติ</a> <a href="{{ route('supplies.numbering') }}" class="btn btn-light border mt-3"><i class="bi bi-123"></i> ตั้งรูปแบบรหัสวัสดุอัตโนมัติ</a>
             </div>
             <div class="card-footer bg-transparent"><button class="btn btn-primary"><i class="bi bi-save"></i> บันทึก</button></div>
         </form>

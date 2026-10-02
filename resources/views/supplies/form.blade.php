@@ -4,7 +4,7 @@
 @section('content')
 <div class="page-head">
     <div><h1>{{ $supply->exists ? 'แก้ไขวัสดุ' : 'เพิ่มวัสดุ' }}</h1><div class="sub">ช่องที่มี <span class="text-danger">*</span> จำเป็น · รูปช่วยให้ครูเลือกเบิกถูกชิ้น</div></div>
-    <div class="actions"><a href="{{ $supply->exists ? route('supplies.show', $supply) : route('supplies.index') }}" class="btn btn-light border"><i class="bi bi-arrow-left"></i> กลับ</a></div>
+    <div class="actions"><a href="{{ route('supplies.numbering') }}" class="btn btn-light border"><i class="bi bi-123"></i> ตั้งรูปแบบรหัส</a><a href="{{ $supply->exists ? route('supplies.show', $supply) : route('supplies.index') }}" class="btn btn-light border"><i class="bi bi-arrow-left"></i> กลับ</a></div>
 </div>
 
 <form method="POST" enctype="multipart/form-data" action="{{ $supply->exists ? route('supplies.update', $supply) : route('supplies.store') }}">
@@ -15,8 +15,8 @@
                 <div class="card-header"><i class="bi bi-info-circle"></i> ข้อมูลวัสดุ</div>
                 <div class="card-body row g-3">
                     <div class="col-md-8"><label class="form-label">ชื่อวัสดุ <span class="text-danger">*</span></label><input name="name" value="{{ old('name', $supply->name) }}" class="form-control form-control-lg" required autofocus placeholder="เช่น กระดาษ A4 80 แกรม"></div>
-                    <div class="col-md-4"><label class="form-label">รหัสวัสดุ</label><input name="code" value="{{ old('code', $supply->code) }}" class="form-control" placeholder="เช่น ST-001"></div>
-                    <div class="col-md-6"><label class="form-label">หมวด</label><input name="category" value="{{ old('category', $supply->category) }}" class="form-control" list="cats" placeholder="เลือกหรือพิมพ์ใหม่"></div>
+                    <div class="col-md-4"><label class="form-label">รหัสวัสดุ</label><input name="code" id="code" value="{{ old('code', $supply->code) }}" class="form-control font-monospace @error('code') is-invalid @enderror" placeholder="เว้นว่าง = ออกรหัสอัตโนมัติ" autocomplete="off">@error('code')<div class="invalid-feedback">{{ $message }}</div>@enderror<div class="form-text" id="codeHint" aria-live="polite">&nbsp;</div></div>
+                    <div class="col-md-6"><label class="form-label">หมวด</label><input name="category" id="category" value="{{ old('category', $supply->category) }}" class="form-control" list="cats" placeholder="เลือกหรือพิมพ์ใหม่"></div>
                     <datalist id="cats">@foreach ($categories as $c)<option>{{ $c }}</option>@endforeach</datalist>
                     <div class="col-md-3"><label class="form-label">หน่วยนับ <span class="text-danger">*</span></label><input name="unit" value="{{ old('unit', $supply->unit) }}" class="form-control" required list="units"></div>
                     <datalist id="units"><option>ชิ้น</option><option>รีม</option><option>กล่อง</option><option>ด้าม</option><option>แท่ง</option><option>ม้วน</option><option>ขวด</option><option>แพ็ค</option><option>อัน</option><option>ตลับ</option><option>ถุง</option></datalist>
@@ -51,3 +51,33 @@
     </div>
 </form>
 @endsection
+
+@push('scripts')
+<script>
+(() => {
+    const code = document.getElementById('code'), cat = document.getElementById('category'), hint = document.getElementById('codeHint');
+    const editing = @json($supply->exists);
+    const say = (text, value, note) => {
+        const b = document.createElement('b');
+        b.className = 'font-monospace text-body text-nowrap';
+        b.textContent = value || '';
+        hint.replaceChildren(document.createTextNode(text), b, document.createTextNode(note || ''));
+    };
+    let timer;
+    const refresh = () => {
+        clearTimeout(timer);
+        timer = setTimeout(async () => {
+            if (code.value.trim()) { say('ใช้รหัสที่พิมพ์เอง'); return; }
+            try {
+                const r = await fetch(@json(route('supplies.next-number')) + '?' + new URLSearchParams({ category: cat.value }), { headers: { Accept: 'application/json' } });
+                if (!r.ok) return;
+                const d = await r.json();
+                say(editing ? 'ลบรหัสเดิมออก = ออกรหัสใหม่ ' : 'จะได้รหัส ', d.first, d.needs_category ? ' (หมวดนี้ยังไม่ตั้งรหัส ใช้รหัสของ "วัสดุอื่น ๆ")' : '');
+            } catch (e) { /* ออฟไลน์ */ }
+        }, 250);
+    };
+    [code, cat].forEach((el) => { el.addEventListener('input', refresh); el.addEventListener('change', refresh); });
+    refresh();
+})();
+</script>
+@endpush

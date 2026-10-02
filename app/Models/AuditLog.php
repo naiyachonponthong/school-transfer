@@ -33,6 +33,7 @@ class AuditLog extends Model
         'special' => 'ผลพิเศษ', 'remedial_grade' => 'ผลแก้ตัว', 'before' => 'เดิม', 'after' => 'ใหม่', 'course_id' => 'รายวิชา',
         'school_name' => 'ชื่อโรงเรียน', 'director_name' => 'ผู้อำนวยการ', 'line_channel_token' => 'LINE token', 'line_channel_secret' => 'LINE secret',
         'code' => 'เลข/รหัส', 'asset_no_pattern' => 'รูปแบบเลขครุภัณฑ์', 'asset_category_codes' => 'รหัสประเภทครุภัณฑ์',
+        'supply_no_pattern' => 'รูปแบบรหัสวัสดุ', 'supply_category_codes' => 'รหัสหมวดวัสดุ',
     ];
 
     public static function fieldLabel(string $field): string

@@ -6,6 +6,7 @@ use App\Models\Supply;
 use App\Models\SupplyRequisition;
 use App\Models\SupplyTransaction;
 use App\Support\Audit;
+use App\Support\SupplyNumber;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -57,13 +58,16 @@ class SupplyController extends Controller
         $data = $this->validated($request);
         $data['photo'] = $request->hasFile('photo') ? $request->file('photo')->store('supplies', 'public') : null;
         $initial = (int) $request->input('initial_stock', 0);
-        $supply = Supply::create($data + ['stock' => 0]);
+        // เว้นรหัสว่าง = ออกรหัสตามรูปแบบที่ตั้งไว้
+        $supply = blank($data['code'] ?? null)
+            ? SupplyNumber::assign($data['category'] ?? null, null, fn ($code) => Supply::create(['code' => $code, 'stock' => 0] + $data))[0]
+            : Supply::create($data + ['stock' => 0]);
         if ($initial > 0) {
             $supply->move('in', $initial, 'ยอดยกมา');
         }
-        Audit::log('supply.create', $supply, "เพิ่มวัสดุ {$supply->name}".($initial ? " ยอดยกมา {$initial} {$supply->unit}" : ''));
+        Audit::log('supply.create', $supply, "เพิ่มวัสดุ {$supply->code} {$supply->name}".($initial ? " ยอดยกมา {$initial} {$supply->unit}" : ''));
 
-        return redirect()->route($request->boolean('another') ? 'supplies.create' : 'supplies.index')->with('success', "เพิ่ม {$supply->name} แล้ว");
+        return redirect()->route($request->boolean('another') ? 'supplies.create' : 'supplies.index')->with('success', "เพิ่ม {$supply->code} {$supply->name} แล้ว");
     }
 
     public function update(Request $request, Supply $supply)
@@ -76,10 +80,19 @@ class SupplyController extends Controller
             $data['photo'] = $request->file('photo')->store('supplies', 'public');
         }
         $supply->fill($data);
-        if ($diff = Audit::diff($supply)) {
-            Audit::log('supply.update', $supply, "แก้ข้อมูลวัสดุ {$supply->name}", $diff);
-        }
-        $supply->save();
+        $save = function () use ($supply) {
+            if ($diff = Audit::diff($supply)) {
+                Audit::log('supply.update', $supply, "แก้ข้อมูลวัสดุ {$supply->name}", $diff);
+            }
+            $supply->save();
+        };
+        // ลบรหัสออก = ออกรหัสใหม่ตามรูปแบบ
+        blank($supply->code)
+            ? SupplyNumber::assign($supply->category, null, function ($code) use ($supply, $save) {
+                $supply->code = $code;
+                $save();
+            })
+            : $save();
 
         return redirect()->route('supplies.show', $supply)->with('success', 'บันทึกแล้ว');
     }
@@ -135,6 +148,19 @@ class SupplyController extends Controller
         ]);
     }
 
+    /** รหัสที่จะได้ถ้าเว้นช่องรหัสว่าง (แสดงในฟอร์ม) */
+    public function nextNumber(Request $request)
+    {
+        $this->authorizeManager($request);
+        $data = $request->validate(['category' => ['nullable', 'string', 'max:50']]);
+        $category = trim((string) ($data['category'] ?? '')) ?: null;
+
+        return response()->json([
+            'first' => SupplyNumber::next($category)[0],
+            'needs_category' => str_contains(SupplyNumber::pattern(), '{CAT}') && ! array_key_exists((string) $category, SupplyNumber::codes()),
+        ]);
+    }
+
     private function validated(Request $request, ?Supply $supply = null): array
     {
         $data = $request->validate([
@@ -159,6 +185,6 @@ class SupplyController extends Controller
     private static function categories()
     {
         return Supply::whereNotNull('category')->distinct()->orderBy('category')->pluck('category')
-            ->merge(['วัสดุสำนักงาน', 'วัสดุคอมพิวเตอร์', 'วัสดุงานบ้านงานครัว', 'วัสดุการศึกษา', 'วัสดุไฟฟ้า', 'วัสดุวิทยาศาสตร์'])->unique()->values();
+            ->merge(SupplyNumber::categories())->unique()->values();
     }
 }

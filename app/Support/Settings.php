@@ -22,6 +22,8 @@ class Settings
         'facility_manager_ids' => '',  // ครูงานพัสดุ/อาคารสถานที่ (id คั่นด้วย ,)
         'asset_no_pattern' => AssetNumber::DEFAULT_PATTERN, // รูปแบบเลขครุภัณฑ์อัตโนมัติ
         'asset_category_codes' => '',  // รหัสประเภทครุภัณฑ์ที่ตั้งเอง (JSON)
+        'supply_no_pattern' => SupplyNumber::DEFAULT_PATTERN, // รูปแบบรหัสวัสดุอัตโนมัติ
+        'supply_category_codes' => '', // รหัสหมวดวัสดุที่ตั้งเอง (JSON)
         'late_time' => '08:00',        // หลังเวลานี้ถือว่าสาย
         'staff_late_time' => '08:00',
         'periods_per_day' => '7',

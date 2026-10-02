@@ -2,11 +2,19 @@
 
 namespace App\Support;
 
+use App\Models\Admission;
 use App\Models\Announcement;
+use App\Models\Assignment;
 use App\Models\Attendance;
 use App\Models\BehaviorRecord;
+use App\Models\HealthVisit;
 use App\Models\Invoice;
 use App\Models\LeaveRequest;
+use App\Models\PaymentSlip;
+use App\Models\PeriodAttendance;
+use App\Models\SchoolEvent;
+use App\Models\StaffLeave;
+use App\Models\Submission;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -57,21 +65,21 @@ class Notifications
         $items = $items->concat(self::announcements($user));
 
         if ($user->isAdmin()) {
-            foreach (\App\Models\PaymentSlip::with('invoice.student')->where('status', 'pending')->latest()->limit(10)->get() as $s) {
+            foreach (PaymentSlip::with('invoice.student')->where('status', 'pending')->latest()->limit(10)->get() as $s) {
                 $items->push(['icon' => 'bi-receipt-cutoff', 'color' => 'teal', 'title' => 'สลิปรอตรวจ '.baht($s->amount).' บาท',
                     'sub' => $s->invoice->student->fullName().' · '.$s->invoice->title, 'url' => route('slips.index'), 'at' => $s->created_at]);
             }
-            foreach (\App\Models\StaffLeave::with('user')->where('status', 'pending')->latest()->limit(10)->get() as $l) {
+            foreach (StaffLeave::with('user')->where('status', 'pending')->latest()->limit(10)->get() as $l) {
                 $items->push(['icon' => 'bi-briefcase', 'color' => 'warning', 'title' => "{$l->user->name} ยื่น{$l->typeLabel()} {$l->days()} วัน",
                     'sub' => thai_date($l->start_date).' · รออนุมัติ', 'url' => route('staff-leaves.index'), 'at' => $l->created_at]);
             }
-            $newApps = \App\Models\Admission::where('status', 'submitted')->count();
+            $newApps = Admission::where('status', 'submitted')->count();
             if ($newApps) {
                 $items->push(['icon' => 'bi-person-plus', 'color' => 'info', 'title' => "ใบสมัครใหม่ {$newApps} ใบ", 'sub' => 'รับสมัครนักเรียน',
-                    'url' => route('admissions.index', ['status' => 'submitted']), 'at' => \App\Models\Admission::where('status', 'submitted')->max('created_at') ? \Illuminate\Support\Carbon::parse(\App\Models\Admission::where('status', 'submitted')->max('created_at')) : now()]);
+                    'url' => route('admissions.index', ['status' => 'submitted']), 'at' => Admission::where('status', 'submitted')->max('created_at') ? Carbon::parse(Admission::where('status', 'submitted')->max('created_at')) : now()]);
             }
         }
-        foreach (\App\Models\StaffLeave::where('user_id', $user->id)->whereIn('status', ['approved', 'rejected'])->where('reviewed_at', '>=', now()->subDays(14))->get() as $l) {
+        foreach (StaffLeave::where('user_id', $user->id)->whereIn('status', ['approved', 'rejected'])->where('reviewed_at', '>=', now()->subDays(14))->get() as $l) {
             $items->push(['icon' => $l->status === 'approved' ? 'bi-check-circle' : 'bi-x-circle', 'color' => $l->status === 'approved' ? 'success' : 'danger',
                 'title' => "{$l->typeLabel()} ของคุณ{$l->statusLabel()}", 'sub' => thai_date($l->start_date), 'url' => route('staff-leaves.index'), 'at' => $l->reviewed_at]);
         }
@@ -107,7 +115,7 @@ class Notifications
                 'icon' => $a->status === 'absent' ? 'bi-person-x' : 'bi-clock-history',
                 'color' => $a->status === 'absent' ? 'danger' : 'warning',
                 'title' => $nick($a->student).' '.($a->status === 'absent' ? 'ขาดเรียน' : 'มาสาย'),
-                'sub' => \App\Support\Thai::fullDate($a->date).($a->checked_at ? ' เวลา '.substr($a->checked_at, 0, 5).' น.' : ''),
+                'sub' => Thai::fullDate($a->date).($a->checked_at ? ' เวลา '.substr($a->checked_at, 0, 5).' น.' : ''),
                 'url' => route('parent.child', $a->student), 'at' => $a->date->copy()->setTimeFromTimeString($a->checked_at ?: '08:00:00'),
             ]);
         }
@@ -117,12 +125,12 @@ class Notifications
         $wholeDayOff = Attendance::whereIn('student_id', $ids)->whereIn('status', ['absent', 'leave', 'sick'])
             ->where('date', '>=', today()->subDays(7)->toDateString())->get()
             ->mapWithKeys(fn ($a) => [$a->student_id.'-'.$a->date->toDateString() => true]);
-        foreach (\App\Models\PeriodAttendance::with(['student', 'course.subject'])->whereIn('student_id', $ids)->where('status', 'absent')
+        foreach (PeriodAttendance::with(['student', 'course.subject'])->whereIn('student_id', $ids)->where('status', 'absent')
             ->where('date', '>=', today()->subDays(7)->toDateString())->get()
             ->reject(fn ($p) => isset($wholeDayOff[$p->student_id.'-'.$p->date->toDateString()])) as $p) {
             $items->push(['icon' => 'bi-door-open', 'color' => 'danger',
                 'title' => $nick($p->student).' ขาดเรียนวิชา'.$p->course->subject->name.' คาบที่ '.$p->period,
-                'sub' => \App\Support\Thai::fullDate($p->date), 'url' => route('parent.child', ['student' => $p->student, 'tab' => 'grades']),
+                'sub' => Thai::fullDate($p->date), 'url' => route('parent.child', ['student' => $p->student, 'tab' => 'grades']),
                 'at' => $p->created_at]);
         }
 
@@ -149,7 +157,7 @@ class Notifications
 
         // การบ้านที่ยังไม่ส่ง (สั่งใน 7 วัน)
         foreach ($children as $child) {
-            $pending = \App\Models\Assignment::with('course.subject')
+            $pending = Assignment::with('course.subject')
                 ->whereHas('course', fn ($q) => $q->where('classroom_id', $child->classroom_id))
                 ->where('created_at', '>=', now()->subDays(7))
                 ->whereDoesntHave('submissions', fn ($q) => $q->where('student_id', $child->id)->whereNotNull('submitted_at'))->get();
@@ -160,13 +168,13 @@ class Notifications
             }
         }
 
-        foreach (\App\Models\HealthVisit::with('student')->whereIn('student_id', $ids)->where('visited_at', '>=', now()->subDays(7))->get() as $v) {
+        foreach (HealthVisit::with('student')->whereIn('student_id', $ids)->where('visited_at', '>=', now()->subDays(7))->get() as $v) {
             $items->push(['icon' => 'bi-heart-pulse', 'color' => in_array($v->action, ['sent_home', 'hospital'], true) ? 'danger' : 'info',
                 'title' => $nick($v->student).' มาห้องพยาบาล: '.$v->symptom, 'sub' => $v->actionLabel().($v->treatment ? ' · '.$v->treatment : ''),
                 'url' => route('parent.child', ['student' => $v->student, 'tab' => 'health']), 'at' => $v->visited_at]);
         }
 
-        foreach (\App\Models\PaymentSlip::with('invoice.student')->whereHas('invoice', fn ($q) => $q->whereIn('student_id', $ids))
+        foreach (PaymentSlip::with('invoice.student')->whereHas('invoice', fn ($q) => $q->whereIn('student_id', $ids))
             ->whereIn('status', ['approved', 'rejected'])->where('reviewed_at', '>=', now()->subDays(14))->get() as $s) {
             $items->push(['icon' => $s->status === 'approved' ? 'bi-check-circle' : 'bi-x-circle', 'color' => $s->status === 'approved' ? 'success' : 'danger',
                 'title' => 'สลิป '.baht($s->amount).' บาท '.$s->statusLabel(), 'sub' => $s->invoice->title.($s->review_note ? ' · '.$s->review_note : ''),
@@ -195,7 +203,7 @@ class Notifications
             return $items;
         }
 
-        $pending = \App\Models\Assignment::with('course.subject')
+        $pending = Assignment::with('course.subject')
             ->whereHas('course', fn ($q) => $q->where('classroom_id', $me->classroom_id))
             ->where('created_at', '>=', now()->subDays(14))
             ->whereDoesntHave('submissions', fn ($q) => $q->where('student_id', $me->id)->whereNotNull('submitted_at'))->get();
@@ -206,7 +214,7 @@ class Notifications
                 'url' => route('student.homework'), 'at' => $a->created_at]);
         }
 
-        foreach (\App\Models\Submission::with('assignment')->where('student_id', $me->id)->whereNotNull('graded_at')->where('graded_at', '>=', now()->subDays(14))->get() as $s) {
+        foreach (Submission::with('assignment')->where('student_id', $me->id)->whereNotNull('graded_at')->where('graded_at', '>=', now()->subDays(14))->get() as $s) {
             $items->push(['icon' => 'bi-check2-circle', 'color' => 'success',
                 'title' => 'ครูตรวจงาน "'.$s->assignment->title.'" แล้ว', 'sub' => 'ได้ '.rtrim(rtrim(number_format($s->score, 2), '0'), '.').($s->assignment->max_score ? '/'.rtrim(rtrim(number_format($s->assignment->max_score, 2), '0'), '.') : '').($s->feedback ? ' · '.$s->feedback : ''),
                 'url' => route('student.homework'), 'at' => $s->graded_at]);
@@ -226,7 +234,7 @@ class Notifications
     {
         $tomorrow = today()->addDay();
 
-        return \App\Models\SchoolEvent::visibleTo($user)->where('start_date', $tomorrow->toDateString())->get()
+        return SchoolEvent::visibleTo($user)->where('start_date', $tomorrow->toDateString())->get()
             ->map(fn ($e) => ['icon' => $e->typeIcon(), 'color' => $e->typeColor(), 'title' => 'พรุ่งนี้: '.$e->title,
                 'sub' => $e->typeLabel().($e->description ? ' · '.$e->description : ''), 'url' => route('calendar'), 'at' => today()->startOfDay()]);
     }

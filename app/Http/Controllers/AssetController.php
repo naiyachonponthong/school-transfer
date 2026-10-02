@@ -6,7 +6,6 @@ use App\Models\Asset;
 use App\Models\User;
 use App\Support\AssetNumber;
 use App\Support\Audit;
-use App\Support\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -314,43 +313,6 @@ class AssetController extends Controller
 
         return response()->json(['first' => $codes[0], 'last' => end($codes), 'count' => count($codes),
             'needs_category' => blank($data['category'] ?? null) && str_contains(AssetNumber::pattern(), '{CAT}')]);
-    }
-
-    /** ตั้งรูปแบบเลขครุภัณฑ์ + รหัสประเภท */
-    public function numbering(Request $request)
-    {
-        $this->authorizeManager($request);
-        $counts = Asset::selectRaw('category, count(*) as n')->groupBy('category')->pluck('n', 'category');
-
-        return view('assets.numbering', [
-            'pattern' => AssetNumber::pattern(),
-            'codes' => AssetNumber::codes(),
-            'counts' => $counts,
-            'next' => collect(Asset::CATEGORIES)->map(fn ($life, $c) => AssetNumber::next($c)[0]),
-            'fy' => AssetNumber::fiscalYear(today()),
-        ]);
-    }
-
-    public function saveNumbering(Request $request)
-    {
-        $this->authorizeManager($request);
-        $data = $request->validate([
-            'pattern' => ['required', 'string', 'max:40', function ($attr, $value, $fail) {
-                ($problem = AssetNumber::problem($value)) && $fail($problem);
-            }],
-            'codes' => ['required', 'array'],
-            'codes.*' => ['required', 'string', 'max:10', 'regex:/^[\pL\pN.\-\/]+$/u'],
-        ], ['codes.*.required' => 'ใส่รหัสทุกประเภท', 'codes.*.regex' => 'รหัสประเภทใช้ได้เฉพาะตัวอักษร ตัวเลข . - /'], ['pattern' => 'รูปแบบเลข']);
-        $codes = collect($data['codes'])->only(array_keys(Asset::CATEGORIES))->map(fn ($c) => trim($c))->all();
-        $values = ['asset_no_pattern' => trim($data['pattern']), 'asset_category_codes' => json_encode($codes, JSON_UNESCAPED_UNICODE)];
-        $old = ['asset_no_pattern' => AssetNumber::pattern(), 'asset_category_codes' => json_encode(AssetNumber::codes(), JSON_UNESCAPED_UNICODE)];
-        if ($values != $old) {
-            Audit::log('setting.update', null, 'แก้รูปแบบเลขครุภัณฑ์ '.$values['asset_no_pattern'], collect($values)
-                ->filter(fn ($v, $k) => $old[$k] !== $v)->map(fn ($v, $k) => [$old[$k], $v])->all());
-        }
-        Settings::set($values);
-
-        return redirect()->route('assets.numbering')->with('success', 'บันทึกรูปแบบเลขครุภัณฑ์แล้ว');
     }
 
     private static function date(mixed $value): ?Carbon
