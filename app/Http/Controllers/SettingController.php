@@ -23,6 +23,8 @@ class SettingController extends Controller
             'school_short' => ['nullable', 'string', 'max:100'],
             'school_address' => ['nullable', 'string', 'max:500'],
             'school_phone' => ['nullable', 'string', 'max:50'],
+            'school_affiliation' => ['nullable', 'string', 'max:255'],
+            'school_province' => ['nullable', 'string', 'max:100'],
             'director_name' => ['nullable', 'string', 'max:255'],
             'academic_deputy_name' => ['nullable', 'string', 'max:255'],
             'measurement_head_name' => ['nullable', 'string', 'max:255'],

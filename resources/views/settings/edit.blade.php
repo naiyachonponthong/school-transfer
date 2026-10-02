@@ -31,6 +31,8 @@
                 <div class="col-md-8"><label class="form-label">ชื่อโรงเรียน</label><input name="school_name" value="{{ $settings['school_name'] }}" class="form-control" required></div>
                 <div class="col-md-4"><label class="form-label">ชื่อย่อ (แสดงบนเมนู)</label><input name="school_short" value="{{ $settings['school_short'] }}" class="form-control"></div>
                 <div class="col-12"><label class="form-label">ที่อยู่</label><input name="school_address" value="{{ $settings['school_address'] }}" class="form-control"></div>
+                <div class="col-md-8"><label class="form-label">สังกัด / เขตพื้นที่การศึกษา</label><input name="school_affiliation" value="{{ $settings['school_affiliation'] }}" class="form-control" placeholder="เช่น สำนักงานเขตพื้นที่การศึกษามัธยมศึกษาขอนแก่น"></div>
+                <div class="col-md-4"><label class="form-label">จังหวัด</label><input name="school_province" value="{{ $settings['school_province'] }}" class="form-control"></div>
                 <div class="col-md-6"><label class="form-label">เบอร์โทร</label><input name="school_phone" value="{{ $settings['school_phone'] }}" class="form-control"></div>
                 <div class="col-md-6"><label class="form-label">ชื่อผู้อำนวยการ (พิมพ์ในสมุดพก)</label><input name="director_name" value="{{ $settings['director_name'] }}" class="form-control"></div>
                 <div class="col-md-4"><label class="form-label">รองผู้อำนวยการฝ่ายวิชาการ</label><input name="academic_deputy_name" value="{{ $settings['academic_deputy_name'] ?? '' }}" class="form-control"></div>

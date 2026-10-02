@@ -13,6 +13,8 @@ class Settings
         'school_short' => 'ตัวอย่างวิทยา',
         'school_address' => '',
         'school_phone' => '',
+        'school_affiliation' => '',    // สังกัด / เขตพื้นที่การศึกษา (ปพ.1 / ปพ.3)
+        'school_province' => '',
         'director_name' => '',
         'academic_deputy_name' => '',  // รองผู้อำนวยการฝ่ายวิชาการ (ลงนาม ปพ.5)
         'measurement_head_name' => '', // หัวหน้างานวัดผล (ลงนาม ปพ.5)

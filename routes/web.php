@@ -18,6 +18,7 @@ use App\Http\Controllers\ExamController;
 use App\Http\Controllers\ExamScanController;
 use App\Http\Controllers\FeedController;
 use App\Http\Controllers\GateController;
+use App\Http\Controllers\GraduateController;
 use App\Http\Controllers\GradebookController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\HomeworkController;
@@ -46,6 +47,7 @@ use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\TermController;
 use App\Http\Controllers\TimetableController;
+use App\Http\Controllers\TranscriptController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -83,7 +85,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/profile/line', [LineController::class, 'createCode'])->name('profile.line');
     Route::delete('/profile/line', [LineController::class, 'unlink'])->name('profile.line.unlink');
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');
-    Route::get('/transcript/{student}', [ReportController::class, 'transcript'])->name('transcript');
+    Route::get('/transcript/{student}', [TranscriptController::class, 'show'])->name('transcript');
     Route::post('/invoices/{invoice}/slips', [SlipController::class, 'store'])->name('slips.store');
 
     // แชท (ครู ↔ ผู้ปกครอง) — นักเรียนไม่ใช้
@@ -283,6 +285,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/certificates/{issue}', [CertificateController::class, 'show'])->name('certificates.show');
         Route::get('/students/{student}/certificate', [CertificateController::class, 'create'])->name('certificates.create');
         Route::post('/students/{student}/certificate', [CertificateController::class, 'store'])->name('certificates.store');
+        Route::post('/students/{student}/transcript-issue', [TranscriptController::class, 'issue'])->name('transcript.issue');
+
+        // ปพ.3 รายงานผู้สำเร็จการศึกษา
+        Route::get('/graduates', [GraduateController::class, 'index'])->name('graduates.index');
+        Route::post('/graduates/approve', [GraduateController::class, 'approve'])->name('graduates.approve');
 
         Route::post('/courses', [CourseController::class, 'store'])->name('courses.store');
         Route::post('/courses/bulk', [CourseController::class, 'bulk'])->name('courses.bulk');

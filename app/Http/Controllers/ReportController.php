@@ -14,14 +14,6 @@ use Illuminate\Support\Collection;
 /** เอกสารทางการ: ปพ.1 (ระเบียนแสดงผลการเรียน) และไฟล์ส่งออกสำหรับ DMC */
 class ReportController extends Controller
 {
-    public function transcript(Request $request, Student $student)
-    {
-        abort_unless($student->canBeViewedBy($request->user()), 403);
-        $student->load('classroom');
-
-        return view('reports.transcript', ['student' => $student] + self::academicRecord($student));
-    }
-
     /**
      * ผลการเรียนทุกภาคเรียน + GPAX + หน่วยกิตที่ได้ (ใช้ทั้ง ปพ.1 และ ปพ.7)
      *

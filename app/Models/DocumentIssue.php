@@ -9,9 +9,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /** เอกสารที่ออกให้นักเรียน (ทะเบียนคุม) */
 class DocumentIssue extends Model
 {
-    public const TYPES = ['pp7' => 'ปพ.7 ใบรับรองผลการศึกษา'];
+    public const TYPES = ['pp1' => 'ปพ.1 ระเบียนแสดงผลการเรียน', 'pp7' => 'ปพ.7 ใบรับรองผลการศึกษา'];
 
-    protected $fillable = ['type', 'year', 'number', 'student_id', 'student_name', 'purpose', 'issued_on', 'snapshot', 'issued_by'];
+    protected $fillable = ['type', 'year', 'number', 'student_id', 'student_name', 'purpose', 'issued_on', 'snapshot', 'issued_by', 'form_series', 'form_number'];
 
     protected function casts(): array
     {
@@ -26,6 +26,17 @@ class DocumentIssue extends Model
     public function issuer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'issued_by');
+    }
+
+    /** เลขลำดับถัดไปในทะเบียนคุมของปี พ.ศ. นี้ (เรียกภายใน transaction) */
+    public static function nextNumber(string $type, int $year): int
+    {
+        return (int) self::where(['type' => $type, 'year' => $year])->lockForUpdate()->max('number') + 1;
+    }
+
+    public function typeLabel(): string
+    {
+        return self::TYPES[$this->type] ?? $this->type;
     }
 
     /** เลขที่เอกสาร เช่น 12/2569 */

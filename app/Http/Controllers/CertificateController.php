@@ -33,7 +33,7 @@ class CertificateController extends Controller
         $issue = DB::transaction(function () use ($data, $student, $request) {
             $year = today()->year + 543;
             // ล็อกแถวของปีนี้ไว้ระหว่างหาเลขถัดไป กันออกเลขซ้ำเมื่อกดพร้อมกัน
-            $number = (int) DocumentIssue::where(['type' => 'pp7', 'year' => $year])->lockForUpdate()->max('number') + 1;
+            $number = DocumentIssue::nextNumber('pp7', $year);
 
             return DocumentIssue::create([
                 'type' => 'pp7', 'year' => $year, 'number' => $number,
