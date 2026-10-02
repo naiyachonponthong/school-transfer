@@ -1,0 +1,104 @@
+<?php
+
+namespace App\Models;
+
+use App\Casts\DateOnly;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Invoice extends Model
+{
+    public const STATUSES = [
+        'unpaid' => ['ค้างชำระ', 'danger'],
+        'partial' => ['ชำระบางส่วน', 'warning'],
+        'paid' => ['ชำระแล้ว', 'success'],
+        'void' => ['ยกเลิก', 'secondary'],
+    ];
+
+    protected $fillable = ['invoice_no', 'student_id', 'term_id', 'title', 'due_date', 'total', 'discount', 'paid', 'status', 'created_by'];
+
+    protected function casts(): array
+    {
+        return [
+            'due_date' => DateOnly::class,
+            'total' => 'float',
+            'discount' => 'float',
+            'paid' => 'float',
+        ];
+    }
+
+    public function student(): BelongsTo
+    {
+        return $this->belongsTo(Student::class);
+    }
+
+    public function term(): BelongsTo
+    {
+        return $this->belongsTo(Term::class);
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(InvoiceItem::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class)->latest('paid_at');
+    }
+
+    public function slips(): HasMany
+    {
+        return $this->hasMany(PaymentSlip::class);
+    }
+
+    public function netTotal(): float
+    {
+        return max(0, $this->total - $this->discount);
+    }
+
+    public function balance(): float
+    {
+        return max(0, round($this->netTotal() - $this->paid, 2));
+    }
+
+    public function isOverdue(): bool
+    {
+        return $this->due_date && $this->due_date->isPast() && in_array($this->status, ['unpaid', 'partial'], true);
+    }
+
+    public function statusLabel(): string
+    {
+        return self::STATUSES[$this->status][0] ?? $this->status;
+    }
+
+    public function statusColor(): string
+    {
+        return self::STATUSES[$this->status][1] ?? 'secondary';
+    }
+
+    /** คำนวณยอดชำระและสถานะใหม่จากรายการรับเงิน */
+    public function refreshTotals(): void
+    {
+        $this->total = (float) $this->items()->sum('amount');
+        $this->paid = (float) $this->payments()->sum('amount');
+        if ($this->status !== 'void') {
+            $this->status = match (true) {
+                $this->paid <= 0 => 'unpaid',
+                $this->paid + 0.001 >= $this->netTotal() => 'paid',
+                default => 'partial',
+            };
+        }
+        $this->save();
+    }
+
+    public static function nextNumber(string $prefix = 'INV'): string
+    {
+        $ym = now()->format('Ym');
+        $last = self::where('invoice_no', 'like', "{$prefix}{$ym}%")->orderByDesc('invoice_no')->value('invoice_no');
+        $seq = $last ? ((int) substr($last, -5)) + 1 : 1;
+
+        return $prefix.$ym.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
+    }
+}

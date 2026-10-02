@@ -1,0 +1,133 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+
+class User extends Authenticatable
+{
+    use HasFactory, Notifiable;
+
+    public const ROLES = [
+        'admin' => 'ผู้ดูแลระบบ',
+        'teacher' => 'ครู/บุคลากร',
+        'parent' => 'ผู้ปกครอง',
+        'student' => 'นักเรียน',
+    ];
+
+    protected $fillable = [
+        'name', 'username', 'email', 'phone', 'role', 'position', 'is_active', 'password', 'last_login_at',
+        'avatar', 'notifications_seen_at', 'line_user_id', 'line_link_code', 'line_linked_at',
+    ];
+
+    protected $hidden = ['password', 'remember_token'];
+
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'last_login_at' => 'datetime',
+            'notifications_seen_at' => 'datetime',
+            'line_linked_at' => 'datetime',
+            'is_active' => 'boolean',
+            'password' => 'hashed',
+        ];
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isTeacher(): bool
+    {
+        return $this->role === 'teacher';
+    }
+
+    public function isParent(): bool
+    {
+        return $this->role === 'parent';
+    }
+
+    public function isStudent(): bool
+    {
+        return $this->role === 'student';
+    }
+
+    /** ข้อมูลนักเรียนของบัญชีนักเรียนนี้ */
+    public function studentProfile(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Student::class);
+    }
+
+    public function isStaff(): bool
+    {
+        return in_array($this->role, ['admin', 'teacher'], true);
+    }
+
+    public function roleLabel(): string
+    {
+        return self::ROLES[$this->role] ?? $this->role;
+    }
+
+    public function children(): BelongsToMany
+    {
+        return $this->belongsToMany(Student::class, 'guardian_student')->withPivot('relation');
+    }
+
+    public function homerooms(): HasMany
+    {
+        return $this->hasMany(Classroom::class, 'homeroom_teacher_id');
+    }
+
+    public function courses(): HasMany
+    {
+        return $this->hasMany(Course::class, 'teacher_id');
+    }
+
+    /** ห้องที่ครูคนนี้ดูแล (ประจำชั้น/ครูร่วม) ในปีปัจจุบัน */
+    public function myClassrooms()
+    {
+        $year = Term::current()?->year;
+
+        return Classroom::query()
+            ->when($year, fn ($q) => $q->where('year', $year))
+            ->where(fn ($q) => $q->where('homeroom_teacher_id', $this->id)->orWhere('co_teacher_id', $this->id))
+            ->ordered()
+            ->get();
+    }
+
+    /** อักษรแรกของชื่อจริง (ข้ามคำนำหน้า นาย/นาง/นางสาว) */
+    public function initials(): string
+    {
+        $name = preg_replace('/^(นางสาว|นาย|นาง|ครู|Mr\.|Mrs\.|Ms\.)\s*/u', '', trim($this->name));
+
+        return mb_substr($name ?: $this->name, 0, 1);
+    }
+
+    public function hasLine(): bool
+    {
+        return (bool) $this->line_user_id;
+    }
+
+    public function staffLeaves(): HasMany
+    {
+        return $this->hasMany(StaffLeave::class)->latest();
+    }
+
+    public function avatarUrl(): ?string
+    {
+        return $this->avatar ? asset('storage/'.$this->avatar) : null;
+    }
+
+    public function firstName(): string
+    {
+        $name = preg_replace('/^(นางสาว|นาย|นาง|Mr\.|Mrs\.|Ms\.)\s*/u', '', trim($this->name));
+
+        return explode(' ', $name)[0] ?: $this->name;
+    }
+}
