@@ -34,6 +34,7 @@ use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\LeaveRequestController;
 use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\LibraryLabelController;
+use App\Http\Controllers\ManualController;
 use App\Http\Controllers\LineController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\ManifestController;
@@ -95,6 +96,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/menu', [MenuController::class, 'index'])->name('menu');
     Route::get('/notifications', [MenuController::class, 'notifications'])->name('notifications');
+
+    // คู่มือการใช้งาน (ทุกบทบาท เห็นเฉพาะหัวข้อของตัวเอง)
+    Route::get('/manual', [ManualController::class, 'index'])->name('manual.index');
+    Route::get('/manual/print', [ManualController::class, 'print'])->name('manual.print');
+    Route::get('/manual/{topic}', [ManualController::class, 'show'])->name('manual.show')->where('topic', '[a-z\-]+');
 
     Route::get('/feed', [FeedController::class, 'index'])->name('feed.index');
     Route::post('/feed', [FeedController::class, 'store'])->name('feed.store');

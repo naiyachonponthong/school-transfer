@@ -53,6 +53,10 @@
                     <i class="bi bi-chat-dots"></i>@if ($chatUnread)<span class="dot">{{ $chatUnread }}</span>@endif
                 </a>
             @endunless
+            @php($helpTopic = \App\Support\Manual::forRoute(request()->route()?->getName(), $u))
+            <a href="{{ $helpTopic ? route('manual.show', $helpTopic) : route('manual.index') }}" class="icon-btn" title="{{ $helpTopic ? 'คู่มือของหน้านี้' : 'คู่มือการใช้งาน' }}" data-manual-help>
+                <i class="bi bi-question-circle"></i>
+            </a>
             <a href="{{ route('notifications') }}" class="icon-btn" title="แจ้งเตือน">
                 <i class="bi bi-bell"></i>@if ($navUnread)<span class="dot">{{ $navUnread > 99 ? '99+' : $navUnread }}</span>@endif
             </a>
@@ -67,6 +71,7 @@
                 <ul class="dropdown-menu dropdown-menu-end">
                     <li><a class="dropdown-item" href="{{ route('profile') }}"><i class="bi bi-person me-2"></i>ข้อมูลส่วนตัว / รหัสผ่าน</a></li>
                     <li><a class="dropdown-item" href="{{ route('menu') }}"><i class="bi bi-grid-3x3-gap me-2"></i>เมนูทั้งหมด</a></li>
+                    <li><a class="dropdown-item" href="{{ route('manual.index') }}"><i class="bi bi-book me-2"></i>คู่มือการใช้งาน</a></li>
                     <li class="d-none" data-install-app-item><button type="button" class="dropdown-item" data-install-app><i class="bi bi-download me-2"></i>ติดตั้งแอป</button></li>
                     <li><hr class="dropdown-divider"></li>
                     <li>

@@ -97,6 +97,7 @@ class Menu
                 self::item('settings', 'ตั้งค่า', 'bi-gear', route('settings'), 'slate', 0, ['settings*']),
             ];
         }
+        $groups['ช่วยเหลือ'] = [self::manualItem()];
 
         return $groups;
     }
@@ -114,6 +115,7 @@ class Menu
             $items[] = self::item('chat', 'ข้อความ', 'bi-chat-dots', route('chat.index'), 'primary', Conversation::unreadTotal($user), ['chat.*']);
             $items[] = self::item('feed', 'ฟีดข่าว', 'bi-newspaper', route('feed.index'), 'primary', 0, ['feed.*']);
             $items[] = self::item('announcements', 'ประกาศ', 'bi-megaphone', route('announcements.index'), 'primary', 0, ['announcements.*']);
+            $items[] = self::manualItem();
 
             return $items;
         }
@@ -122,7 +124,7 @@ class Menu
 
             return array_merge(
                 [self::item('home', 'หน้าหลัก', 'bi-house', route('student.home'), 'primary', 0, ['student.home'])],
-                collect(['homework', 'grades', 'timetable', 'attendance', 'portfolio', 'calendar', 'feed', 'announcements'])->map(fn ($k) => $all[$k])->all(),
+                collect(['homework', 'grades', 'timetable', 'attendance', 'portfolio', 'calendar', 'feed', 'announcements', 'manual'])->map(fn ($k) => $all[$k])->all(),
             );
         }
 
@@ -149,6 +151,12 @@ class Menu
         return collect($keys)->filter(fn ($k) => isset($all[$k]))->map(fn ($k) => $all[$k])->values()->all();
     }
 
+    /** คู่มือการใช้งาน (ทุกบทบาท) */
+    private static function manualItem(): array
+    {
+        return self::item('manual', 'คู่มือการใช้งาน', 'bi-book', route('manual.index'), 'teal', 0, ['manual.*']);
+    }
+
     private static function studentGroups(): array
     {
         $me = auth()->user()?->studentProfile;
@@ -169,6 +177,7 @@ class Menu
                 self::item('feed', 'ฟีดข่าว', 'bi-newspaper', route('feed.index'), 'blue', 0, ['feed.*']),
                 self::item('announcements', 'ประกาศ', 'bi-megaphone', route('announcements.index'), 'primary', 0, ['announcements.*']),
                 self::item('notifications', 'แจ้งเตือน', 'bi-bell', route('notifications'), 'primary', 0, ['notifications']),
+                self::manualItem(),
             ],
         ];
     }
@@ -198,6 +207,7 @@ class Menu
                 self::item('feed', 'ฟีดข่าว', 'bi-newspaper', route('feed.index'), 'blue', 0, ['feed.*']),
                 self::item('announcements', 'ประกาศ', 'bi-megaphone', route('announcements.index'), 'primary', 0, ['announcements.*']),
                 self::item('notifications', 'แจ้งเตือน', 'bi-bell', route('notifications'), 'primary', 0, ['notifications']),
+                self::manualItem(),
             ],
         ];
     }
