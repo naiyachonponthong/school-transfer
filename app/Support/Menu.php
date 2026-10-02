@@ -53,6 +53,11 @@ class Menu
             'บริหารทั่วไป' => array_values(array_filter([
                 self::item('repairs', 'แจ้งซ่อม', 'bi-tools', route('repairs.index'), 'teal',
                     $user->canManageFacilities() ? \App\Models\RepairRequest::where('status', 'pending')->count() : 0, ['repairs.*']),
+                self::item('bookings', 'จองห้อง/รถ', 'bi-calendar2-check', route('bookings.index'), 'teal',
+                    $user->canManageFacilities() ? \App\Models\Booking::where('status', 'pending')->count() : 0, ['bookings.*']),
+                self::item('requisitions', 'เบิกวัสดุ', 'bi-bag-check', route('requisitions.index'), 'teal',
+                    $user->canManageFacilities() ? \App\Models\SupplyRequisition::where('status', 'pending')->count() : 0, ['requisitions.*']),
+                $user->canManageFacilities() ? self::item('supplies', 'คลังวัสดุ', 'bi-boxes', route('supplies.index'), 'teal', 0, ['supplies.*']) : null,
                 $user->canManageFacilities() ? self::item('assets', 'ครุภัณฑ์', 'bi-box-seam', route('assets.index'), 'teal', 0, ['assets.*']) : null,
                 $user->canManageFacilities() ? self::item('assetcheck', 'ตรวจสอบพัสดุ', 'bi-clipboard-check', route('asset-checks.index'), 'teal', 0, ['asset-checks.*']) : null,
             ])),

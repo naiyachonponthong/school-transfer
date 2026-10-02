@@ -612,6 +612,30 @@ class DatabaseSeeder extends Seeder
         }
         $aircon->update(['status' => 'repairing']);
 
+        // ---------- จองห้อง/รถ + วัสดุสิ้นเปลือง ----------
+        $meeting = \App\Models\BookableResource::create(['name' => 'ห้องประชุม 1', 'type' => 'room', 'capacity' => 30, 'description' => 'มีโปรเจกเตอร์และไมค์']);
+        \App\Models\BookableResource::create(['name' => 'หอประชุม', 'type' => 'room', 'capacity' => 400, 'requires_approval' => true]);
+        $van = \App\Models\BookableResource::create(['name' => 'รถตู้โรงเรียน (นข 1234)', 'type' => 'vehicle', 'capacity' => 12, 'requires_approval' => true]);
+        \App\Models\BookableResource::create(['name' => 'โปรเจกเตอร์พกพา', 'type' => 'equipment']);
+        \App\Models\Booking::create(['resource_id' => $meeting->id, 'user_id' => $teachers[1]->id, 'title' => 'ประชุมกลุ่มสาระภาษาไทย',
+            'starts_at' => today()->setTime(13, 0), 'ends_at' => today()->setTime(15, 0), 'attendees' => 8, 'status' => 'approved']);
+        \App\Models\Booking::create(['resource_id' => $van->id, 'user_id' => $teacher->id, 'title' => 'พานักเรียนแข่งขันคณิตศาสตร์', 'destination' => 'มหาวิทยาลัยขอนแก่น',
+            'starts_at' => today()->addDays(3)->setTime(7, 0), 'ends_at' => today()->addDays(3)->setTime(17, 0), 'attendees' => 6, 'status' => 'pending']);
+
+        $paper = \App\Models\Supply::create(['name' => 'กระดาษ A4 80 แกรม', 'unit' => 'รีม', 'category' => 'วัสดุสำนักงาน', 'min_stock' => 20]);
+        $toner = \App\Models\Supply::create(['name' => 'ผงหมึกเครื่องพิมพ์ Brother TN-2460', 'unit' => 'กล่อง', 'category' => 'วัสดุคอมพิวเตอร์', 'min_stock' => 2]);
+        $marker = \App\Models\Supply::create(['name' => 'ปากกาไวท์บอร์ด', 'unit' => 'ด้าม', 'category' => 'วัสดุการศึกษา', 'min_stock' => 24]);
+        auth()->setUser($facility);
+        $paper->move('in', 120, 'ยอดยกมา');
+        $toner->move('in', 2, 'ยอดยกมา');
+        $marker->move('in', 100, 'ยอดยกมา');
+        $req = \App\Models\SupplyRequisition::create(['req_no' => 'S2569-0001', 'requester_id' => $teacher->id, 'department' => 'คณิตศาสตร์', 'purpose' => 'จัดทำข้อสอบกลางภาค', 'status' => 'issued', 'reviewed_by' => $facility->id, 'reviewed_at' => now()->subDays(5)]);
+        $req->items()->create(['supply_id' => $paper->id, 'quantity' => 10, 'issued' => 10]);
+        $paper->move('out', -10, 'จ่ายตามใบเบิก S2569-0001', $req->id);
+        $req2 = \App\Models\SupplyRequisition::create(['req_no' => 'S2569-0002', 'requester_id' => $teachers[2]->id, 'department' => 'วิทยาศาสตร์และเทคโนโลยี', 'purpose' => 'ใช้สอน', 'status' => 'pending']);
+        $req2->items()->createMany([['supply_id' => $marker->id, 'quantity' => 12], ['supply_id' => $toner->id, 'quantity' => 1]]);
+        auth()->logout();
+
         // ---------- ครูลงเวลา ----------
         $staffAll = $teachers->concat([$admin]);
         foreach ($days as $d) {

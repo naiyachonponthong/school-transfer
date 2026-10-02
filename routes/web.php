@@ -12,6 +12,7 @@ use App\Http\Controllers\BackupController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\BehaviorController;
+use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\ChatController;
@@ -39,6 +40,7 @@ use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportCardController;
 use App\Http\Controllers\RepairController;
+use App\Http\Controllers\RequisitionController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SettingController;
@@ -50,6 +52,7 @@ use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentImportController;
 use App\Http\Controllers\StudentPortalController;
 use App\Http\Controllers\SubjectController;
+use App\Http\Controllers\SupplyController;
 use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\TermController;
 use App\Http\Controllers\TimetableController;
@@ -223,6 +226,31 @@ Route::middleware('auth')->group(function () {
         Route::get('/repairs/{repair}', [RepairController::class, 'show'])->name('repairs.show');
         Route::put('/repairs/{repair}', [RepairController::class, 'update'])->name('repairs.update');
         Route::post('/repairs/{repair}/cancel', [RepairController::class, 'cancel'])->name('repairs.cancel');
+
+        // จองห้อง / รถ / อุปกรณ์
+        Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
+        Route::get('/bookings/create', [BookingController::class, 'create'])->name('bookings.create');
+        Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
+        Route::post('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
+        Route::post('/bookings/{booking}/review', [BookingController::class, 'review'])->name('bookings.review');
+        Route::get('/booking-resources', [BookingController::class, 'resources'])->name('bookings.resources');
+        Route::post('/booking-resources', [BookingController::class, 'saveResource'])->name('bookings.resources.store');
+        Route::put('/booking-resources/{resource}', [BookingController::class, 'saveResource'])->name('bookings.resources.update');
+
+        // วัสดุสิ้นเปลือง: ใบเบิก (ครูทุกคน) + คลัง/บัญชีวัสดุ (งานพัสดุ)
+        Route::get('/requisitions', [RequisitionController::class, 'index'])->name('requisitions.index');
+        Route::get('/requisitions/create', [RequisitionController::class, 'create'])->name('requisitions.create');
+        Route::post('/requisitions', [RequisitionController::class, 'store'])->name('requisitions.store');
+        Route::get('/requisitions/{requisition}', [RequisitionController::class, 'show'])->name('requisitions.show');
+        Route::post('/requisitions/{requisition}/issue', [RequisitionController::class, 'issue'])->name('requisitions.issue');
+        Route::post('/requisitions/{requisition}/reject', [RequisitionController::class, 'reject'])->name('requisitions.reject');
+        Route::post('/requisitions/{requisition}/cancel', [RequisitionController::class, 'cancel'])->name('requisitions.cancel');
+        Route::get('/supplies', [SupplyController::class, 'index'])->name('supplies.index');
+        Route::post('/supplies', [SupplyController::class, 'store'])->name('supplies.store');
+        Route::get('/supplies/report', [SupplyController::class, 'report'])->name('supplies.report');
+        Route::get('/supplies/{supply}', [SupplyController::class, 'show'])->name('supplies.show');
+        Route::put('/supplies/{supply}', [SupplyController::class, 'update'])->name('supplies.update');
+        Route::post('/supplies/{supply}/move', [SupplyController::class, 'move'])->name('supplies.move');
 
         // ครุภัณฑ์ + ตรวจสอบพัสดุประจำปี (งานพัสดุ) · QR บนสติกเกอร์เปิด /a/{token}
         // ใช้ /inventory ไม่ใช่ /assets เพราะชนกับโฟลเดอร์ public/assets (เว็บเซิร์ฟเวอร์จะเสิร์ฟโฟลเดอร์แทนหน้าเว็บ)
