@@ -8,6 +8,7 @@ use App\Models\CourseResult;
 use App\Models\PeriodAttendance;
 use App\Models\Score;
 use App\Models\Student;
+use App\Support\Audit;
 use App\Support\Grade;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,13 @@ use Illuminate\Validation\ValidationException;
 
 class GradebookController extends Controller
 {
+    private function courseLabel(Course $course): string
+    {
+        $course->loadMissing(['subject', 'classroom', 'term']);
+
+        return "{$course->subject->code} {$course->classroom->name()} ({$course->term->shortLabel()})";
+    }
+
     private function authorizeCourse(Request $request, Course $course, bool $write = false): void
     {
         abort_unless($course->canEdit($request->user()), 403, 'รายวิชานี้ไม่ได้อยู่ในความรับผิดชอบของคุณ');
@@ -82,7 +90,8 @@ class GradebookController extends Controller
         $studentIds = $course->classroom->students()->pluck('id')->flip();
 
         $errors = [];
-        DB::transaction(function () use ($request, $max, $studentIds, &$errors) {
+        $edits = []; // รายวิชาที่ล็อกแล้ว (ผู้ดูแลแก้): เก็บค่าเดิม → ใหม่ ลงประวัติ
+        DB::transaction(function () use ($request, $max, $studentIds, $course, &$errors, &$edits) {
             foreach ((array) $request->input('scores') as $studentId => $row) {
                 if (! isset($studentIds[$studentId])) {
                     continue;
@@ -92,8 +101,12 @@ class GradebookController extends Controller
                         continue;
                     }
                     $value = trim((string) $value);
+                    $old = $course->locked ? Score::where(['assessment_id' => $assessmentId, 'student_id' => $studentId])->value('score') : null;
                     if ($value === '') {
                         Score::where(['assessment_id' => $assessmentId, 'student_id' => $studentId])->delete();
+                        if ($old !== null) {
+                            $edits[] = [$studentId, $assessmentId, $old, null];
+                        }
 
                         continue;
                     }
@@ -106,9 +119,19 @@ class GradebookController extends Controller
                         ['assessment_id' => $assessmentId, 'student_id' => $studentId],
                         ['score' => $value]
                     );
+                    if ($course->locked && ($old === null || (float) $old !== (float) $value)) {
+                        $edits[] = [$studentId, $assessmentId, $old, (float) $value];
+                    }
                 }
             }
         });
+        if ($edits) {
+            $codes = Student::whereIn('id', array_column($edits, 0))->pluck('student_code', 'id');
+            $names = $course->assessments->pluck('name', 'id');
+            Audit::log('grade.locked_edit', $course, "แก้คะแนนหลังล็อก {$this->courseLabel($course)} ".count($edits).' ช่อง', [
+                'cells' => array_map(fn ($e) => ['student' => $codes[$e[0]] ?? $e[0], 'assessment' => $names[$e[1]] ?? $e[1], 'old' => $e[2], 'new' => $e[3]], $edits),
+            ]);
+        }
 
         if ($request->wantsJson()) {
             $course->unsetRelation('assessments');
@@ -163,6 +186,14 @@ class GradebookController extends Controller
             }
         }
 
+        $before = ['special' => $existing?->special, 'remedial_grade' => $existing?->remedial_grade];
+        $after = ['special' => $special, 'remedial_grade' => $remedial];
+        if ($before !== $after) {
+            Audit::log('grade.outcome', $student, "ผลพิเศษ/แก้ตัว {$student->fullName()} {$this->courseLabel($course)}: "
+                .($before['special'] ?? '-').'/'.($before['remedial_grade'] ?? '-').' → '.($special ?? '-').'/'.($remedial ?? '-'),
+                ['course_id' => $course->id, 'before' => $before, 'after' => $after]);
+        }
+
         if ($special === null && $remedial === null && blank($data['note'] ?? null)) {
             $existing?->delete();
         } else {
@@ -196,6 +227,9 @@ class GradebookController extends Controller
             $result->fill(['special' => $special, 'recorded_by' => $request->user()->id])->save();
             $count++;
         }
+        if ($count) {
+            Audit::log('grade.apply_ms', $course, "ตั้ง {$special} ให้ {$count} คน (เวลาเรียนไม่ถึงเกณฑ์) {$this->courseLabel($course)}");
+        }
 
         return back()->with('success', "ตั้ง {$special}. ให้ {$count} คนที่เวลาเรียนไม่ถึงร้อยละ ".PeriodAttendance::MIN_PERCENT);
     }
@@ -228,6 +262,10 @@ class GradebookController extends Controller
     public function destroyAssessment(Request $request, Assessment $assessment)
     {
         $this->authorizeCourse($request, $assessment->course, true);
+        $count = $assessment->scores()->count();
+        if ($count) {
+            Audit::log('grade.delete_assessment', $assessment->course, "ลบช่องคะแนน \"{$assessment->name}\" พร้อมคะแนน {$count} คน {$this->courseLabel($assessment->course)}");
+        }
         $assessment->delete();
 
         return back()->with('success', 'ลบช่องคะแนนแล้ว');

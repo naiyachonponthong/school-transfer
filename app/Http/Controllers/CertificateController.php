@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\DocumentIssue;
 use App\Models\Student;
+use App\Support\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -42,6 +43,8 @@ class CertificateController extends Controller
                 'snapshot' => self::snapshot($student), 'issued_by' => $request->user()->id,
             ]);
         });
+
+        Audit::log('document.pp7', $student, "ออก ปพ.7 เลขที่ {$issue->code()} ให้ {$student->fullName()} เพื่อ{$issue->purpose}");
 
         return redirect()->route('certificates.show', $issue)->with('success', "ออกใบรับรองเลขที่ {$issue->code()} แล้ว");
     }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\DocumentIssue;
 use App\Models\Student;
 use App\Support\AcademicRecord;
+use App\Support\Audit;
 use App\Support\Curriculum;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -65,6 +66,8 @@ class TranscriptController extends Controller
                 'snapshot' => ['stage' => $data['stage'], 'gpax' => $record->gpax(), 'totals' => $record->totals(), 'status' => $student->status],
             ]);
         });
+
+        Audit::log('document.pp1', $student, "ใช้แบบพิมพ์ ปพ.1 ชุดที่ {$issue->form_series} เลขที่ {$issue->form_number} ให้ {$student->fullName()} ({$issue->purpose})");
 
         return redirect()->route('transcript', ['student' => $student, 'stage' => $data['stage']])
             ->with('success', "บันทึกการออก ปพ.1 ชุดที่ {$issue->form_series} เลขที่ {$issue->form_number} ลงทะเบียนคุมแล้ว");

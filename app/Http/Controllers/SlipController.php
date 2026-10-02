@@ -6,6 +6,7 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\PaymentSlip;
 use App\Services\Notifier;
+use App\Support\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -70,6 +71,7 @@ class SlipController extends Controller
             $invoice->refreshTotals();
         });
 
+        Audit::log('finance.slip_approve', $invoice, "ยืนยันสลิป #{$slip->id} ".number_format($amount, 2)." บาท ({$invoice->title}) ของ {$invoice->student->fullName()}");
         Notifier::parents($invoice->student, "💰 ยืนยันการชำระ {$invoice->title} จำนวน ".baht($amount).' บาทแล้ว ขอบคุณครับ', route('invoices.show', $invoice));
 
         return back()->with('success', 'ยืนยันสลิปและออกใบเสร็จแล้ว');
@@ -79,6 +81,7 @@ class SlipController extends Controller
     {
         abort_unless($slip->status === 'pending', 422, 'สลิปนี้ตรวจแล้ว');
         $slip->update(['status' => 'rejected', 'reviewed_by' => $request->user()->id, 'reviewed_at' => now(), 'review_note' => $request->input('note')]);
+        Audit::log('finance.slip_reject', $slip->invoice, "ตีกลับสลิป #{$slip->id} ({$slip->invoice->title})".($slip->review_note ? ": {$slip->review_note}" : ''));
         Notifier::parents($slip->invoice->student, '⚠️ สลิปที่ส่งสำหรับ '.$slip->invoice->title.' ไม่ผ่านการตรวจสอบ'.($slip->review_note ? ': '.$slip->review_note : '').' กรุณาส่งใหม่หรือติดต่อฝ่ายการเงิน', route('invoices.show', $slip->invoice));
 
         return back()->with('success', 'แจ้งผู้ปกครองว่าสลิปไม่ผ่านแล้ว');

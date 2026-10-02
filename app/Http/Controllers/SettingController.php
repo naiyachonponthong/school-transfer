@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BehaviorRule;
+use App\Support\Audit;
 use App\Support\Settings;
 use Illuminate\Http\Request;
 
@@ -64,6 +65,14 @@ class SettingController extends Controller
             unset($data['logo']);
         }
 
+        $old = Settings::all();
+        $changed = array_keys(array_filter($data, fn ($v, $k) => (string) ($old[$k] ?? '') !== (string) $v, ARRAY_FILTER_USE_BOTH));
+        if ($changed) {
+            // ไม่เก็บค่าของ token/secret ลงประวัติ เก็บแค่ว่ามีการเปลี่ยน
+            $secret = ['line_channel_token', 'line_channel_secret'];
+            Audit::log('setting.update', null, 'แก้ตั้งค่าโรงเรียน: '.implode(', ', $changed), collect($changed)
+                ->mapWithKeys(fn ($k) => [$k => in_array($k, $secret, true) ? ['***', '***'] : [$old[$k] ?? null, $data[$k]]])->all());
+        }
         Settings::set($data);
 
         return back()->with('success', 'บันทึกการตั้งค่าแล้ว');

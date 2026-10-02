@@ -6,6 +6,7 @@ use App\Models\Classroom;
 use App\Models\Student;
 use App\Models\Term;
 use App\Models\User;
+use App\Support\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -108,6 +109,8 @@ class ClassroomController extends Controller
                 $moved += $students->update(['classroom_id' => $new->id]);
             }
         });
+
+        Audit::log('setting.promote', null, "เลื่อนชั้นปี {$from} → {$to}: เลื่อน {$moved} คน จบการศึกษา {$graduated} คน".($graduate ? ' (ชั้นที่จบ: '.implode(', ', $graduate).')' : ''));
 
         return redirect()->route('classrooms.index', ['year' => $to])
             ->with('success', "เลื่อนชั้นแล้ว {$moved} คน, จบการศึกษา {$graduated} คน — อย่าลืมกำหนดครูประจำชั้นปี {$to}");

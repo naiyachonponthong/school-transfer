@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\BehaviorRule;
 use App\Models\Classroom;
 use App\Models\Course;
+use App\Models\CourseResult;
+use App\Models\DocumentIssue;
 use App\Models\Student;
 use App\Models\Term;
 use App\Models\User;
+use App\Support\Audit;
 use App\Support\Grade;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -136,7 +140,11 @@ class StudentController extends Controller
             }
             $data['photo'] = $photo;
         }
-        $student->update($data);
+        $student->fill($data);
+        if ($diff = Audit::diff($student)) {
+            Audit::log('student.update', $student, "แก้ข้อมูลนักเรียน {$student->student_code} {$student->fullName()} (".implode(', ', array_map([AuditLog::class, 'fieldLabel'], array_keys($diff))).')', $diff);
+        }
+        $student->save();
 
         return redirect()->route('students.show', $student)->with('success', 'บันทึกข้อมูลแล้ว');
     }
@@ -144,7 +152,18 @@ class StudentController extends Controller
     public function destroy(Student $student)
     {
         abort_unless(request()->user()->isAdmin(), 403);
+        // กันประวัติการเรียน/การเงินหาย: นักเรียนที่มีข้อมูลแล้วให้เปลี่ยนสถานะแทนการลบ
+        $records = array_filter([
+            'คะแนน' => $student->scores()->exists() || CourseResult::where('student_id', $student->id)->exists(),
+            'การมาเรียน' => $student->attendances()->exists() || $student->periodAttendances()->exists(),
+            'ใบแจ้งหนี้/ใบเสร็จ' => $student->invoices()->exists(),
+            'เอกสาร ปพ. ที่ออกแล้ว' => DocumentIssue::where('student_id', $student->id)->exists(),
+        ]);
+        if ($records) {
+            return back()->withErrors(['student' => 'ลบไม่ได้ เพราะมีข้อมูล '.implode(', ', array_keys($records)).' แล้ว — ถ้านักเรียนย้ายหรือลาออก ให้แก้ไขข้อมูลแล้วเปลี่ยนสถานะเป็น "ย้ายโรงเรียน" หรือ "พ้นสภาพ" แทน']);
+        }
         $name = $student->fullName();
+        Audit::log('student.delete', $student, "ลบนักเรียน {$student->student_code} {$name}");
         $student->delete();
 
         return redirect()->route('students.index')->with('success', "ลบ {$name} แล้ว");

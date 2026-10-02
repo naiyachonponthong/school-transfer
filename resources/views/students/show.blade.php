@@ -27,7 +27,8 @@
         <div class="d-flex gap-2 flex-wrap">
             <a href="{{ route('report-card', ['student' => $student, 'term' => $term?->id]) }}" class="btn btn-light border"><i class="bi bi-file-earmark-text"></i> สมุดพก</a>
             <a href="{{ route('transcript', $student) }}" class="btn btn-light border"><i class="bi bi-journal-text"></i> ปพ.1</a>
-            @if (auth()->user()->isAdmin())<a href="{{ route('certificates.create', $student) }}" class="btn btn-light border"><i class="bi bi-file-earmark-check"></i> ปพ.7</a>@endif
+            @if (auth()->user()->isAdmin())<a href="{{ route('certificates.create', $student) }}" class="btn btn-light border"><i class="bi bi-file-earmark-check"></i> ปพ.7</a>
+                <a href="{{ route('audit.index', ['subject' => 'Student:'.$student->id]) }}" class="btn btn-light border" title="ประวัติการแก้ไข"><i class="bi bi-clock-history"></i></a>@endif
             <a href="{{ route('portfolio.show', $student) }}" class="btn btn-light border"><i class="bi bi-folder2-open"></i> แฟ้มผลงาน</a>
             @if ($student->guardians->isNotEmpty())
                 <form method="POST" action="{{ route('chat.start') }}">@csrf<input type="hidden" name="student_id" value="{{ $student->id }}">
@@ -323,7 +324,7 @@
 </div>
 
 @if (auth()->user()->isAdmin())
-    <form method="POST" action="{{ route('students.destroy', $student) }}" class="mt-4 text-end" data-confirm="ลบนักเรียนคนนี้และข้อมูลทั้งหมด (เช็คชื่อ คะแนน ใบแจ้งหนี้)? ถ้าย้ายโรงเรียนให้เปลี่ยนสถานะแทน">
+    <form method="POST" action="{{ route('students.destroy', $student) }}" class="mt-4 text-end" data-confirm="ลบนักเรียนคนนี้? ลบได้เฉพาะคนที่ยังไม่มีคะแนน การมาเรียน หรือใบแจ้งหนี้ (เช่น เพิ่มผิด) — ถ้าย้ายหรือลาออกให้เปลี่ยนสถานะแทน">
         @csrf @method('DELETE')
         <button class="btn btn-sm btn-link text-danger"><i class="bi bi-trash"></i> ลบนักเรียน</button>
     </form>

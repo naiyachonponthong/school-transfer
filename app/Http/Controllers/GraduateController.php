@@ -7,6 +7,7 @@ use App\Models\DocumentIssue;
 use App\Models\Student;
 use App\Models\Term;
 use App\Support\AcademicRecord;
+use App\Support\Audit;
 use App\Support\Curriculum;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -57,6 +58,7 @@ class GraduateController extends Controller
                 continue;
             }
             $row['student']->update(['status' => 'graduated', 'left_on' => $data['approved_on'], 'leave_reason' => 'จบการศึกษา']);
+            Audit::log('document.graduate', $row['student'], "อนุมัติการจบ {$data['level']} ปีการศึกษา {$data['year']}: {$row['student']->student_code} {$row['student']->fullName()} ลงวันที่ {$data['approved_on']}");
             $done++;
         }
 

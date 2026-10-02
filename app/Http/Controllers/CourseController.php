@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Assessment;
 use App\Models\Classroom;
 use App\Models\Course;
+use App\Models\PeriodAttendance;
+use App\Models\Score;
 use App\Models\Subject;
 use App\Models\Term;
 use App\Models\User;
+use App\Support\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -98,13 +101,27 @@ class CourseController extends Controller
             'teacher_id' => ['nullable', 'exists:users,id'],
             'locked' => ['nullable', 'boolean'],
         ]);
-        $course->update(['teacher_id' => $data['teacher_id'] ?? null, 'locked' => $request->boolean('locked')]);
+        $course->fill(['teacher_id' => $data['teacher_id'] ?? null, 'locked' => $request->boolean('locked')]);
+        if ($diff = Audit::diff($course)) {
+            $course->load(['subject', 'classroom', 'term']);
+            $what = isset($diff['locked']) ? ($course->locked ? 'ล็อกคะแนน' : 'ปลดล็อกคะแนน') : 'เปลี่ยนครูผู้สอน';
+            Audit::log('course.update', $course, "{$what} {$course->subject->code} {$course->classroom->name()} ({$course->term->shortLabel()})", $diff);
+        }
+        $course->save();
 
         return back()->with('success', 'บันทึกแล้ว');
     }
 
     public function destroy(Course $course)
     {
+        // กันคะแนน/ผลการเรียนหายถาวร: ลบได้เฉพาะรายวิชาที่ยังไม่มีผลใด ๆ (เช่น เปิดผิด)
+        $scored = Score::whereIn('assessment_id', $course->assessments()->pluck('id'))->exists()
+            || $course->outcomes()->exists() || PeriodAttendance::where('course_id', $course->id)->exists();
+        if ($scored) {
+            return back()->withErrors(['course' => 'รายวิชานี้มีคะแนน ผลการเรียน หรือการเช็คชื่อรายคาบแล้ว ลบไม่ได้ (ถ้าเปิดผิดห้อง ให้ลบคะแนนในสมุดคะแนนออกก่อน)']);
+        }
+        $course->load(['subject', 'classroom', 'term']);
+        Audit::log('course.delete', $course, "ลบรายวิชา {$course->subject->code} {$course->classroom->name()} ({$course->term->shortLabel()})");
         $course->delete();
 
         return back()->with('success', 'ลบรายวิชาแล้ว');

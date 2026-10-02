@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Term;
+use App\Support\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -25,6 +26,7 @@ class TermController extends Controller
         $term = Term::create($data);
         if ($request->boolean('make_current') || Term::count() === 1) {
             $term->makeCurrent();
+            Audit::log('setting.term', $term, 'ตั้ง'.$term->label().'เป็นภาคเรียนปัจจุบัน');
         }
 
         return back()->with('success', 'เพิ่ม'.$term->label().'แล้ว');
@@ -43,6 +45,7 @@ class TermController extends Controller
     public function makeCurrent(Term $term)
     {
         $term->makeCurrent();
+        Audit::log('setting.term', $term, 'ตั้ง'.$term->label().'เป็นภาคเรียนปัจจุบัน');
 
         return back()->with('success', 'ตั้ง'.$term->label().'เป็นภาคเรียนปัจจุบันแล้ว');
     }

@@ -7,6 +7,8 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Student;
 use App\Models\Term;
+use App\Services\Notifier;
+use App\Support\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -93,7 +95,7 @@ class InvoiceController extends Controller
                     'created_by' => $request->user()->id,
                 ]);
                 $invoice->items()->createMany($items->map(fn ($i) => ['description' => $i['description'], 'amount' => $i['amount']])->all());
-                \App\Services\Notifier::parents($student, "🧾 ใบแจ้งหนี้ใหม่: {$data['title']} ยอด ".baht($items->sum('amount')).' บาท'
+                Notifier::parents($student, "🧾 ใบแจ้งหนี้ใหม่: {$data['title']} ยอด ".baht($items->sum('amount')).' บาท'
                     .(! empty($data['due_date']) ? ' กำหนดชำระ '.thai_date($data['due_date']) : '').' ชำระผ่าน QR พร้อมเพย์ได้ในระบบ', route('invoices.show', $invoice));
             }
         });
@@ -133,6 +135,8 @@ class InvoiceController extends Controller
             return $p;
         });
 
+        Audit::log('finance.payment', $invoice, "รับชำระ {$payment->receipt_no} ".number_format($payment->amount, 2)." บาท ({$invoice->title}) ".Payment::METHODS[$payment->method]);
+
         return redirect()->route('invoices.show', $invoice)
             ->with('success', "รับชำระ {$payment->receipt_no} แล้ว")
             ->with('receipt', $payment->id);
@@ -141,6 +145,8 @@ class InvoiceController extends Controller
     public function void(Invoice $invoice)
     {
         abort_if($invoice->paid > 0, 422, 'ใบแจ้งหนี้ที่มีการชำระแล้วยกเลิกไม่ได้');
+        $invoice->loadMissing('student');
+        Audit::log('finance.void', $invoice, "ยกเลิกใบแจ้งหนี้ {$invoice->title} ".number_format($invoice->total, 2)." บาท ของ {$invoice->student?->fullName()}");
         $invoice->update(['status' => 'void']);
 
         return back()->with('success', 'ยกเลิกใบแจ้งหนี้แล้ว');

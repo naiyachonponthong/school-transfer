@@ -5,6 +5,7 @@ use App\Http\Controllers\AdmissionFormController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\ApplyController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\AuditController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BehaviorController;
 use App\Http\Controllers\CalendarController;
@@ -279,6 +280,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/classrooms/promote', [ClassroomController::class, 'promote'])->name('classrooms.promote');
 
         Route::resource('subjects', SubjectController::class)->only(['index', 'store', 'update', 'destroy']);
+
+        Route::get('/audit', [AuditController::class, 'index'])->name('audit.index');
 
         // ปพ.7 ใบรับรองผลการศึกษา + ทะเบียนคุม
         Route::get('/certificates', [CertificateController::class, 'index'])->name('certificates.index');

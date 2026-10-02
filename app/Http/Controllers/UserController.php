@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\User;
+use App\Support\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -61,7 +63,15 @@ class UserController extends Controller
             $data['role'] = $user->role;
             $data['is_active'] = true;
         }
-        $user->update($data);
+        $user->fill($data);
+        $diff = Audit::diff($user);
+        if ($user->isDirty('password')) {
+            $diff['password'] = ['(เดิม)', '(ตั้งใหม่)'];
+        }
+        if ($diff) {
+            Audit::log('user.update', $user, "แก้บัญชี {$user->username} ({$user->name}): ".implode(', ', array_map([AuditLog::class, 'fieldLabel'], array_keys($diff))), $diff);
+        }
+        $user->save();
 
         return redirect()->route('users.index', ['role' => $user->role])->with('success', 'บันทึกแล้ว');
     }
@@ -69,6 +79,7 @@ class UserController extends Controller
     public function destroy(Request $request, User $user)
     {
         abort_if($user->id === $request->user()->id, 422, 'ลบบัญชีตัวเองไม่ได้');
+        Audit::log('user.delete', $user, "ลบบัญชี {$user->username} ({$user->name}, {$user->role})");
         $user->delete();
 
         return back()->with('success', 'ลบบัญชีแล้ว');
@@ -78,6 +89,7 @@ class UserController extends Controller
     {
         $password = $user->isParent() && $user->phone ? substr($user->phone, -6) : Str::lower(Str::random(8));
         $user->update(['password' => Hash::make($password)]);
+        Audit::log('user.reset_password', $user, "รีเซ็ตรหัสผ่าน {$user->username} ({$user->name})");
 
         return back()->with('credential', ['username' => $user->username, 'password' => $password])
             ->with('success', "รีเซ็ตรหัสผ่านของ {$user->name} แล้ว");
