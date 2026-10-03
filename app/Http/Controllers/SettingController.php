@@ -41,6 +41,7 @@ class SettingController extends Controller
             'periods_per_day' => ['required', 'integer', 'min:1', 'max:12'],
             'period_times' => ['nullable', 'string', 'max:1000'],
             'school_days' => ['nullable', 'in:5,6'],
+            'grade_scale' => ['nullable', 'string', 'max:60', fn ($attr, $value, $fail) => \App\Support\Grade::parseScale((string) $value) === null ? $fail('เกณฑ์ตัดเกรดต้องเป็นจำนวนเต็ม 7 ค่า เรียงจากมากไปน้อย คั่นด้วยจุลภาค เช่น 80,75,70,65,60,55,50') : null],
             'promptpay_id' => ['nullable', 'string', 'max:20'],
             'bank_info' => ['nullable', 'string', 'max:500'],
             'logo' => ['nullable', 'image', 'max:2048'],

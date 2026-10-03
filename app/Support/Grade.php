@@ -31,9 +31,45 @@ class Grade
     /** กิจกรรมพัฒนาผู้เรียน: ได้คะแนนประเมินตั้งแต่ร้อยละนี้ = ผ */
     public const ACTIVITY_PASS_PERCENT = 50;
 
+    /**
+     * เกณฑ์ที่ใช้จริง: [คะแนนขั้นต่ำ (%) => เกรด] เรียงจากสูงไปต่ำ
+     * ตั้งค่า `grade_scale` เก็บคะแนนขั้นต่ำของเกรด 4, 3.5, 3, 2.5, 2, 1.5, 1 คั่นด้วยจุลภาค (ไม่ได้ตั้ง = เกณฑ์มาตรฐาน)
+     *
+     * @return array<int, string>
+     */
+    public static function scale(): array
+    {
+        $mins = self::parseScale((string) Settings::get('grade_scale'));
+        if ($mins === null) {
+            return self::SCALE;
+        }
+
+        return array_combine($mins, array_values(array_diff(self::SCALE, ['0']))) + [0 => '0'];
+    }
+
+    /** @return list<int>|null null = รูปแบบไม่ถูกต้อง (ต้องเป็นจำนวนเต็ม 7 ค่า ลดหลั่นลง อยู่ในช่วง 1–100) */
+    public static function parseScale(string $value): ?array
+    {
+        $parts = array_map('trim', explode(',', $value));
+        if (count($parts) !== 7) {
+            return null;
+        }
+        $prev = 101;
+        $out = [];
+        foreach ($parts as $part) {
+            if (! ctype_digit($part) || (int) $part >= $prev || (int) $part < 1) {
+                return null;
+            }
+            $prev = (int) $part;
+            $out[] = (int) $part;
+        }
+
+        return $out;
+    }
+
     public static function fromPercent(float $percent): string
     {
-        foreach (self::SCALE as $min => $grade) {
+        foreach (self::scale() as $min => $grade) {
             if ($percent >= $min) {
                 return $grade;
             }

@@ -131,7 +131,7 @@
                     <div class="d-flex justify-content-between"><span>0–{{ \App\Support\Grade::ACTIVITY_PASS_PERCENT - 1 }}</span><b>มผ (ไม่ผ่าน)</b></div>
                 @else
                     @php($prev = 100)
-                    @foreach (\App\Support\Grade::SCALE as $min => $g)
+                    @foreach (\App\Support\Grade::scale() as $min => $g)
                         <div class="d-flex justify-content-between"><span>{{ $min }}–{{ $prev }}</span><b>{{ $g }}</b></div>
                         @php($prev = $min - 1)
                     @endforeach
