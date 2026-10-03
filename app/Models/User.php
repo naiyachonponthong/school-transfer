@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Permissions;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -68,13 +69,55 @@ class User extends Authenticatable
     /** งานพัสดุ/อาคารสถานที่: จัดการครุภัณฑ์ ตรวจสอบพัสดุ รับเรื่องแจ้งซ่อม (ผู้ดูแลระบบ + ครูที่ตั้งไว้ในหน้าตั้งค่า) */
     public function canManageFacilities(): bool
     {
-        return $this->isAdmin() || ($this->isStaff() && in_array($this->id, self::facilityManagerIds(), true));
+        return $this->hasPermission('facilities.manage') || ($this->isStaff() && in_array($this->id, self::facilityManagerIds(), true));
     }
 
     /** @return list<int> */
     public static function facilityManagerIds(): array
     {
         return array_values(array_filter(array_map('intval', explode(',', (string) \App\Support\Settings::get('facility_manager_ids')))));
+    }
+
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(Role::class);
+    }
+
+    private ?array $permissionCache = null;
+
+    /**
+     * สิทธิ์ของบุคลากร = รวมสิทธิ์ของทุกตำแหน่งที่ถือ (ยังไม่กำหนดตำแหน่ง = สิทธิ์ของ "ครู")
+     * ผู้ดูแลระบบได้ทุกสิทธิ์ ผู้ปกครอง/นักเรียนไม่มีสิทธิ์ชุดนี้
+     *
+     * @return list<string>
+     */
+    public function permissions(): array
+    {
+        if (! $this->isStaff()) {
+            return [];
+        }
+        if ($this->isAdmin()) {
+            return Permissions::keys();
+        }
+
+        return $this->permissionCache ??= (function () {
+            $roles = $this->roles()->get();
+            if ($roles->isEmpty()) {
+                $roles = Role::where('key', Permissions::FALLBACK_ROLE)->get();
+            }
+
+            return $roles->pluck('permissions')->flatten()->unique()->values()->all();
+        })();
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        return in_array($permission, $this->permissions(), true);
+    }
+
+    public function flushPermissions(): void
+    {
+        $this->permissionCache = null;
     }
 
     public function isStaff(): bool

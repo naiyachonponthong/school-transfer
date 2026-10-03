@@ -4,7 +4,7 @@
 @section('content')
 <div class="page-head">
     <div><h1>แบบประเมิน / คัดกรองนักเรียน</h1><div class="sub">ระบบดูแลช่วยเหลือนักเรียน · คิดคะแนนรายด้านและแปลผลให้อัตโนมัติ</div></div>
-    @if (auth()->user()->isAdmin())<div class="actions"><a href="{{ route('surveys.create') }}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> สร้างแบบประเมิน</a></div>@endif
+    @if (auth()->user()->hasPermission('academics.manage'))<div class="actions"><a href="{{ route('surveys.create') }}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> สร้างแบบประเมิน</a></div>@endif
 </div>
 <div class="alert alert-info small"><i class="bi bi-info-circle"></i> แบบมาตรฐานที่มีลิขสิทธิ์ เช่น SDQ หรือแบบประเมิน EQ ของกรมสุขภาพจิต โรงเรียนต้องได้รับอนุญาตจากเจ้าของก่อนนำข้อคำถามมาใส่ในระบบ แบบ "ตัวอย่าง" ที่ให้มาเขียนขึ้นเพื่อสาธิตการใช้งานเท่านั้น ไม่ใช่เครื่องมือที่ผ่านการตรวจสอบความเที่ยงตรง</div>
 
@@ -28,7 +28,7 @@
                         @elseif ($s->is_active)
                             <a href="{{ route('surveys.classroom', $s) }}" class="btn btn-sm btn-soft flex-grow-1">ดูผล (ผู้ปกครองตอบ)</a>
                         @endif
-                        @if (auth()->user()->isAdmin())<a href="{{ route('surveys.edit', $s) }}" class="btn btn-sm btn-light border"><i class="bi bi-pencil"></i></a>@endif
+                        @if (auth()->user()->hasPermission('academics.manage'))<a href="{{ route('surveys.edit', $s) }}" class="btn btn-sm btn-light border"><i class="bi bi-pencil"></i></a>@endif
                     </div>
                 </div>
             </div>

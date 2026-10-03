@@ -3,7 +3,7 @@
 
 @section('content')
 @php
-    $admin = auth()->user()->isAdmin();
+    $admin = auth()->user()->hasPermission('finance.manage');
 @endphp
 <div class="page-head no-print">
     <div><h1>ใบแจ้งหนี้ {{ $invoice->invoice_no }}</h1><div class="sub">{{ $invoice->title }}</div></div>

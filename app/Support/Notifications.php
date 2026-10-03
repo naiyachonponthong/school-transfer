@@ -64,7 +64,7 @@ class Notifications
 
         $items = $items->concat(self::announcements($user));
 
-        if ($user->isAdmin()) {
+        if ($user->isAdmin() || $user->hasPermission('finance.manage') || $user->hasPermission('staff.manage') || $user->hasPermission('admissions.manage')) {
             foreach (PaymentSlip::with('invoice.student')->where('status', 'pending')->latest()->limit(10)->get() as $s) {
                 $items->push(['icon' => 'bi-receipt-cutoff', 'color' => 'teal', 'title' => 'สลิปรอตรวจ '.baht($s->amount).' บาท',
                     'sub' => $s->invoice->student->fullName().' · '.$s->invoice->title, 'url' => route('slips.index'), 'at' => $s->created_at]);

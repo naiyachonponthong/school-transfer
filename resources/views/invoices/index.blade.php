@@ -4,7 +4,7 @@
 @section('content')
 <div class="page-head">
     <div><h1>ค่าธรรมเนียมการศึกษา</h1><div class="sub">ใบแจ้งหนี้และการรับชำระ</div></div>
-    @if (auth()->user()->isAdmin())
+    @if (auth()->user()->hasPermission('finance.manage'))
         <div class="actions"><a href="{{ route('invoices.create') }}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> ออกใบแจ้งหนี้</a></div>
     @endif
 </div>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Models\Role;
 use App\Support\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -28,7 +29,7 @@ class UserController extends Controller
 
     public function create(Request $request)
     {
-        return view('users.form', ['user' => new User(['role' => $request->query('role', 'teacher'), 'is_active' => true])]);
+        return view('users.form', ['user' => new User(['role' => $request->query('role', 'teacher'), 'is_active' => true]), 'roles' => Role::orderBy('id')->get()]);
     }
 
     public function store(Request $request)
@@ -38,6 +39,7 @@ class UserController extends Controller
         $data['password'] = Hash::make($password);
         $data['must_change_password'] = true;
         $user = User::create($data);
+        $this->syncRoles($request, $user);
 
         return redirect()->route('users.index', ['role' => $user->role])
             ->with('success', "สร้างบัญชี {$user->name} แล้ว")
@@ -48,7 +50,7 @@ class UserController extends Controller
     {
         $user->load('children.classroom');
 
-        return view('users.form', compact('user'));
+        return view('users.form', ['user' => $user, 'roles' => Role::orderBy('id')->get()]);
     }
 
     public function update(Request $request, User $user)
@@ -75,8 +77,23 @@ class UserController extends Controller
             Audit::log('user.update', $user, "แก้บัญชี {$user->username} ({$user->name}): ".implode(', ', array_map([AuditLog::class, 'fieldLabel'], array_keys($diff))), $diff);
         }
         $user->save();
+        $this->syncRoles($request, $user);
 
         return redirect()->route('users.index', ['role' => $user->role])->with('success', 'บันทึกแล้ว');
+    }
+
+    /** ตำแหน่งงานมีผลเฉพาะบุคลากร (ครู) — ผู้ดูแลระบบได้ทุกสิทธิ์อยู่แล้ว */
+    private function syncRoles(Request $request, User $user): void
+    {
+        $ids = $user->role === 'teacher'
+            ? $request->validate(['role_ids' => ['array'], 'role_ids.*' => ['exists:roles,id']])['role_ids'] ?? []
+            : [];
+        $before = $user->roles()->pluck('name')->all();
+        $user->roles()->sync($ids);
+        $after = $user->roles()->pluck('name')->all();
+        if ($before !== $after) {
+            Audit::log('user.role', $user, "เปลี่ยนตำแหน่งงานของ {$user->username} ({$user->name})", ['ตำแหน่ง' => [implode(', ', $before) ?: '-', implode(', ', $after) ?: '-']]);
+        }
     }
 
     public function destroy(Request $request, User $user)

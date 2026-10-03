@@ -27,10 +27,10 @@ class Menu
             return self::studentGroups();
         }
 
-        $admin = $user->isAdmin();
-        $slips = $admin ? PaymentSlip::where('status', 'pending')->count() : 0;
-        $staffLeaves = $admin ? StaffLeave::where('status', 'pending')->count() : 0;
-        $admissions = $admin ? Admission::where('status', 'submitted')->count() : 0;
+        $can = fn (string $permission) => $user->hasPermission($permission);
+        $slips = $can('finance.manage') ? PaymentSlip::where('status', 'pending')->count() : 0;
+        $staffLeaves = $can('staff.manage') ? StaffLeave::where('status', 'pending')->count() : 0;
+        $admissions = $can('admissions.manage') ? Admission::where('status', 'submitted')->count() : 0;
 
         $groups = [
             'งานประจำวัน' => [
@@ -81,13 +81,14 @@ class Menu
             ],
         ];
 
-        if ($admin) {
+        {
             $groups['สื่อสารและการเงิน'][] = self::item('slips', 'ตรวจสลิป', 'bi-receipt-cutoff', route('slips.index'), 'teal', $slips, ['slips.*']);
             $groups['ผู้ดูแลระบบ'] = [
                 self::item('admissions', 'รับสมัครนักเรียน', 'bi-person-plus', route('admissions.index'), 'slate', $admissions, ['admissions.*']),
                 self::item('admissionexams', 'สอบคัดเลือก', 'bi-trophy', route('admission-exams.index'), 'slate', 0, ['admission-exams.*']),
                 self::item('line', 'LINE แจ้งเตือน', 'bi-chat-dots', route('settings.messages'), 'slate', 0, ['settings.messages']),
                 self::item('users', 'ผู้ใช้งาน', 'bi-person-gear', route('users.index'), 'slate', 0, ['users.*']),
+                self::item('roles', 'ตำแหน่งและสิทธิ์', 'bi-shield-lock', route('roles.index'), 'slate', 0, ['roles.*']),
                 self::item('classrooms', 'ห้องเรียน', 'bi-door-open', route('classrooms.index'), 'slate', 0, ['classrooms.*']),
                 self::item('subjects', 'รายวิชา', 'bi-book', route('subjects.index'), 'slate', 0, ['subjects.*']),
                 self::item('terms', 'ปีการศึกษา', 'bi-calendar-range', route('terms.index'), 'slate', 0, ['terms.*']),
@@ -99,7 +100,18 @@ class Menu
         }
         $groups['ช่วยเหลือ'] = [self::manualItem()];
 
-        return $groups;
+        // เมนูที่ต้องมีสิทธิ์ตามตำแหน่งงาน (ที่ไม่อยู่ในรายการนี้ บุคลากรทุกคนเห็น)
+        $needs = [
+            'gate' => 'gate.use', 'cards' => 'gate.use', 'health' => 'health.manage', 'library' => 'library.manage', 'report' => 'reports.view',
+            'invoices' => 'finance.view', 'slips' => 'finance.manage', 'admissions' => 'admissions.manage', 'admissionexams' => 'admissions.manage',
+            'line' => 'settings.manage', 'backups' => 'settings.manage', 'settings' => 'settings.manage', 'users' => 'users.manage', 'roles' => 'users.manage',
+            'classrooms' => 'academics.manage', 'subjects' => 'academics.manage', 'terms' => 'academics.manage', 'staff' => 'staff.manage', 'audit' => 'audit.view',
+        ];
+
+        return array_filter(array_map(
+            fn (array $items) => array_values(array_filter($items, fn (array $i) => ! isset($needs[$i['key']]) || $can($needs[$i['key']]))),
+            $groups,
+        ));
     }
 
     /** ไอคอนบนแถบซ้าย (เดสก์ท็อป) เรียงตามความถี่การใช้งาน */
@@ -133,7 +145,7 @@ class Menu
 
         return array_merge(
             [self::item('home', 'ภาพรวม', 'bi-grid-1x2', route('home'), 'primary', 0, ['home'])],
-            collect($keys)->map(fn ($k) => $all[$k])->all(),
+            collect($keys)->filter(fn ($k) => isset($all[$k]))->map(fn ($k) => $all[$k])->values()->all(),
             [self::item('menu', 'ทั้งหมด', 'bi-grid-3x3-gap', route('menu'), 'primary', 0, ['menu'])],
         );
     }

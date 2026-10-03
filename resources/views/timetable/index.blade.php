@@ -16,7 +16,7 @@
         <form method="GET"><select name="classroom" class="form-select" data-autosubmit>
             @foreach ($classrooms as $c)<option value="{{ $c->id }}" @selected($classroom?->id === $c->id)>{{ $c->name() }}</option>@endforeach
         </select></form>
-        @if (auth()->user()->isAdmin() && $classroom)
+        @if (auth()->user()->hasPermission('academics.manage') && $classroom)
             @if ($editing)
                 <a href="{{ route('timetable.index', ['classroom' => $classroom->id]) }}" class="btn btn-light border">ยกเลิก</a>
             @else

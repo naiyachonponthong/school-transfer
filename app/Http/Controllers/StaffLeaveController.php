@@ -22,7 +22,7 @@ class StaffLeaveController extends Controller
             ->groupBy('type')->map(fn ($l) => $l->sum(fn ($x) => $x->days()));
 
         $pending = collect();
-        if ($user->isAdmin()) {
+        if ($user->hasPermission('staff.manage')) {
             $pending = StaffLeave::with('user')->where('status', 'pending')->oldest()->get();
         }
 
@@ -30,7 +30,7 @@ class StaffLeaveController extends Controller
             'mine' => StaffLeave::with('reviewer')->where('user_id', $user->id)->latest()->limit(30)->get(),
             'used' => $used,
             'pending' => $pending,
-            'history' => $user->isAdmin() ? StaffLeave::with(['user', 'reviewer'])->where('status', '!=', 'pending')->latest('reviewed_at')->limit(20)->get() : collect(),
+            'history' => $user->hasPermission('staff.manage') ? StaffLeave::with(['user', 'reviewer'])->where('status', '!=', 'pending')->latest('reviewed_at')->limit(20)->get() : collect(),
             'fy' => [$fyStart, $fyEnd],
         ]);
     }

@@ -16,7 +16,7 @@
 
 @section('content')
 @php
-    $admin = auth()->user()->isAdmin();
+    $admin = auth()->user()->hasPermission('academics.manage');
     $key = $month->format('Y-m');
 @endphp
 <div class="page-head">

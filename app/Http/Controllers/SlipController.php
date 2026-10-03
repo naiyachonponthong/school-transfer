@@ -16,7 +16,7 @@ class SlipController extends Controller
     public function store(Request $request, Invoice $invoice)
     {
         $user = $request->user();
-        abort_unless($user->isStaff() || $invoice->student->isGuardedBy($user), 403);
+        abort_unless($user->hasPermission('finance.manage') || $invoice->student->isGuardedBy($user), 403);
         abort_if(in_array($invoice->status, ['paid', 'void'], true), 422, 'ใบแจ้งหนี้นี้ชำระครบหรือถูกยกเลิกแล้ว');
 
         $data = $request->validate([

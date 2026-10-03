@@ -37,7 +37,7 @@ class TimetableController extends Controller
             'slots' => $slots,
             'courses' => $courses,
             'periods' => Settings::periodTimes(),
-            'editing' => $request->user()->isAdmin() && $request->boolean('edit'),
+            'editing' => $request->user()->hasPermission('academics.manage') && $request->boolean('edit'),
         ]);
     }
 

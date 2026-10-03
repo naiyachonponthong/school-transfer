@@ -46,6 +46,7 @@ use App\Http\Controllers\ReportCardController;
 use App\Http\Controllers\RepairController;
 use App\Http\Controllers\RequisitionController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\SlipController;
@@ -199,12 +200,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/attendance/today', [AttendanceController::class, 'today'])->name('attendance.today');
         Route::get('/attendance/report', [AttendanceController::class, 'report'])->name('attendance.report');
 
-        Route::get('/students/import', [StudentImportController::class, 'form'])->name('students.import');
-        Route::post('/students/import', [StudentImportController::class, 'store'])->name('students.import.store');
-        Route::get('/students/import/template', [StudentImportController::class, 'template'])->name('students.import.template');
-        Route::resource('students', StudentController::class);
-        Route::post('/students/{student}/guardians', [StudentController::class, 'addGuardian'])->name('students.guardians.store');
-        Route::delete('/students/{student}/guardians/{user}', [StudentController::class, 'removeGuardian'])->name('students.guardians.destroy');
+        Route::get('/students/import', [StudentImportController::class, 'form'])->name('students.import')->middleware('permission:students.edit');
+        Route::post('/students/import', [StudentImportController::class, 'store'])->name('students.import.store')->middleware('permission:students.edit');
+        Route::get('/students/import/template', [StudentImportController::class, 'template'])->name('students.import.template')->middleware('permission:students.edit');
+        Route::resource('students', StudentController::class)
+            ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:students.edit');
+        Route::post('/students/{student}/guardians', [StudentController::class, 'addGuardian'])->name('students.guardians.store')->middleware('permission:students.edit');
+        Route::delete('/students/{student}/guardians/{user}', [StudentController::class, 'removeGuardian'])->name('students.guardians.destroy')->middleware('permission:students.edit');
 
         Route::get('/leaves', [LeaveRequestController::class, 'index'])->name('leaves.index');
         Route::post('/leaves', [LeaveRequestController::class, 'store'])->name('leaves.store');
@@ -299,42 +301,42 @@ Route::middleware('auth')->group(function () {
         Route::put('/announcements/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
         Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
 
-        Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
+        Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index')->middleware('permission:finance.view');
 
         // ประตูโรงเรียน / บัตรนักเรียน
-        Route::get('/gate', [GateController::class, 'index'])->name('gate');
-        Route::post('/gate/scan', [GateController::class, 'scan'])->name('gate.scan')->middleware('throttle:240,1');
-        Route::get('/student-cards', [GateController::class, 'cards'])->name('students.cards');
+        Route::get('/gate', [GateController::class, 'index'])->name('gate')->middleware('permission:gate.use');
+        Route::post('/gate/scan', [GateController::class, 'scan'])->name('gate.scan')->middleware('throttle:240,1')->middleware('permission:gate.use');
+        Route::get('/student-cards', [GateController::class, 'cards'])->name('students.cards')->middleware('permission:gate.use');
 
         // ห้องพยาบาล
-        Route::get('/health', [HealthController::class, 'index'])->name('health.index');
-        Route::post('/health', [HealthController::class, 'store'])->name('health.store');
-        Route::put('/health/{visit}', [HealthController::class, 'update'])->name('health.update');
-        Route::get('/health/measure', [HealthController::class, 'measure'])->name('health.measure');
-        Route::post('/health/measure', [HealthController::class, 'saveMeasure'])->name('health.measure.save');
+        Route::get('/health', [HealthController::class, 'index'])->name('health.index')->middleware('permission:health.manage');
+        Route::post('/health', [HealthController::class, 'store'])->name('health.store')->middleware('permission:health.manage');
+        Route::put('/health/{visit}', [HealthController::class, 'update'])->name('health.update')->middleware('permission:health.manage');
+        Route::get('/health/measure', [HealthController::class, 'measure'])->name('health.measure')->middleware('permission:health.manage');
+        Route::post('/health/measure', [HealthController::class, 'saveMeasure'])->name('health.measure.save')->middleware('permission:health.manage');
 
         // ห้องสมุด
         // ห้องสมุด: ระเบียนบรรณานุกรม (DDC) + ตัวเล่ม + ป้ายสัน/บาร์โค้ด
-        Route::get('/library', [LibraryController::class, 'index'])->name('library.index');
-        Route::post('/library', [LibraryController::class, 'store'])->name('library.store');
-        Route::get('/library/create', [LibraryController::class, 'create'])->name('library.create');
-        Route::get('/library/{book}', [LibraryController::class, 'show'])->name('library.show');
-        Route::get('/library/{book}/edit', [LibraryController::class, 'edit'])->name('library.edit');
-        Route::put('/library/{book}', [LibraryController::class, 'update'])->name('library.update');
-        Route::delete('/library/{book}', [LibraryController::class, 'destroy'])->name('library.destroy');
-        Route::post('/library/{book}/copies', [LibraryController::class, 'storeCopies'])->name('library.copies.store');
-        Route::put('/library-copies/{copy}', [LibraryController::class, 'updateCopy'])->name('library.copies.update');
-        Route::delete('/library-copies/{copy}', [LibraryController::class, 'destroyCopy'])->name('library.copies.destroy');
-        Route::post('/library-accession', [LibraryController::class, 'assignAccession'])->name('library.accession');
-        Route::get('/library-labels', [LibraryLabelController::class, 'index'])->name('library.labels');
-        Route::post('/library-labels/printed', [LibraryLabelController::class, 'printed'])->name('library.labels.printed');
-        Route::get('/library-numbering/{kind}', [NumberingController::class, 'show'])->whereIn('kind', ['library-barcode', 'library-accession'])->name('library.numbering');
-        Route::put('/library-numbering/{kind}', [NumberingController::class, 'save'])->whereIn('kind', ['library-barcode', 'library-accession'])->name('library.numbering.update');
-        Route::get('/library-loans', [LibraryController::class, 'circulation'])->name('library.loans');
-        Route::post('/library-loans/borrow', [LibraryController::class, 'borrow'])->name('library.borrow');
-        Route::post('/library-loans/return', [LibraryController::class, 'returnByCode'])->name('library.return.code');
-        Route::post('/library-loans/{loan}/return', [LibraryController::class, 'return'])->name('library.return');
-        Route::post('/library-loans/remind', [LibraryController::class, 'remindOverdue'])->name('library.remind');
+        Route::get('/library', [LibraryController::class, 'index'])->name('library.index')->middleware('permission:library.manage');
+        Route::post('/library', [LibraryController::class, 'store'])->name('library.store')->middleware('permission:library.manage');
+        Route::get('/library/create', [LibraryController::class, 'create'])->name('library.create')->middleware('permission:library.manage');
+        Route::get('/library/{book}', [LibraryController::class, 'show'])->name('library.show')->middleware('permission:library.manage');
+        Route::get('/library/{book}/edit', [LibraryController::class, 'edit'])->name('library.edit')->middleware('permission:library.manage');
+        Route::put('/library/{book}', [LibraryController::class, 'update'])->name('library.update')->middleware('permission:library.manage');
+        Route::delete('/library/{book}', [LibraryController::class, 'destroy'])->name('library.destroy')->middleware('permission:library.manage');
+        Route::post('/library/{book}/copies', [LibraryController::class, 'storeCopies'])->name('library.copies.store')->middleware('permission:library.manage');
+        Route::put('/library-copies/{copy}', [LibraryController::class, 'updateCopy'])->name('library.copies.update')->middleware('permission:library.manage');
+        Route::delete('/library-copies/{copy}', [LibraryController::class, 'destroyCopy'])->name('library.copies.destroy')->middleware('permission:library.manage');
+        Route::post('/library-accession', [LibraryController::class, 'assignAccession'])->name('library.accession')->middleware('permission:library.manage');
+        Route::get('/library-labels', [LibraryLabelController::class, 'index'])->name('library.labels')->middleware('permission:library.manage');
+        Route::post('/library-labels/printed', [LibraryLabelController::class, 'printed'])->name('library.labels.printed')->middleware('permission:library.manage');
+        Route::get('/library-numbering/{kind}', [NumberingController::class, 'show'])->whereIn('kind', ['library-barcode', 'library-accession'])->name('library.numbering')->middleware('permission:library.manage');
+        Route::put('/library-numbering/{kind}', [NumberingController::class, 'save'])->whereIn('kind', ['library-barcode', 'library-accession'])->name('library.numbering.update')->middleware('permission:library.manage');
+        Route::get('/library-loans', [LibraryController::class, 'circulation'])->name('library.loans')->middleware('permission:library.manage');
+        Route::post('/library-loans/borrow', [LibraryController::class, 'borrow'])->name('library.borrow')->middleware('permission:library.manage');
+        Route::post('/library-loans/return', [LibraryController::class, 'returnByCode'])->name('library.return.code')->middleware('permission:library.manage');
+        Route::post('/library-loans/{loan}/return', [LibraryController::class, 'return'])->name('library.return')->middleware('permission:library.manage');
+        Route::post('/library-loans/remind', [LibraryController::class, 'remindOverdue'])->name('library.remind')->middleware('permission:library.manage');
 
         // ลางานบุคลากร
         Route::get('/staff-leaves', [StaffLeaveController::class, 'index'])->name('staff-leaves.index');
@@ -355,109 +357,116 @@ Route::middleware('auth')->group(function () {
         Route::post('/portfolio-items/{work}/verify', [PortfolioController::class, 'verify'])->name('portfolio.verify');
 
         // รายงาน
-        Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports', [ReportController::class, 'index'])->name('reports.index')->middleware('permission:reports.view');
         Route::get('/report-cards', [ReportCardController::class, 'classroom'])->name('report-cards.classroom');
-        Route::get('/reports/dmc', [ReportController::class, 'dmc'])->name('reports.dmc');
+        Route::get('/reports/dmc', [ReportController::class, 'dmc'])->name('reports.dmc')->middleware('permission:reports.view');
     });
 
-    /* ---------------- ผู้ดูแลระบบ ---------------- */
-    Route::middleware('role:admin')->group(function () {
-        Route::resource('users', UserController::class)->except('show');
-        Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
+    /* ---------------- งานที่มอบหมายตามตำแหน่ง (ผู้ดูแลระบบได้ทุกสิทธิ์) ---------------- */
+    Route::middleware('role:admin,teacher')->group(function () {
+        Route::resource('users', UserController::class)->except('show')->middleware('permission:users.manage');
+        Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password')->middleware('permission:users.manage');
 
-        Route::get('/classrooms', [ClassroomController::class, 'index'])->name('classrooms.index');
-        Route::post('/classrooms', [ClassroomController::class, 'store'])->name('classrooms.store');
-        Route::put('/classrooms/{classroom}', [ClassroomController::class, 'update'])->name('classrooms.update');
-        Route::delete('/classrooms/{classroom}', [ClassroomController::class, 'destroy'])->name('classrooms.destroy');
-        Route::get('/classrooms/promote', [ClassroomController::class, 'promoteForm'])->name('classrooms.promote.form');
-        Route::post('/classrooms/promote', [ClassroomController::class, 'promote'])->name('classrooms.promote');
-        Route::post('/classrooms/promote/undo', [ClassroomController::class, 'undoPromote'])->name('classrooms.promote.undo');
+        Route::get('/classrooms', [ClassroomController::class, 'index'])->name('classrooms.index')->middleware('permission:academics.manage');
+        Route::post('/classrooms', [ClassroomController::class, 'store'])->name('classrooms.store')->middleware('permission:academics.manage');
+        Route::put('/classrooms/{classroom}', [ClassroomController::class, 'update'])->name('classrooms.update')->middleware('permission:academics.manage');
+        Route::delete('/classrooms/{classroom}', [ClassroomController::class, 'destroy'])->name('classrooms.destroy')->middleware('permission:academics.manage');
+        Route::get('/classrooms/promote', [ClassroomController::class, 'promoteForm'])->name('classrooms.promote.form')->middleware('permission:academics.manage');
+        Route::post('/classrooms/promote', [ClassroomController::class, 'promote'])->name('classrooms.promote')->middleware('permission:academics.manage');
+        Route::post('/classrooms/promote/undo', [ClassroomController::class, 'undoPromote'])->name('classrooms.promote.undo')->middleware('permission:academics.manage');
 
-        Route::resource('subjects', SubjectController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::resource('subjects', SubjectController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:academics.manage');
 
-        Route::get('/audit', [AuditController::class, 'index'])->name('audit.index');
-        Route::get('/backups', [BackupController::class, 'index'])->name('backups.index');
-        Route::post('/backups', [BackupController::class, 'run'])->name('backups.run');
-        Route::get('/backups/{name}', [BackupController::class, 'download'])->name('backups.download')->where('name', '[A-Za-z0-9._-]+');
+        Route::get('/audit', [AuditController::class, 'index'])->name('audit.index')->middleware('permission:audit.view');
+        Route::get('/backups', [BackupController::class, 'index'])->name('backups.index')->middleware('permission:settings.manage');
+        Route::post('/backups', [BackupController::class, 'run'])->name('backups.run')->middleware('permission:settings.manage');
+        Route::get('/backups/{name}', [BackupController::class, 'download'])->name('backups.download')->where('name', '[A-Za-z0-9._-]+')->middleware('permission:settings.manage');
 
         // ปพ.7 ใบรับรองผลการศึกษา + ทะเบียนคุม
-        Route::get('/certificates', [CertificateController::class, 'index'])->name('certificates.index');
-        Route::get('/certificates/{issue}', [CertificateController::class, 'show'])->name('certificates.show');
-        Route::get('/students/{student}/certificate', [CertificateController::class, 'create'])->name('certificates.create');
-        Route::post('/students/{student}/certificate', [CertificateController::class, 'store'])->name('certificates.store');
-        Route::post('/students/{student}/transcript-issue', [TranscriptController::class, 'issue'])->name('transcript.issue');
+        Route::get('/certificates', [CertificateController::class, 'index'])->name('certificates.index')->middleware('permission:academics.manage');
+        Route::get('/certificates/{issue}', [CertificateController::class, 'show'])->name('certificates.show')->middleware('permission:academics.manage');
+        Route::get('/students/{student}/certificate', [CertificateController::class, 'create'])->name('certificates.create')->middleware('permission:academics.manage');
+        Route::post('/students/{student}/certificate', [CertificateController::class, 'store'])->name('certificates.store')->middleware('permission:academics.manage');
+        Route::post('/students/{student}/transcript-issue', [TranscriptController::class, 'issue'])->name('transcript.issue')->middleware('permission:academics.manage');
 
         // ปพ.3 รายงานผู้สำเร็จการศึกษา
-        Route::get('/graduates', [GraduateController::class, 'index'])->name('graduates.index');
-        Route::post('/graduates/approve', [GraduateController::class, 'approve'])->name('graduates.approve');
+        Route::get('/graduates', [GraduateController::class, 'index'])->name('graduates.index')->middleware('permission:academics.manage');
+        Route::post('/graduates/approve', [GraduateController::class, 'approve'])->name('graduates.approve')->middleware('permission:academics.manage');
 
-        Route::post('/courses', [CourseController::class, 'store'])->name('courses.store');
-        Route::post('/courses/bulk', [CourseController::class, 'bulk'])->name('courses.bulk');
-        Route::put('/courses/{course}', [CourseController::class, 'update'])->name('courses.update');
-        Route::delete('/courses/{course}', [CourseController::class, 'destroy'])->name('courses.destroy');
+        Route::post('/courses', [CourseController::class, 'store'])->name('courses.store')->middleware('permission:academics.manage');
+        Route::post('/courses/bulk', [CourseController::class, 'bulk'])->name('courses.bulk')->middleware('permission:academics.manage');
+        Route::put('/courses/{course}', [CourseController::class, 'update'])->name('courses.update')->middleware('permission:academics.manage');
+        Route::delete('/courses/{course}', [CourseController::class, 'destroy'])->name('courses.destroy')->middleware('permission:academics.manage');
 
-        Route::post('/timetable', [TimetableController::class, 'save'])->name('timetable.save');
+        Route::post('/timetable', [TimetableController::class, 'save'])->name('timetable.save')->middleware('permission:academics.manage');
 
-        Route::get('/terms', [TermController::class, 'index'])->name('terms.index');
-        Route::post('/terms', [TermController::class, 'store'])->name('terms.store');
-        Route::put('/terms/{term}', [TermController::class, 'update'])->name('terms.update');
-        Route::post('/terms/{term}/current', [TermController::class, 'makeCurrent'])->name('terms.current');
+        Route::get('/terms', [TermController::class, 'index'])->name('terms.index')->middleware('permission:academics.manage');
+        Route::post('/terms', [TermController::class, 'store'])->name('terms.store')->middleware('permission:academics.manage');
+        Route::put('/terms/{term}', [TermController::class, 'update'])->name('terms.update')->middleware('permission:academics.manage');
+        Route::post('/terms/{term}/current', [TermController::class, 'makeCurrent'])->name('terms.current')->middleware('permission:academics.manage');
 
-        Route::get('/settings', [SettingController::class, 'edit'])->name('settings');
-        Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
-        Route::post('/settings/rules', [SettingController::class, 'storeRule'])->name('settings.rules.store');
-        Route::put('/settings/rules/{rule}', [SettingController::class, 'updateRule'])->name('settings.rules.update');
-        Route::delete('/settings/rules/{rule}', [SettingController::class, 'destroyRule'])->name('settings.rules.destroy');
+        Route::get('/settings', [SettingController::class, 'edit'])->name('settings')->middleware('permission:settings.manage');
+        Route::post('/settings', [SettingController::class, 'update'])->name('settings.update')->middleware('permission:settings.manage');
+        Route::post('/settings/rules', [SettingController::class, 'storeRule'])->name('settings.rules.store')->middleware('permission:settings.manage');
+        Route::put('/settings/rules/{rule}', [SettingController::class, 'updateRule'])->name('settings.rules.update')->middleware('permission:settings.manage');
+        Route::delete('/settings/rules/{rule}', [SettingController::class, 'destroyRule'])->name('settings.rules.destroy')->middleware('permission:settings.manage');
 
-        Route::get('/staff-attendance', [StaffAttendanceController::class, 'report'])->name('staff-attendance.report');
+        Route::get('/staff-attendance', [StaffAttendanceController::class, 'report'])->name('staff-attendance.report')->middleware('permission:staff.manage');
 
-        Route::get('/invoices/create', [InvoiceController::class, 'create'])->name('invoices.create');
-        Route::post('/invoices', [InvoiceController::class, 'store'])->name('invoices.store');
-        Route::post('/invoices/{invoice}/payments', [InvoiceController::class, 'pay'])->name('invoices.pay');
-        Route::post('/invoices/{invoice}/void', [InvoiceController::class, 'void'])->name('invoices.void');
+        Route::get('/invoices/create', [InvoiceController::class, 'create'])->name('invoices.create')->middleware('permission:finance.manage');
+        Route::post('/invoices', [InvoiceController::class, 'store'])->name('invoices.store')->middleware('permission:finance.manage');
+        Route::post('/invoices/{invoice}/payments', [InvoiceController::class, 'pay'])->name('invoices.pay')->middleware('permission:finance.manage');
+        Route::post('/invoices/{invoice}/void', [InvoiceController::class, 'void'])->name('invoices.void')->middleware('permission:finance.manage');
 
-        Route::get('/slips', [SlipController::class, 'index'])->name('slips.index');
-        Route::post('/slips/{slip}/approve', [SlipController::class, 'approve'])->name('slips.approve');
-        Route::post('/slips/{slip}/reject', [SlipController::class, 'reject'])->name('slips.reject');
+        Route::get('/slips', [SlipController::class, 'index'])->name('slips.index')->middleware('permission:finance.manage');
+        Route::post('/slips/{slip}/approve', [SlipController::class, 'approve'])->name('slips.approve')->middleware('permission:finance.manage');
+        Route::post('/slips/{slip}/reject', [SlipController::class, 'reject'])->name('slips.reject')->middleware('permission:finance.manage');
 
-        Route::post('/staff-leaves/{leave}/approve', [StaffLeaveController::class, 'approve'])->name('staff-leaves.approve');
-        Route::post('/staff-leaves/{leave}/reject', [StaffLeaveController::class, 'reject'])->name('staff-leaves.reject');
+        Route::post('/staff-leaves/{leave}/approve', [StaffLeaveController::class, 'approve'])->name('staff-leaves.approve')->middleware('permission:staff.manage');
+        Route::post('/staff-leaves/{leave}/reject', [StaffLeaveController::class, 'reject'])->name('staff-leaves.reject')->middleware('permission:staff.manage');
 
         // สอบคัดเลือก: ห้องสอบ/เลขประจำตัวสอบ · วิชาสอบ (ตรวจด้วยระบบตรวจข้อสอบ) · จัดอันดับ · ประกาศผล
-        Route::get('/admission-exams', [AdmissionExamController::class, 'index'])->name('admission-exams.index');
-        Route::post('/admission-exams', [AdmissionExamController::class, 'store'])->name('admission-exams.store');
-        Route::get('/admission-exams/{round}', [AdmissionExamController::class, 'show'])->name('admission-exams.show');
-        Route::put('/admission-exams/{round}', [AdmissionExamController::class, 'update'])->name('admission-exams.update');
-        Route::post('/admission-exams/{round}/seats', [AdmissionExamController::class, 'seats'])->name('admission-exams.seats');
-        Route::post('/admission-exams/{round}/subjects', [AdmissionExamController::class, 'addSubject'])->name('admission-exams.subjects');
-        Route::post('/admission-exams/{round}/publish', [AdmissionExamController::class, 'publish'])->name('admission-exams.publish');
-        Route::delete('/admission-exams/{round}/publish', [AdmissionExamController::class, 'unpublish'])->name('admission-exams.unpublish');
-        Route::get('/admission-exams/{round}/print/{doc}', [AdmissionExamController::class, 'print'])->name('admission-exams.print');
-        Route::get('/admission-exams/{round}/export', [AdmissionExamController::class, 'export'])->name('admission-exams.export');
+        Route::get('/admission-exams', [AdmissionExamController::class, 'index'])->name('admission-exams.index')->middleware('permission:admissions.manage');
+        Route::post('/admission-exams', [AdmissionExamController::class, 'store'])->name('admission-exams.store')->middleware('permission:admissions.manage');
+        Route::get('/admission-exams/{round}', [AdmissionExamController::class, 'show'])->name('admission-exams.show')->middleware('permission:admissions.manage');
+        Route::put('/admission-exams/{round}', [AdmissionExamController::class, 'update'])->name('admission-exams.update')->middleware('permission:admissions.manage');
+        Route::post('/admission-exams/{round}/seats', [AdmissionExamController::class, 'seats'])->name('admission-exams.seats')->middleware('permission:admissions.manage');
+        Route::post('/admission-exams/{round}/subjects', [AdmissionExamController::class, 'addSubject'])->name('admission-exams.subjects')->middleware('permission:admissions.manage');
+        Route::post('/admission-exams/{round}/publish', [AdmissionExamController::class, 'publish'])->name('admission-exams.publish')->middleware('permission:admissions.manage');
+        Route::delete('/admission-exams/{round}/publish', [AdmissionExamController::class, 'unpublish'])->name('admission-exams.unpublish')->middleware('permission:admissions.manage');
+        Route::get('/admission-exams/{round}/print/{doc}', [AdmissionExamController::class, 'print'])->name('admission-exams.print')->middleware('permission:admissions.manage');
+        Route::get('/admission-exams/{round}/export', [AdmissionExamController::class, 'export'])->name('admission-exams.export')->middleware('permission:admissions.manage');
 
-        Route::get('/admissions', [AdmissionController::class, 'index'])->name('admissions.index');
-        Route::get('/admissions/form', [AdmissionFormController::class, 'edit'])->name('admissions.form');
-        Route::put('/admissions/form', [AdmissionFormController::class, 'update'])->name('admissions.form.update');
-        Route::get('/admissions/export', [AdmissionController::class, 'export'])->name('admissions.export');
-        Route::get('/admissions/{admission}', [AdmissionController::class, 'show'])->name('admissions.show');
-        Route::get('/admissions/{admission}/document', [AdmissionController::class, 'document'])->name('admissions.document');
-        Route::get('/admissions/{admission}/files/{question}', [AdmissionController::class, 'answerFile'])->name('admissions.file');
-        Route::put('/admissions/{admission}', [AdmissionController::class, 'update'])->name('admissions.update');
-        Route::put('/admissions/{admission}/exam', [AdmissionController::class, 'exam'])->name('admissions.exam');
-        Route::post('/admissions/{admission}/fee', [AdmissionController::class, 'fee'])->name('admissions.fee');
-        Route::get('/admissions/{admission}/print/{doc}', [AdmissionController::class, 'print'])->name('admissions.print');
-        Route::post('/admissions/{admission}/enroll', [AdmissionController::class, 'enroll'])->name('admissions.enroll');
+        Route::get('/admissions', [AdmissionController::class, 'index'])->name('admissions.index')->middleware('permission:admissions.manage');
+        Route::get('/admissions/form', [AdmissionFormController::class, 'edit'])->name('admissions.form')->middleware('permission:admissions.manage');
+        Route::put('/admissions/form', [AdmissionFormController::class, 'update'])->name('admissions.form.update')->middleware('permission:admissions.manage');
+        Route::get('/admissions/export', [AdmissionController::class, 'export'])->name('admissions.export')->middleware('permission:admissions.manage');
+        Route::get('/admissions/{admission}', [AdmissionController::class, 'show'])->name('admissions.show')->middleware('permission:admissions.manage');
+        Route::get('/admissions/{admission}/document', [AdmissionController::class, 'document'])->name('admissions.document')->middleware('permission:admissions.manage');
+        Route::get('/admissions/{admission}/files/{question}', [AdmissionController::class, 'answerFile'])->name('admissions.file')->middleware('permission:admissions.manage');
+        Route::put('/admissions/{admission}', [AdmissionController::class, 'update'])->name('admissions.update')->middleware('permission:admissions.manage');
+        Route::put('/admissions/{admission}/exam', [AdmissionController::class, 'exam'])->name('admissions.exam')->middleware('permission:admissions.manage');
+        Route::post('/admissions/{admission}/fee', [AdmissionController::class, 'fee'])->name('admissions.fee')->middleware('permission:admissions.manage');
+        Route::get('/admissions/{admission}/print/{doc}', [AdmissionController::class, 'print'])->name('admissions.print')->middleware('permission:admissions.manage');
+        Route::post('/admissions/{admission}/enroll', [AdmissionController::class, 'enroll'])->name('admissions.enroll')->middleware('permission:admissions.manage');
 
-        Route::post('/calendar', [CalendarController::class, 'store'])->name('calendar.store');
-        Route::put('/calendar/{event}', [CalendarController::class, 'update'])->name('calendar.update');
-        Route::delete('/calendar/{event}', [CalendarController::class, 'destroy'])->name('calendar.destroy');
+        Route::post('/calendar', [CalendarController::class, 'store'])->name('calendar.store')->middleware('permission:academics.manage');
+        Route::put('/calendar/{event}', [CalendarController::class, 'update'])->name('calendar.update')->middleware('permission:academics.manage');
+        Route::delete('/calendar/{event}', [CalendarController::class, 'destroy'])->name('calendar.destroy')->middleware('permission:academics.manage');
 
-        Route::get('/surveys/create', [SurveyController::class, 'create'])->name('surveys.create');
-        Route::post('/surveys', [SurveyController::class, 'store'])->name('surveys.store');
-        Route::get('/surveys/{survey}/edit', [SurveyController::class, 'edit'])->name('surveys.edit');
-        Route::put('/surveys/{survey}', [SurveyController::class, 'update'])->name('surveys.update');
+        Route::get('/surveys/create', [SurveyController::class, 'create'])->name('surveys.create')->middleware('permission:academics.manage');
+        Route::post('/surveys', [SurveyController::class, 'store'])->name('surveys.store')->middleware('permission:academics.manage');
+        Route::get('/surveys/{survey}/edit', [SurveyController::class, 'edit'])->name('surveys.edit')->middleware('permission:academics.manage');
+        Route::put('/surveys/{survey}', [SurveyController::class, 'update'])->name('surveys.update')->middleware('permission:academics.manage');
 
-        Route::get('/settings/messages', [LineController::class, 'logs'])->name('settings.messages');
-        Route::post('/settings/line-test', [LineController::class, 'test'])->name('settings.line-test');
+        Route::get('/settings/messages', [LineController::class, 'logs'])->name('settings.messages')->middleware('permission:settings.manage');
+        Route::post('/settings/line-test', [LineController::class, 'test'])->name('settings.line-test')->middleware('permission:settings.manage');
+
+        Route::middleware('permission:users.manage')->group(function () {
+            Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+            Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
+            Route::put('/roles', [RoleController::class, 'update'])->name('roles.update');
+            Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
+        });
     });
 });

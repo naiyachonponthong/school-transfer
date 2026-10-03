@@ -106,7 +106,7 @@ class InvoiceController extends Controller
     public function show(Request $request, Invoice $invoice)
     {
         $user = $request->user();
-        abort_unless($user->isStaff() || $invoice->student->isGuardedBy($user), 403);
+        abort_unless($user->hasPermission('finance.view') || $invoice->student->isGuardedBy($user), 403);
 
         return view('invoices.show', ['invoice' => $invoice->load('student.classroom', 'items', 'payments.receiver', 'term')]);
     }
@@ -156,7 +156,7 @@ class InvoiceController extends Controller
     {
         $payment->load('invoice.student.classroom', 'invoice.items', 'receiver');
         $user = $request->user();
-        abort_unless($user->isStaff() || $payment->invoice->student->isGuardedBy($user), 403);
+        abort_unless($user->hasPermission('finance.view') || $payment->invoice->student->isGuardedBy($user), 403);
 
         return view('invoices.receipt', compact('payment'));
     }

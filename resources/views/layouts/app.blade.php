@@ -25,7 +25,7 @@
         @endforeach
     </nav>
     <div class="rail-bottom">
-        @if ($u->isAdmin())
+        @if ($u->hasPermission('settings.manage'))
             <a href="{{ route('settings') }}" class="rail-item {{ request()->routeIs('settings*') ? 'active' : '' }}" title="ตั้งค่า"><span class="ri"><i class="bi bi-gear"></i></span><span>ตั้งค่า</span></a>
         @endif
         <a href="{{ route('profile') }}" class="rail-item {{ request()->routeIs('profile') ? 'active' : '' }}" title="บัญชีของฉัน">

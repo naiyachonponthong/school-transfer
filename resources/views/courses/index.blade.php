@@ -9,7 +9,7 @@
         <div class="sub">{{ $term?->label() }} · {{ $courses->count() }} รายวิชา</div>
     </div>
     <div class="actions">
-        @if ($u->isAdmin())
+        @if ($u->hasPermission('academics.manage'))
             <a href="{{ request()->fullUrlWithQuery(['view' => $showAll ? 'mine' : null]) }}" class="btn btn-light border">{{ $showAll ? 'เฉพาะที่ฉันสอน' : 'ดูทั้งหมด' }}</a>
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bulkCourse"><i class="bi bi-plus-lg"></i> เปิดรายวิชา</button>
         @endif
@@ -56,14 +56,14 @@
                             <a href="{{ route('gradebook.show', $c) }}" class="btn btn-primary flex-grow-1"><i class="bi bi-pencil-square"></i> กรอกคะแนน</a>
                             <a href="{{ route('period-attendance.report', $c) }}" class="btn btn-light border" title="เวลาเรียนรายวิชา / มส."><i class="bi bi-clock-history"></i></a>
                         @endif
-                        @if ($u->isAdmin())
+                        @if ($u->hasPermission('academics.manage'))
                             <button class="btn btn-light border" data-bs-toggle="modal" data-bs-target="#edit{{ $c->id }}"><i class="bi bi-gear"></i></button>
                         @endif
                     </div>
                 </div>
             </div>
         </div>
-        @if ($u->isAdmin())
+        @if ($u->hasPermission('academics.manage'))
             <div class="modal fade" id="edit{{ $c->id }}" tabindex="-1">
                 <div class="modal-dialog"><div class="modal-content">
                     <form method="POST" action="{{ route('courses.update', $c) }}">
@@ -90,7 +90,7 @@
 </div>
 @endif
 
-@if ($u->isAdmin() && $term)
+@if ($u->hasPermission('academics.manage') && $term)
 <div class="modal fade" id="bulkCourse" tabindex="-1">
     <div class="modal-dialog modal-lg"><form method="POST" action="{{ route('courses.bulk') }}" class="modal-content">
         @csrf

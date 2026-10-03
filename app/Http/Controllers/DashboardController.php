@@ -64,7 +64,7 @@ class DashboardController extends Controller
 
         $finance = null;
         $staffToday = collect();
-        if ($user->isAdmin()) {
+        if ($user->hasPermission('finance.view')) {
             $open = Invoice::whereIn('status', ['unpaid', 'partial']);
             $finance = [
                 'outstanding' => (float) (clone $open)->sum(DB::raw('total - discount - paid')),

@@ -17,6 +17,15 @@
                         @endforeach
                     </div>
                 </div>
+                <div class="col-12" id="positions">
+                    <label class="form-label">ตำแหน่งงาน <span class="text-muted fw-normal small">(เฉพาะครู/บุคลากร · ไม่เลือก = สิทธิ์ของ "ครู" · <a href="{{ route('roles.index') }}">ดูสิทธิ์ของแต่ละตำแหน่ง</a>)</span></label>
+                    @php($held = old('role_ids', $user->exists ? $user->roles->pluck('id')->all() : []))
+                    <div class="d-flex flex-wrap gap-3">
+                        @foreach ($roles as $r)
+                            <label class="small"><input type="checkbox" class="form-check-input" name="role_ids[]" value="{{ $r->id }}" @checked(in_array($r->id, $held))> {{ $r->name }}</label>
+                        @endforeach
+                    </div>
+                </div>
                 <div class="col-md-7"><label class="form-label">ชื่อ-สกุล</label><input name="name" value="{{ old('name', $user->name) }}" class="form-control" required></div>
                 <div class="col-md-5"><label class="form-label">ตำแหน่ง</label><input name="position" value="{{ old('position', $user->position) }}" class="form-control" placeholder="เช่น ครูชำนาญการ"></div>
                 <div class="col-md-6"><label class="form-label">ชื่อผู้ใช้ (ใช้เข้าระบบ)</label><input name="username" value="{{ old('username', $user->username) }}" class="form-control" required pattern="[A-Za-z0-9_\-]+" title="ภาษาอังกฤษ ตัวเลข _ -"></div>
