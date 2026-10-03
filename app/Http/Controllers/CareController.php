@@ -9,6 +9,7 @@ use App\Models\Student;
 use App\Models\Term;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\HomeVisitForm;
 use App\Support\RiskScan;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -154,22 +155,35 @@ class CareController extends Controller
         abort_unless($term, 422, 'ยังไม่ได้ตั้งภาคเรียนปัจจุบัน');
         $data = $request->validate([
             'visited_on' => ['required', 'date', 'before_or_equal:today'],
-            'guardian_met' => ['nullable', 'string', 'max:255'],
-            'housing' => ['nullable', Rule::in(array_keys(HomeVisit::HOUSING))],
-            'family_status' => ['nullable', Rule::in(array_keys(HomeVisit::FAMILY))],
-            'risks' => ['array'],
-            'risks.*' => [Rule::in(array_keys(HomeVisit::RISKS))],
+            'form' => ['array'],
             'note' => ['nullable', 'string', 'max:5000'],
             'photo' => ['nullable', 'image', 'max:6144'],
+            'photo_inside' => ['nullable', 'image', 'max:6144'],
             'lat' => ['nullable', 'numeric', 'between:-90,90'],
             'lng' => ['nullable', 'numeric', 'between:-180,180'],
-        ]);
+        ], [], ['visited_on' => 'วันที่เยี่ยม', 'photo' => 'รูปที่ 1', 'photo_inside' => 'รูปที่ 2']);
+
+        // คำตอบตามแบบ 4 หน้า: เก็บเฉพาะช่องที่นิยามไว้ แล้วสรุปเป็นช่องที่หน้ารายห้อง/กรณีช่วยเหลือใช้
+        $form = HomeVisitForm::normalize($data['form'] ?? []);
         $visit = HomeVisit::firstOrNew(['student_id' => $student->id, 'term_id' => $term->id]);
-        unset($data['photo']);
-        if ($request->hasFile('photo')) {
-            $data['photo'] = $request->file('photo')->store('home-visits', 'local');
+        $visit->fill([
+            'visited_on' => $data['visited_on'],
+            'note' => $data['note'] ?? null,
+            'lat' => $data['lat'] ?? null,
+            'lng' => $data['lng'] ?? null,
+            'form' => $form,
+            'guardian_met' => isset($form['informant']) ? HomeVisitForm::SINGLE['informant'][$form['informant']] : (trim(($form['guardian_first'] ?? '').' '.($form['guardian_last'] ?? '')) ?: null),
+            'housing' => ['own' => 'own', 'rent' => 'rent', 'with_others' => 'relative'][$form['housing_type'] ?? ''] ?? null,
+            'family_status' => in_array('parents_separated', $form['safety'] ?? [], true) ? 'separated' : null,
+            'risks' => HomeVisitForm::risks($form),
+            'visitor_id' => $request->user()->id,
+        ]);
+        foreach (['photo', 'photo_inside'] as $field) {
+            if ($request->hasFile($field)) {
+                $visit->{$field} = $request->file($field)->store('home-visits', 'local');
+            }
         }
-        $visit->fill($data + ['risks' => $data['risks'] ?? [], 'visitor_id' => $request->user()->id])->save();
+        $visit->save();
 
         return redirect()->route('care.visits', ['classroom' => $student->classroom_id])->with('success', "บันทึกการเยี่ยมบ้าน {$student->fullName()} แล้ว");
     }

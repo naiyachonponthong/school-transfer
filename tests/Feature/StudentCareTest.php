@@ -115,15 +115,36 @@ class StudentCareTest extends TestCase
         $this->get(route('care.visits.form', $student))->assertOk();
         $this->get(route('care.visits.form', $outsider))->assertForbidden();
 
-        $payload = ['visited_on' => today()->toDateString(), 'guardian_met' => 'มารดา', 'housing' => 'rent', 'family_status' => 'together', 'risks' => ['economic', 'travel'], 'note' => 'บ้านไกล'];
-        $this->post(route('care.visits.save', $student), $payload + ['photo' => UploadedFile::fake()->image('home.jpg')])->assertSessionHasNoErrors();
-        $this->post(route('care.visits.save', $student), ['guardian_met' => 'บิดา'] + $payload)->assertSessionHasNoErrors();
+        $form = [
+            'guardian_first' => 'สมศรี', 'guardian_last' => 'ใจดี', 'informant' => 'mother', 'member_count' => 4, 'housing_type' => 'rent',
+            'members' => [
+                ['relation' => 'มารดา', 'age' => 40, 'salary' => 6000],
+                ['relation' => 'ยาย', 'age' => 70, 'disabled' => 1, 'welfare' => 600],
+                ['relation' => '', 'age' => ''], // แถวว่างถูกทิ้ง
+            ],
+            'dependents' => ['elderly', 'bogus'], 'vehicle_car' => 'no', 'closeness' => ['father' => 'none', 'mother' => 'close'],
+            'distance_km' => 14, 'travel_minutes' => 40, 'transport' => 'bus', 'health' => [], 'unknown_field' => 'x',
+        ];
+        $payload = ['visited_on' => today()->toDateString(), 'note' => 'บ้านไกล', 'form' => $form];
+        $this->post(route('care.visits.save', $student), $payload + ['photo' => UploadedFile::fake()->image('home.jpg'), 'photo_inside' => UploadedFile::fake()->image('in.jpg')])->assertSessionHasNoErrors();
+        $this->post(route('care.visits.save', $student), ['form' => ['informant' => 'father'] + $form] + $payload)->assertSessionHasNoErrors();
 
         $this->assertSame(1, HomeVisit::where('student_id', $student->id)->where('term_id', Term::current()->id)->count());
         $visit = HomeVisit::first();
         $this->assertSame('บิดา', $visit->guardian_met);
+        $this->assertSame('rent', $visit->housing);
+        // สรุปด้านความเสี่ยงจากคำตอบ: รายได้เฉลี่ยต่อคน (6,600 ÷ 4) ไม่เกินเกณฑ์ + บ้านไกล 14 กม.
         $this->assertSame(['economic', 'travel'], $visit->risks);
+        $this->assertCount(2, $visit->form['members']);
+        $this->assertEquals(6600, $visit->form['household_income']);
+        $this->assertEquals(1650, $visit->form['household_income_per_head']);
+        $this->assertSame(['elderly'], $visit->form['dependents']);
+        $this->assertArrayNotHasKey('unknown_field', $visit->form);
         Storage::disk('local')->assertExists($visit->photo);
+        Storage::disk('local')->assertExists($visit->photo_inside);
+        // เปิดกลับมาแก้ ค่าที่กรอกไว้ยังอยู่ และมีหัวข้อครบตามแบบ
+        $this->get(route('care.visits.form', $student))->assertOk()->assertSee('สมศรี')->assertSee('จำนวนสมาชิกในครัวเรือน')
+            ->assertSee('ความสัมพันธ์ในครอบครัว')->assertSee('พฤติกรรมและความเสี่ยง')->assertSee('การติดเกม')->assertSee('ภาพถ่ายภายในบ้านนักเรียน');
         $this->get(route('care.visits'))->assertOk()->assertSee('เศรษฐกิจ/รายได้');
 
         // รูปเยี่ยมบ้าน: ครูประจำชั้นเปิดได้ ผู้ปกครองของเด็กเองก็เปิดไม่ได้
