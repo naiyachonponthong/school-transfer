@@ -35,6 +35,7 @@ class User extends Authenticatable
             'must_change_password' => 'boolean',
             'notifications_seen_at' => 'datetime',
             'line_linked_at' => 'datetime',
+            'line_link_expires_at' => 'datetime',
             'is_active' => 'boolean',
             'password' => 'hashed',
         ];
@@ -118,6 +119,12 @@ class User extends Authenticatable
     public function flushPermissions(): void
     {
         $this->permissionCache = null;
+    }
+
+    /** รหัสเชื่อม LINE ที่ยังไม่หมดอายุ */
+    public function activeLineCode(): ?string
+    {
+        return $this->line_link_code && $this->line_link_expires_at?->isFuture() ? $this->line_link_code : null;
     }
 
     public function isStaff(): bool

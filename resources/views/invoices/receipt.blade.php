@@ -24,6 +24,7 @@
         <div class="text-end">
             <div class="fw-bold fs-5">ใบเสร็จรับเงิน</div>
             <div class="small">เลขที่ {{ $payment->receipt_no }}</div>
+            @if ($payment->isVoided())<div class="fw-bold text-danger border border-danger px-2 d-inline-block mt-1">ยกเลิก · {{ thai_date($payment->voided_at) }}</div>@endif
             <div class="small">วันที่ {{ thai_date($payment->paid_at, true) }}</div>
         </div>
     </div>

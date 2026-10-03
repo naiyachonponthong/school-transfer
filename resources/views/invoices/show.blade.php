@@ -39,7 +39,7 @@
                         @foreach ($invoice->items as $it)<tr><td>{{ $it->description }}</td><td class="text-end">{{ baht($it->amount) }}</td></tr>@endforeach
                     </tbody>
                     <tfoot>
-                        @if ($invoice->discount > 0)<tr><td class="text-end">ส่วนลด</td><td class="text-end">-{{ baht($invoice->discount) }}</td></tr>@endif
+                        @if ($invoice->discount > 0)<tr><td class="text-end">ส่วนลด{{ $invoice->discount_note ? ' ('.$invoice->discount_note.')' : '' }}</td><td class="text-end">-{{ baht($invoice->discount) }}</td></tr>@endif
                         <tr class="fw-bold"><td class="text-end">ยอดสุทธิ</td><td class="text-end">{{ baht($invoice->netTotal()) }}</td></tr>
                         <tr><td class="text-end">ชำระแล้ว</td><td class="text-end text-success">{{ baht($invoice->paid) }}</td></tr>
                         <tr class="fw-bold fs-5"><td class="text-end">คงค้าง</td><td class="text-end text-danger">{{ baht($invoice->balance()) }}</td></tr>
@@ -121,16 +121,40 @@
                 </form>
             </div>
         @endif
+        @if ($admin && $invoice->status !== 'void')
+            <div class="card mb-3">
+                <div class="card-header"><i class="bi bi-tag"></i> ส่วนลด</div>
+                <form method="POST" action="{{ route('invoices.discount', $invoice) }}" class="card-body">
+                    @csrf
+                    <div class="input-group mb-2">
+                        <input type="number" step="0.01" min="0" name="discount" value="{{ old('discount', $invoice->discount) }}" class="form-control @error('discount') is-invalid @enderror" required>
+                        <span class="input-group-text">บาท</span>
+                    </div>
+                    <input name="discount_note" value="{{ old('discount_note', $invoice->discount_note) }}" class="form-control mb-2 @error('discount_note') is-invalid @enderror" placeholder="เหตุผล เช่น ทุนเรียนดี, พี่น้อง">
+                    @error('discount')<div class="small text-danger mb-2">{{ $message }}</div>@enderror
+                    @error('discount_note')<div class="small text-danger mb-2">{{ $message }}</div>@enderror
+                    <button class="btn btn-light border w-100">บันทึกส่วนลด</button>
+                </form>
+            </div>
+        @endif
         <div class="card">
             <div class="card-header"><i class="bi bi-clock-history"></i> ประวัติการชำระ</div>
             @forelse ($invoice->payments as $p)
                 <div class="d-flex align-items-center gap-2 px-3 py-2 border-bottom">
                     <div class="flex-grow-1">
-                        <div class="fw-semibold">{{ baht($p->amount) }} บาท <span class="small text-muted fw-normal">{{ $p->methodLabel() }}</span></div>
+                        <div class="fw-semibold {{ $p->isVoided() ? 'text-decoration-line-through text-muted' : '' }}">{{ baht($p->amount) }} บาท <span class="small text-muted fw-normal">{{ $p->methodLabel() }}</span></div>
                         <div class="small text-muted">{{ $p->receipt_no }} · {{ thai_datetime($p->paid_at) }} · {{ $p->receiver?->name }}</div>
                     </div>
+                    @if ($p->isVoided())<span class="badge bg-secondary" title="{{ $p->void_reason }}">ยกเลิก</span>@endif
                     <a href="{{ route('payments.receipt', $p) }}" target="_blank" class="btn btn-sm btn-light border"><i class="bi bi-printer"></i> ใบเสร็จ</a>
+                    @if ($admin && ! $p->isVoided())
+                        <form method="POST" action="{{ route('payments.void', $p) }}" onsubmit="const n=prompt('เหตุผลที่ยกเลิกใบเสร็จ {{ $p->receipt_no }}');if(!n)return false;this.void_reason.value=n;">
+                            @csrf<input type="hidden" name="void_reason">
+                            <button class="btn btn-sm btn-light border text-danger" title="ยกเลิกใบเสร็จ"><i class="bi bi-x-lg"></i></button>
+                        </form>
+                    @endif
                 </div>
+                @if ($p->isVoided())<div class="small text-muted px-3 pb-2">ยกเลิกโดย {{ $p->voider?->name }} {{ thai_datetime($p->voided_at) }} · {{ $p->void_reason }}</div>@endif
             @empty
                 <div class="empty py-4"><i class="bi bi-hourglass"></i>ยังไม่มีการชำระ</div>
             @endforelse

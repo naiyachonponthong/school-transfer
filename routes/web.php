@@ -25,6 +25,7 @@ use App\Http\Controllers\EvaluationController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\ExamScanController;
 use App\Http\Controllers\FeedController;
+use App\Http\Controllers\FileController;
 use App\Http\Controllers\GateController;
 use App\Http\Controllers\GraduateController;
 use App\Http\Controllers\GradebookController;
@@ -91,6 +92,7 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+    Route::get('/files/{type}/{id}', [FileController::class, 'show'])->name('files.show')->whereNumber('id');
     Route::get('/password/change', [PasswordController::class, 'showChange'])->name('password.change');
     Route::post('/password/change', [PasswordController::class, 'change'])->name('password.change.save');
     Route::get('/', [DashboardController::class, 'index'])->name('home');
@@ -417,6 +419,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/invoices', [InvoiceController::class, 'store'])->name('invoices.store')->middleware('permission:finance.manage');
         Route::post('/invoices/{invoice}/payments', [InvoiceController::class, 'pay'])->name('invoices.pay')->middleware('permission:finance.manage');
         Route::post('/invoices/{invoice}/void', [InvoiceController::class, 'void'])->name('invoices.void')->middleware('permission:finance.manage');
+        Route::post('/invoices/{invoice}/discount', [InvoiceController::class, 'discount'])->name('invoices.discount')->middleware('permission:finance.manage');
+        Route::post('/payments/{payment}/void', [InvoiceController::class, 'voidPayment'])->name('payments.void')->middleware('permission:finance.manage');
 
         Route::get('/slips', [SlipController::class, 'index'])->name('slips.index')->middleware('permission:finance.manage');
         Route::post('/slips/{slip}/approve', [SlipController::class, 'approve'])->name('slips.approve')->middleware('permission:finance.manage');

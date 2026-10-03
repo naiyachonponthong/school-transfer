@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Sequence;
 use App\Casts\DateOnly;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,7 +17,7 @@ class Invoice extends Model
         'void' => ['ยกเลิก', 'secondary'],
     ];
 
-    protected $fillable = ['invoice_no', 'student_id', 'term_id', 'title', 'due_date', 'total', 'discount', 'paid', 'status', 'created_by'];
+    protected $fillable = ['invoice_no', 'student_id', 'term_id', 'title', 'due_date', 'total', 'discount', 'discount_note', 'paid', 'status', 'created_by'];
 
     protected function casts(): array
     {
@@ -82,11 +83,12 @@ class Invoice extends Model
     public function refreshTotals(): void
     {
         $this->total = (float) $this->items()->sum('amount');
-        $this->paid = (float) $this->payments()->sum('amount');
+        $this->paid = (float) $this->payments()->valid()->sum('amount');
         if ($this->status !== 'void') {
             $this->status = match (true) {
-                $this->paid <= 0 => 'unpaid',
+                // ยอดสุทธิเป็นศูนย์ (ส่วนลดเต็มจำนวน) ถือว่าชำระครบ
                 $this->paid + 0.001 >= $this->netTotal() => 'paid',
+                $this->paid <= 0 => 'unpaid',
                 default => 'partial',
             };
         }
@@ -96,8 +98,7 @@ class Invoice extends Model
     public static function nextNumber(string $prefix = 'INV'): string
     {
         $ym = now()->format('Ym');
-        $last = self::where('invoice_no', 'like', "{$prefix}{$ym}%")->orderByDesc('invoice_no')->value('invoice_no');
-        $seq = $last ? ((int) substr($last, -5)) + 1 : 1;
+        $seq = Sequence::next($prefix, $ym, fn () => (int) substr((string) self::where('invoice_no', 'like', "{$prefix}{$ym}%")->max('invoice_no'), -5));
 
         return $prefix.$ym.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
     }

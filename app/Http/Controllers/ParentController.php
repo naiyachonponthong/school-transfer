@@ -134,7 +134,7 @@ class ParentController extends Controller
         ]);
 
         if ($request->hasFile('attachment')) {
-            $data['attachment'] = $request->file('attachment')->store('leaves', 'public');
+            $data['attachment'] = $request->file('attachment')->store('leaves', 'local');
         }
 
         LeaveRequest::create($data + ['requested_by' => $request->user()->id, 'status' => 'pending']);

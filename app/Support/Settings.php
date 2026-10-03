@@ -2,7 +2,9 @@
 
 namespace App\Support;
 
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -53,6 +55,9 @@ class Settings
         'admission_levels' => 'ม.1,ม.4',
     ];
 
+    /** เก็บแบบเข้ารหัสในฐานข้อมูล (ไฟล์สำรองหลุดไปก็อ่านไม่ได้ถ้าไม่มี APP_KEY) */
+    public const ENCRYPTED = ['line_channel_token', 'line_channel_secret'];
+
     private static ?array $cache = null;
 
     public static function all(): array
@@ -69,6 +74,16 @@ class Settings
             return DB::table('settings')->pluck('value', 'key')->all();
         });
 
+        foreach (self::ENCRYPTED as $key) {
+            if (filled($stored[$key] ?? null)) {
+                try {
+                    $stored[$key] = Crypt::decryptString($stored[$key]);
+                } catch (DecryptException) {
+                    // ค่าที่บันทึกไว้ก่อนเริ่มเข้ารหัส ใช้ได้ตามเดิม และจะถูกเข้ารหัสเมื่อบันทึกครั้งถัดไป
+                }
+            }
+        }
+
         return self::$cache = array_merge(self::DEFAULTS, $stored);
     }
 
@@ -80,6 +95,9 @@ class Settings
     public static function set(array $values): void
     {
         foreach ($values as $key => $value) {
+            if (in_array($key, self::ENCRYPTED, true) && filled($value)) {
+                $value = Crypt::encryptString((string) $value);
+            }
             DB::table('settings')->updateOrInsert(['key' => $key], ['value' => $value]);
         }
         self::flush();

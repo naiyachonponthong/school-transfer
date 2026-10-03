@@ -128,7 +128,7 @@ class ChatController extends Controller
         $msg = $conversation->messages()->create([
             'user_id' => $user->id,
             'body' => $data['body'] ?? null,
-            'attachment' => $request->hasFile('image') ? $request->file('image')->store('chat', 'public') : null,
+            'attachment' => $request->hasFile('image') ? $request->file('image')->store('chat', 'local') : null,
         ]);
         $conversation->update(['last_message_at' => now()]);
         $this->markRead($conversation, $user);

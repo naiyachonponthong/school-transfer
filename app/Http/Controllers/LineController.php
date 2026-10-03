@@ -6,9 +6,12 @@ use App\Models\MessageLog;
 use App\Models\User;
 use App\Services\Line;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 
 class LineController extends Controller
 {
+    private const CODE_MINUTES = 10;
+
     /**
      * Webhook จาก LINE Official Account
      * ผู้ใช้เชื่อมบัญชีโดยพิมพ์รหัส 6 หลักจากหน้า "บัญชีของฉัน" ในแชทของ OA
@@ -39,11 +42,21 @@ class LineController extends Controller
             }
             if (($event['type'] ?? '') === 'message' && ($event['message']['type'] ?? '') === 'text') {
                 $code = preg_replace('/\D/', '', (string) $event['message']['text']);
-                $user = strlen($code) === 6 ? User::where('line_link_code', $code)->first() : null;
+                // จำกัดจำนวนครั้งต่อบัญชี LINE กันไล่เดารหัส 6 หลักของคนอื่น
+                $attempts = 'line-link:'.$lineId;
+                if (RateLimiter::tooManyAttempts($attempts, 5)) {
+                    $reply && Line::reply($reply, 'ลองรหัสผิดหลายครั้ง กรุณารอ 1 ชั่วโมงแล้วสร้างรหัสใหม่จากหน้า "บัญชีของฉัน"');
+
+                    continue;
+                }
+                $user = strlen($code) === 6
+                    ? User::where('line_link_code', $code)->where('line_link_expires_at', '>', now())->first()
+                    : null;
+                $user ? RateLimiter::clear($attempts) : RateLimiter::hit($attempts, 3600);
                 if ($user) {
                     // บัญชี LINE เดียวผูกได้บัญชีระบบเดียว
                     User::where('line_user_id', $lineId)->where('id', '!=', $user->id)->update(['line_user_id' => null, 'line_linked_at' => null]);
-                    $user->forceFill(['line_user_id' => $lineId, 'line_link_code' => null, 'line_linked_at' => now()])->save();
+                    $user->forceFill(['line_user_id' => $lineId, 'line_link_code' => null, 'line_link_expires_at' => null, 'line_linked_at' => now()])->save();
                     $reply && Line::reply($reply, "เชื่อมบัญชีสำเร็จ ✅\nคุณ{$user->name} จะได้รับแจ้งเตือนจากโรงเรียนทาง LINE นี้");
                 } elseif ($reply) {
                     Line::reply($reply, 'ไม่พบรหัสนี้ กรุณาตรวจสอบรหัส 6 หลักในหน้า "บัญชีของฉัน" อีกครั้ง');
@@ -59,14 +72,14 @@ class LineController extends Controller
         do {
             $code = (string) random_int(100000, 999999);
         } while (User::where('line_link_code', $code)->exists());
-        $request->user()->forceFill(['line_link_code' => $code])->save();
+        $request->user()->forceFill(['line_link_code' => $code, 'line_link_expires_at' => now()->addMinutes(self::CODE_MINUTES)])->save();
 
-        return back()->with('success', 'สร้างรหัสเชื่อม LINE แล้ว');
+        return back()->with('success', 'สร้างรหัสเชื่อม LINE แล้ว ใช้ได้ '.self::CODE_MINUTES.' นาที');
     }
 
     public function unlink(Request $request)
     {
-        $request->user()->forceFill(['line_user_id' => null, 'line_linked_at' => null, 'line_link_code' => null])->save();
+        $request->user()->forceFill(['line_user_id' => null, 'line_linked_at' => null, 'line_link_code' => null, 'line_link_expires_at' => null])->save();
 
         return back()->with('success', 'ยกเลิกการเชื่อม LINE แล้ว');
     }

@@ -107,7 +107,7 @@ class SchoolBrightParityTest extends TestCase
         $this->assertSame('00020101021129370016A0000006770101110113006681234567853037645802TH6304823E', PromptPay::payload('0812345678'));
         $this->assertNull(PromptPay::payload('123'));
 
-        Storage::fake('public');
+        Storage::fake('local');
         $inv = Invoice::where('status', 'unpaid')->first();
         $parent = $inv->student->guardians()->first();
         $this->actingAs($parent)->get("/invoices/{$inv->id}")->assertOk()->assertSee('data-qr="000201', false);

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Sequence;
 use App\Casts\DateOnly;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -120,16 +121,16 @@ class Admission extends Model
 
     public static function nextNumber(int $year): string
     {
-        $last = self::where('app_no', 'like', "A{$year}%")->orderByDesc('app_no')->value('app_no');
+        $seq = Sequence::next('A', (string) $year, fn () => (int) substr((string) self::where('app_no', 'like', "A{$year}%")->max('app_no'), -4));
 
-        return 'A'.$year.str_pad((string) ($last ? ((int) substr($last, -4)) + 1 : 1), 4, '0', STR_PAD_LEFT);
+        return 'A'.$year.str_pad((string) $seq, 4, '0', STR_PAD_LEFT);
     }
 
     public static function nextReceiptNumber(int $year): string
     {
         $prefix = "RA{$year}-";
-        $last = self::where('fee_receipt_no', 'like', $prefix.'%')->orderByDesc('fee_receipt_no')->value('fee_receipt_no');
+        $seq = Sequence::next('RA', (string) $year, fn () => (int) substr((string) self::where('fee_receipt_no', 'like', $prefix.'%')->max('fee_receipt_no'), strlen($prefix)));
 
-        return $prefix.str_pad((string) ($last ? ((int) substr($last, strlen($prefix))) + 1 : 1), 4, '0', STR_PAD_LEFT);
+        return $prefix.str_pad((string) $seq, 4, '0', STR_PAD_LEFT);
     }
 }

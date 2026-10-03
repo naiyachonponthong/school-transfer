@@ -29,8 +29,8 @@ class InvoiceController extends Controller
 
         $summary = [
             'outstanding' => (float) Invoice::whereIn('status', ['unpaid', 'partial'])->sum(DB::raw('total - discount - paid')),
-            'collected_today' => (float) Payment::whereDate('paid_at', today())->sum('amount'),
-            'collected_month' => (float) Payment::where('paid_at', '>=', now()->startOfMonth())->sum('amount'),
+            'collected_today' => (float) Payment::valid()->whereDate('paid_at', today())->sum('amount'),
+            'collected_month' => (float) Payment::valid()->where('paid_at', '>=', now()->startOfMonth())->sum('amount'),
             'overdue' => Invoice::whereIn('status', ['unpaid', 'partial'])->whereDate('due_date', '<', today())->count(),
         ];
 
@@ -108,7 +108,7 @@ class InvoiceController extends Controller
         $user = $request->user();
         abort_unless($user->hasPermission('finance.view') || $invoice->student->isGuardedBy($user), 403);
 
-        return view('invoices.show', ['invoice' => $invoice->load('student.classroom', 'items', 'payments.receiver', 'term')]);
+        return view('invoices.show', ['invoice' => $invoice->load('student.classroom', 'items', 'payments.receiver', 'payments.voider', 'term')]);
     }
 
     public function pay(Request $request, Invoice $invoice)
@@ -122,6 +122,9 @@ class InvoiceController extends Controller
         ], ['amount.max' => 'ยอดชำระเกินยอดค้าง ('.number_format($invoice->balance(), 2).' บาท)']);
 
         $payment = DB::transaction(function () use ($invoice, $data, $request) {
+            // ล็อกใบแจ้งหนี้ กันรับเงินซ้อนจากสองเครื่องจนเกินยอดค้าง
+            $invoice = Invoice::whereKey($invoice->id)->lockForUpdate()->first();
+            abort_if($data['amount'] > $invoice->balance(), 422, 'ยอดชำระเกินยอดค้าง มีการรับชำระรายการอื่นเข้ามาก่อน');
             $p = $invoice->payments()->create([
                 'receipt_no' => Payment::nextNumber(),
                 'amount' => $data['amount'],
@@ -152,9 +155,43 @@ class InvoiceController extends Controller
         return back()->with('success', 'ยกเลิกใบแจ้งหนี้แล้ว');
     }
 
+    /** ส่วนลดรายใบ (ทุน/พี่น้อง/บุตรบุคลากร) ต้องระบุเหตุผล และลดได้ไม่เกินยอดที่ยังไม่ได้ชำระ */
+    public function discount(Request $request, Invoice $invoice)
+    {
+        abort_if($invoice->status === 'void', 422, 'ใบแจ้งหนี้ถูกยกเลิกแล้ว');
+        $max = max(0, round($invoice->total - $invoice->paid, 2));
+        $data = $request->validate([
+            'discount' => ['required', 'numeric', 'min:0', 'max:'.$max],
+            'discount_note' => ['required_unless:discount,0', 'nullable', 'string', 'max:255'],
+        ], ['discount.max' => 'ส่วนลดเกินยอดที่ยังไม่ได้ชำระ ('.number_format($max, 2).' บาท)', 'discount_note.required_unless' => 'กรุณาระบุเหตุผลของส่วนลด']);
+
+        $old = $invoice->discount;
+        $invoice->update(['discount' => $data['discount'], 'discount_note' => $data['discount'] > 0 ? $data['discount_note'] : null]);
+        $invoice->refreshTotals();
+        Audit::log('finance.discount', $invoice, "ส่วนลดใบแจ้งหนี้ {$invoice->invoice_no}: ".number_format($data['discount'], 2).' บาท'.($invoice->discount_note ? " ({$invoice->discount_note})" : ''),
+            ['discount' => [$old, (float) $data['discount']]]);
+
+        return back()->with('success', 'บันทึกส่วนลดแล้ว');
+    }
+
+    /** ยกเลิกใบเสร็จ: แถวเดิมและเลขที่เก็บไว้เป็นหลักฐาน ยอดชำระของใบแจ้งหนี้ลดลงตาม */
+    public function voidPayment(Request $request, Payment $payment)
+    {
+        abort_if($payment->isVoided(), 422, 'ใบเสร็จนี้ถูกยกเลิกแล้ว');
+        $data = $request->validate(['void_reason' => ['required', 'string', 'max:255']], ['void_reason.required' => 'กรุณาระบุเหตุผลที่ยกเลิกใบเสร็จ']);
+
+        DB::transaction(function () use ($payment, $data, $request) {
+            $payment->update(['voided_at' => now(), 'voided_by' => $request->user()->id, 'void_reason' => $data['void_reason']]);
+            $payment->invoice->refreshTotals();
+        });
+        Audit::log('finance.void_receipt', $payment, "ยกเลิกใบเสร็จ {$payment->receipt_no} ".number_format($payment->amount, 2)." บาท: {$data['void_reason']}");
+
+        return back()->with('success', "ยกเลิกใบเสร็จ {$payment->receipt_no} แล้ว");
+    }
+
     public function receipt(Request $request, Payment $payment)
     {
-        $payment->load('invoice.student.classroom', 'invoice.items', 'receiver');
+        $payment->load('invoice.student.classroom', 'invoice.items', 'receiver', 'voider');
         $user = $request->user();
         abort_unless($user->hasPermission('finance.view') || $payment->invoice->student->isGuardedBy($user), 403);
 

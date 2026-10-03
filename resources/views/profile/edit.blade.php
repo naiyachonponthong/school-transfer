@@ -40,7 +40,7 @@
                         <div class="flex-grow-1">เชื่อม LINE แล้ว เมื่อ {{ thai_datetime($user->line_linked_at) }}</div>
                         <form method="POST" action="{{ route('profile.line.unlink') }}" data-confirm="ยกเลิกการรับแจ้งเตือนทาง LINE?">@csrf @method('DELETE')<button class="btn btn-sm btn-light border">ยกเลิก</button></form>
                     </div>
-                @elseif ($user->line_link_code)
+                @elseif ($user->activeLineCode())
                     <ol class="mb-3 small">
                         <li>เพิ่มเพื่อน LINE ของโรงเรียน @if (school('line_oa_id'))<a href="https://line.me/R/ti/p/{{ urlencode(school('line_oa_id')) }}" target="_blank" class="fw-semibold">{{ school('line_oa_id') }}</a>@endif</li>
                         <li>พิมพ์รหัสนี้ในแชทของโรงเรียน</li>

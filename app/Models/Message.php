@@ -21,7 +21,7 @@ class Message extends Model
 
     public function attachmentUrl(): ?string
     {
-        return $this->attachment ? asset('storage/'.$this->attachment) : null;
+        return $this->attachment ? route('files.show', ['chat', $this->id]) : null;
     }
 
     public function toChatArray(int $me): array

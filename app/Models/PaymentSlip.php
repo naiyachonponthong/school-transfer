@@ -13,7 +13,7 @@ class PaymentSlip extends Model
         'rejected' => ['ไม่ผ่าน', 'danger'],
     ];
 
-    protected $fillable = ['invoice_id', 'amount', 'image', 'transferred_at', 'note', 'status', 'uploaded_by', 'reviewed_by', 'reviewed_at', 'review_note', 'payment_id'];
+    protected $fillable = ['invoice_id', 'amount', 'image', 'image_hash', 'transferred_at', 'note', 'status', 'uploaded_by', 'reviewed_by', 'reviewed_at', 'review_note', 'payment_id'];
 
     protected function casts(): array
     {
@@ -37,7 +37,7 @@ class PaymentSlip extends Model
 
     public function imageUrl(): string
     {
-        return asset('storage/'.$this->image);
+        return route('files.show', ['slip', $this->id]);
     }
 
     public function statusLabel(): string

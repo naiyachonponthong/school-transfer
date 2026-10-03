@@ -38,7 +38,7 @@
                 @if ($leave->attachment)
                     <div class="border-top mt-4 pt-3">
                         <div class="small text-muted mb-2">เอกสารแนบ</div>
-                        <a href="{{ asset('storage/'.$leave->attachment) }}" target="_blank" rel="noopener noreferrer" class="btn btn-light border"><i class="bi bi-paperclip"></i> เปิดเอกสารแนบ <i class="bi bi-box-arrow-up-right small"></i></a>
+                        <a href="{{ route('files.show', ['leave', $leave->id]) }}" target="_blank" rel="noopener noreferrer" class="btn btn-light border"><i class="bi bi-paperclip"></i> เปิดเอกสารแนบ <i class="bi bi-box-arrow-up-right small"></i></a>
                     </div>
                 @endif
             </div>

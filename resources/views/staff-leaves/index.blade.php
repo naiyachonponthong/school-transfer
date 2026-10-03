@@ -15,7 +15,7 @@
                 <div class="flex-grow-1 small">
                     <div class="fw-semibold">{{ $l->user->name }} · {{ $l->typeLabel() }} {{ $l->days() }} วัน</div>
                     <div class="text-muted">{{ thai_date($l->start_date) }}@if($l->days() > 1) – {{ thai_date($l->end_date) }}@endif · {{ $l->reason }}
-                        @if ($l->attachment) · <a href="{{ asset('storage/'.$l->attachment) }}" target="_blank"><i class="bi bi-paperclip"></i> ไฟล์แนบ</a>@endif</div>
+                        @if ($l->attachment) · <a href="{{ route('files.show', ['staff-leave', $l->id]) }}" target="_blank"><i class="bi bi-paperclip"></i> ไฟล์แนบ</a>@endif</div>
                 </div>
                 <form method="POST" action="{{ route('staff-leaves.reject', $l) }}" onsubmit="const n=prompt('เหตุผล (ไม่บังคับ)');if(n===null)return false;this.note.value=n">@csrf<input type="hidden" name="note"><button class="btn btn-sm btn-outline-danger">ไม่อนุมัติ</button></form>
                 <form method="POST" action="{{ route('staff-leaves.approve', $l) }}">@csrf<button class="btn btn-sm btn-success"><i class="bi bi-check-lg"></i> อนุมัติ</button></form>

@@ -26,10 +26,17 @@ class SlipController extends Controller
             'note' => ['nullable', 'string', 'max:255'],
         ], ['slip.required' => 'กรุณาแนบรูปสลิป', 'amount.max' => 'ยอดเกินยอดค้างชำระ']);
 
+        // สลิปใบเดิมที่เคยส่งแล้ว (ยกเว้นใบที่ถูกตีกลับ) ส่งซ้ำไม่ได้ ไม่ว่ากับใบแจ้งหนี้ใบไหน
+        $hash = hash_file('sha256', $request->file('slip')->getRealPath());
+        if (PaymentSlip::where('image_hash', $hash)->where('status', '!=', 'rejected')->exists()) {
+            return back()->withErrors(['slip' => 'สลิปนี้เคยส่งเข้าระบบแล้ว']);
+        }
+
         PaymentSlip::create([
+            'image_hash' => $hash,
             'invoice_id' => $invoice->id,
             'amount' => $data['amount'],
-            'image' => $request->file('slip')->store('slips', 'public'),
+            'image' => $request->file('slip')->store('slips', 'local'),
             'transferred_at' => $data['transferred_at'] ?? now(),
             'note' => $data['note'] ?? null,
             'uploaded_by' => $user->id,
@@ -53,12 +60,14 @@ class SlipController extends Controller
 
     public function approve(Request $request, PaymentSlip $slip)
     {
-        abort_unless($slip->status === 'pending', 422, 'สลิปนี้ตรวจแล้ว');
-        $invoice = $slip->invoice;
-        $amount = min($slip->amount, $invoice->balance());
-        abort_if($amount <= 0, 422, 'ใบแจ้งหนี้นี้ชำระครบแล้ว');
+        // ล็อกสลิปและใบแจ้งหนี้ก่อนตรวจสถานะ กดยืนยันซ้อนกันจึงออกใบเสร็จได้ใบเดียว
+        [$invoice, $amount] = DB::transaction(function () use ($slip, $request) {
+            $slip = PaymentSlip::whereKey($slip->id)->lockForUpdate()->first();
+            abort_unless($slip->status === 'pending', 422, 'สลิปนี้ตรวจแล้ว');
+            $invoice = Invoice::whereKey($slip->invoice_id)->lockForUpdate()->first();
+            $amount = min($slip->amount, $invoice->balance());
+            abort_if($amount <= 0, 422, 'ใบแจ้งหนี้นี้ชำระครบแล้ว');
 
-        DB::transaction(function () use ($slip, $invoice, $amount, $request) {
             $payment = $invoice->payments()->create([
                 'receipt_no' => Payment::nextNumber(),
                 'amount' => $amount,
@@ -69,6 +78,8 @@ class SlipController extends Controller
             ]);
             $slip->update(['status' => 'approved', 'reviewed_by' => $request->user()->id, 'reviewed_at' => now(), 'payment_id' => $payment->id]);
             $invoice->refreshTotals();
+
+            return [$invoice, $amount];
         });
 
         Audit::log('finance.slip_approve', $invoice, "ยืนยันสลิป #{$slip->id} ".number_format($amount, 2)." บาท ({$invoice->title}) ของ {$invoice->student->fullName()}");

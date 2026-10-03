@@ -177,7 +177,7 @@ class HomeworkController extends Controller
         abort_if($sub->score !== null, 422, 'ครูตรวจงานนี้แล้ว ส่งใหม่ไม่ได้');
         $sub->fill([
             'text' => $data['text'] ?? $sub->text,
-            'file' => $request->hasFile('file') ? $request->file('file')->store('submissions', 'public') : $sub->file,
+            'file' => $request->hasFile('file') ? $request->file('file')->store('submissions', 'local') : $sub->file,
             'submitted_at' => now(),
             'channel' => 'online',
             'submitted_by' => $user->id,

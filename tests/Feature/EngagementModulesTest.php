@@ -83,7 +83,7 @@ class EngagementModulesTest extends TestCase
 
     public function test_homework_submit_grade_and_sync_to_gradebook(): void
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $t = $this->teacher();
         $course = Course::where('teacher_id', $t->id)->whereHas('classroom', fn ($q) => $q->whereKey($t->myClassrooms()->first()->id))->with('assessments')->first();
         $assessment = $course->assessments->first(); // เต็ม 30

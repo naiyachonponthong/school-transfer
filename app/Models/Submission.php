@@ -26,7 +26,7 @@ class Submission extends Model
 
     public function fileUrl(): ?string
     {
-        return $this->file ? asset('storage/'.$this->file) : null;
+        return $this->file ? route('files.show', ['submission', $this->id]) : null;
     }
 
     public function isLate(): bool

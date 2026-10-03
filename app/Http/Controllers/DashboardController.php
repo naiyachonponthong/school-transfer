@@ -69,7 +69,7 @@ class DashboardController extends Controller
             $finance = [
                 'outstanding' => (float) (clone $open)->sum(DB::raw('total - discount - paid')),
                 'count' => (clone $open)->count(),
-                'collected_month' => (float) DB::table('payments')->where('paid_at', '>=', now()->startOfMonth())->sum('amount'),
+                'collected_month' => (float) DB::table('payments')->whereNull('voided_at')->where('paid_at', '>=', now()->startOfMonth())->sum('amount'),
             ];
 
             // การลงเวลาของครู/บุคลากรวันนี้ — คนที่ยังไม่ลงเวลาขึ้นก่อน จะได้เห็นแล้วตามตัวได้ทัน

@@ -34,7 +34,7 @@
                     </div>
                     @if ($l->reason)<div class="small text-muted mt-1"><i class="bi bi-chat-left-quote"></i> {{ $l->reason }}</div>@endif
                     <div class="small text-muted mt-1">ส่งโดย {{ $l->requester?->name ?? '-' }} · {{ \App\Support\Thai::ago($l->created_at) }}
-                        @if ($l->attachment) · <a href="{{ asset('storage/'.$l->attachment) }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-paperclip"></i> ไฟล์แนบ</a>@endif
+                        @if ($l->attachment) · <a href="{{ route('files.show', ['leave', $l->id]) }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-paperclip"></i> ไฟล์แนบ</a>@endif
                     </div>
                 </div>
                 <a href="{{ route('leaves.show', $l) }}" class="btn btn-light border"><i class="bi bi-eye"></i> ดูรายละเอียด</a>

@@ -45,7 +45,7 @@ class StaffLeaveController extends Controller
             'attachment' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:6144'],
         ]);
         if ($request->hasFile('attachment')) {
-            $data['attachment'] = $request->file('attachment')->store('staff-leaves', 'public');
+            $data['attachment'] = $request->file('attachment')->store('staff-leaves', 'local');
         }
         $leave = StaffLeave::create($data + ['user_id' => $request->user()->id]);
 
