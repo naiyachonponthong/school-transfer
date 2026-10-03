@@ -27,7 +27,9 @@ use App\Http\Controllers\EvaluationController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\ExamScanController;
 use App\Http\Controllers\FeedController;
+use App\Http\Controllers\FeePlanController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\GateController;
 use App\Http\Controllers\GraduateController;
 use App\Http\Controllers\GradebookController;
@@ -434,6 +436,23 @@ Route::middleware('auth')->group(function () {
         Route::post('/invoices/{invoice}/void', [InvoiceController::class, 'void'])->name('invoices.void')->middleware('permission:finance.manage');
         Route::post('/invoices/{invoice}/discount', [InvoiceController::class, 'discount'])->name('invoices.discount')->middleware('permission:finance.manage');
         Route::post('/payments/{payment}/void', [InvoiceController::class, 'voidPayment'])->name('payments.void')->middleware('permission:finance.manage');
+        Route::get('/finance/reports', [FinanceController::class, 'reports'])->name('finance.reports')->middleware('permission:finance.view');
+        Route::middleware('permission:finance.manage')->group(function () {
+            Route::post('/invoices/{invoice}/installments', [FinanceController::class, 'installments'])->name('invoices.installments');
+
+            Route::get('/fees', [FeePlanController::class, 'index'])->name('fees.index');
+            Route::post('/fees/items', [FeePlanController::class, 'storeItem'])->name('fees.items.store');
+            Route::put('/fees/items/{item}', [FeePlanController::class, 'updateItem'])->name('fees.items.update');
+            Route::post('/fees/plans', [FeePlanController::class, 'storePlan'])->name('fees.plans.store');
+            Route::delete('/fees/plans/{plan}', [FeePlanController::class, 'destroyPlan'])->name('fees.plans.destroy');
+            Route::post('/fees/plans/{plan}/issue', [FeePlanController::class, 'issue'])->name('fees.plans.issue');
+            Route::post('/fees/discounts', [FeePlanController::class, 'storeDiscount'])->name('fees.discounts.store');
+            Route::delete('/fees/discounts/{discount}', [FeePlanController::class, 'destroyDiscount'])->name('fees.discounts.destroy');
+
+            Route::get('/finance/closing', [FinanceController::class, 'closing'])->name('finance.closing');
+            Route::post('/finance/closing', [FinanceController::class, 'close'])->name('finance.close');
+            Route::delete('/finance/closing/{closing}', [FinanceController::class, 'reopen'])->name('finance.reopen');
+        });
 
         Route::get('/slips', [SlipController::class, 'index'])->name('slips.index')->middleware('permission:finance.manage');
         Route::post('/slips/{slip}/approve', [SlipController::class, 'approve'])->name('slips.approve')->middleware('permission:finance.manage');

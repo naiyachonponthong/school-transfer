@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CashClosing;
 use App\Models\Classroom;
 use App\Models\Invoice;
 use App\Models\Payment;
@@ -108,7 +109,7 @@ class InvoiceController extends Controller
         $user = $request->user();
         abort_unless($user->hasPermission('finance.view') || $invoice->student->isGuardedBy($user), 403);
 
-        return view('invoices.show', ['invoice' => $invoice->load('student.classroom', 'items', 'payments.receiver', 'payments.voider', 'term')]);
+        return view('invoices.show', ['invoice' => $invoice->load('student.classroom', 'items', 'payments.receiver', 'payments.voider', 'term', 'installments')]);
     }
 
     public function pay(Request $request, Invoice $invoice)
@@ -178,6 +179,7 @@ class InvoiceController extends Controller
     public function voidPayment(Request $request, Payment $payment)
     {
         abort_if($payment->isVoided(), 422, 'ใบเสร็จนี้ถูกยกเลิกแล้ว');
+        abort_if(CashClosing::isClosed($payment->paid_at->toDateString()), 422, 'วันที่ '.thai_date($payment->paid_at).' ปิดยอดแล้ว ให้ผู้ดูแลระบบยกเลิกการปิดยอดก่อน');
         $data = $request->validate(['void_reason' => ['required', 'string', 'max:255']], ['void_reason.required' => 'กรุณาระบุเหตุผลที่ยกเลิกใบเสร็จ']);
 
         DB::transaction(function () use ($payment, $data, $request) {

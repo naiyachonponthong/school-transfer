@@ -17,7 +17,7 @@ class Invoice extends Model
         'void' => ['ยกเลิก', 'secondary'],
     ];
 
-    protected $fillable = ['invoice_no', 'student_id', 'term_id', 'title', 'due_date', 'total', 'discount', 'discount_note', 'paid', 'status', 'created_by'];
+    protected $fillable = ['invoice_no', 'student_id', 'term_id', 'title', 'due_date', 'total', 'discount', 'discount_note', 'paid', 'status', 'created_by', 'fee_plan_id'];
 
     protected function casts(): array
     {
@@ -48,6 +48,25 @@ class Invoice extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class)->latest('paid_at');
+    }
+
+    public function installments(): HasMany
+    {
+        return $this->hasMany(InvoiceInstallment::class)->orderBy('seq');
+    }
+
+    /** งวดถัดไปที่ยังชำระไม่ครบ (เงินที่รับมาตัดงวดแรกก่อน) */
+    public function nextInstallment(): ?InvoiceInstallment
+    {
+        $covered = 0.0;
+        foreach ($this->installments as $inst) {
+            $covered += $inst->amount;
+            if ($this->paid + 0.001 < $covered) {
+                return $inst;
+            }
+        }
+
+        return null;
     }
 
     public function slips(): HasMany
@@ -92,6 +111,10 @@ class Invoice extends Model
                 $this->paid <= 0 => 'unpaid',
                 default => 'partial',
             };
+        }
+        // แบ่งงวดไว้: กำหนดชำระของใบแจ้งหนี้ = วันครบกำหนดของงวดถัดไป การเตือนและสถานะเลยกำหนดจึงตามงวด
+        if ($next = $this->nextInstallment()) {
+            $this->due_date = $next->due_date;
         }
         $this->save();
     }

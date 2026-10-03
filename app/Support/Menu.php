@@ -82,6 +82,9 @@ class Menu
         ];
 
         {
+            $groups['สื่อสารและการเงิน'][] = self::item('fees', 'ผังค่าธรรมเนียม', 'bi-card-checklist', route('fees.index'), 'teal', 0, ['fees.*']);
+            $groups['สื่อสารและการเงิน'][] = self::item('closing', 'ปิดยอดรายวัน', 'bi-safe', route('finance.closing'), 'teal', 0, ['finance.closing']);
+            $groups['สื่อสารและการเงิน'][] = self::item('finreports', 'รายงานการเงิน', 'bi-graph-up', route('finance.reports'), 'teal', 0, ['finance.reports']);
             $groups['สื่อสารและการเงิน'][] = self::item('slips', 'ตรวจสลิป', 'bi-receipt-cutoff', route('slips.index'), 'teal', $slips, ['slips.*']);
             $groups['ผู้ดูแลระบบ'] = [
                 self::item('admissions', 'รับสมัครนักเรียน', 'bi-person-plus', route('admissions.index'), 'slate', $admissions, ['admissions.*']),
@@ -106,7 +109,7 @@ class Menu
         // เมนูที่ต้องมีสิทธิ์ตามตำแหน่งงาน (ที่ไม่อยู่ในรายการนี้ บุคลากรทุกคนเห็น)
         $needs = [
             'gate' => 'gate.use', 'cards' => 'gate.use', 'health' => 'health.manage', 'library' => 'library.manage', 'report' => 'reports.view',
-            'invoices' => 'finance.view', 'slips' => 'finance.manage', 'admissions' => 'admissions.manage', 'admissionexams' => 'admissions.manage',
+            'invoices' => 'finance.view', 'slips' => 'finance.manage', 'fees' => 'finance.manage', 'closing' => 'finance.manage', 'finreports' => 'finance.view', 'admissions' => 'admissions.manage', 'admissionexams' => 'admissions.manage',
             'line' => 'settings.manage', 'backups' => 'settings.manage', 'settings' => 'settings.manage', 'users' => 'users.manage', 'roles' => 'users.manage',
             'classrooms' => 'academics.manage', 'approvals' => 'academics.manage', 'substitutions' => 'academics.manage', 'subjects' => 'academics.manage', 'terms' => 'academics.manage', 'staff' => 'staff.manage', 'audit' => 'audit.view',
         ];

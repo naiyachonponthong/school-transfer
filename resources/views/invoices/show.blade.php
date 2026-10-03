@@ -121,6 +121,32 @@
                 </form>
             </div>
         @endif
+        @if ($invoice->installments->isNotEmpty())
+            <div class="card mb-3">
+                <div class="card-header"><i class="bi bi-calendar2-week"></i> แบ่งชำระ {{ $invoice->installments->count() }} งวด</div>
+                @php($covered = 0)
+                @foreach ($invoice->installments as $inst)
+                    @php($covered += $inst->amount)
+                    @php($done = $invoice->paid + 0.001 >= $covered)
+                    <div class="d-flex px-3 py-2 border-bottom small">
+                        <span class="flex-grow-1">งวดที่ {{ $inst->seq }} · กำหนด {{ thai_date($inst->due_date) }}</span>
+                        <b class="{{ $done ? 'text-success' : ($inst->due_date->isPast() ? 'text-danger' : '') }}">{{ baht($inst->amount) }}{{ $done ? ' ✓' : '' }}</b>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+        @if ($admin && in_array($invoice->status, ['unpaid', 'partial']))
+            <div class="card mb-3 no-print">
+                <div class="card-header"><i class="bi bi-calendar2-plus"></i> แบ่งงวดชำระ</div>
+                <form method="POST" action="{{ route('invoices.installments', $invoice) }}" class="card-body d-flex flex-wrap gap-2 align-items-end">
+                    @csrf
+                    <div><label class="form-label small mb-1">จำนวนงวด</label><input type="number" name="count" min="1" max="12" value="{{ max(1, $invoice->installments->count()) }}" class="form-control form-control-sm" style="width:90px" required></div>
+                    <div><label class="form-label small mb-1">ครบกำหนดงวดแรก</label><input type="date" name="first_due" value="{{ $invoice->installments->first()?->due_date->toDateString() ?? $invoice->due_date?->toDateString() }}" class="form-control form-control-sm"></div>
+                    <button class="btn btn-sm btn-light border">บันทึกงวด</button>
+                    <div class="small text-muted w-100">งวดละเท่ากัน ห่างกัน 1 เดือน · ใส่ 1 งวด = ยกเลิกการแบ่ง</div>
+                </form>
+            </div>
+        @endif
         @if ($admin && $invoice->status !== 'void')
             <div class="card mb-3">
                 <div class="card-header"><i class="bi bi-tag"></i> ส่วนลด</div>
