@@ -7,7 +7,7 @@
     <div class="actions"><a href="{{ route('care.index') }}" class="btn btn-light border"><i class="bi bi-arrow-left"></i> กลับ</a></div>
 </div>
 
-<form method="POST" action="{{ route('care.store') }}" class="card" style="max-width:760px">
+<form method="POST" action="{{ route('care.store') }}" class="card">
     @csrf
     <input type="hidden" name="student_id" value="{{ $student->id }}">
     <div class="card-body row g-3">

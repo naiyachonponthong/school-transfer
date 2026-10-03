@@ -2,8 +2,8 @@
 @section('title', $user->exists ? 'แก้ไขผู้ใช้' : 'เพิ่มผู้ใช้')
 
 @section('content')
-<div class="row justify-content-center">
-    <div class="col-lg-7">
+<div class="row">
+    <div class="col-12">
         <div class="page-head"><h1>{{ $user->exists ? 'แก้ไข: '.$user->name : 'เพิ่มผู้ใช้' }}</h1></div>
         <form method="POST" action="{{ $user->exists ? route('users.update', $user) : route('users.store') }}" class="card">
             @csrf @if ($user->exists) @method('PUT') @endif
@@ -26,12 +26,12 @@
                         @endforeach
                     </div>
                 </div>
-                <div class="col-md-7"><label class="form-label">ชื่อ-สกุล</label><input name="name" value="{{ old('name', $user->name) }}" class="form-control" required></div>
-                <div class="col-md-5"><label class="form-label">ตำแหน่ง</label><input name="position" value="{{ old('position', $user->position) }}" class="form-control" placeholder="เช่น ครูชำนาญการ"></div>
-                <div class="col-md-6"><label class="form-label">ชื่อผู้ใช้ (ใช้เข้าระบบ)</label><input name="username" value="{{ old('username', $user->username) }}" class="form-control" required pattern="[A-Za-z0-9_\-]+" title="ภาษาอังกฤษ ตัวเลข _ -"></div>
-                <div class="col-md-6"><label class="form-label">เบอร์โทร (เข้าระบบด้วยเบอร์ได้)</label><input name="phone" value="{{ old('phone', $user->phone) }}" class="form-control" inputmode="tel"></div>
-                <div class="col-md-6"><label class="form-label">อีเมล</label><input type="email" name="email" value="{{ old('email', $user->email) }}" class="form-control"></div>
-                <div class="col-md-6">
+                <div class="col-md-6 col-xl-4"><label class="form-label">ชื่อ-สกุล</label><input name="name" value="{{ old('name', $user->name) }}" class="form-control" required></div>
+                <div class="col-md-6 col-xl-4"><label class="form-label">ตำแหน่ง</label><input name="position" value="{{ old('position', $user->position) }}" class="form-control" placeholder="เช่น ครูชำนาญการ"></div>
+                <div class="col-md-6 col-xl-4"><label class="form-label">ชื่อผู้ใช้ (ใช้เข้าระบบ)</label><input name="username" value="{{ old('username', $user->username) }}" class="form-control" required pattern="[A-Za-z0-9_\-]+" title="ภาษาอังกฤษ ตัวเลข _ -"></div>
+                <div class="col-md-6 col-xl-4"><label class="form-label">เบอร์โทร (เข้าระบบด้วยเบอร์ได้)</label><input name="phone" value="{{ old('phone', $user->phone) }}" class="form-control" inputmode="tel"></div>
+                <div class="col-md-6 col-xl-4"><label class="form-label">อีเมล</label><input type="email" name="email" value="{{ old('email', $user->email) }}" class="form-control"></div>
+                <div class="col-md-6 col-xl-4">
                     <label class="form-label">รหัสผ่าน {{ $user->exists ? '(เว้นว่าง = ไม่เปลี่ยน)' : '(เว้นว่าง = สุ่มให้)' }}</label>
                     <input type="text" name="password" class="form-control" autocomplete="new-password" minlength="6">
                 </div>

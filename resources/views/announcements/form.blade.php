@@ -3,8 +3,8 @@
 
 @section('content')
 @php($admin = auth()->user()->isAdmin())
-<div class="row justify-content-center">
-    <div class="col-lg-8">
+<div class="row">
+    <div class="col-12">
         <div class="page-head"><h1>{{ $announcement->exists ? 'แก้ไขประกาศ' : 'สร้างประกาศ' }}</h1></div>
         <form method="POST" action="{{ $announcement->exists ? route('announcements.update', $announcement) : route('announcements.store') }}" class="card">
             @csrf @if ($announcement->exists) @method('PUT') @endif

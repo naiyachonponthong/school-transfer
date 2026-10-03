@@ -2,9 +2,9 @@
 @section('title', 'ข้อมูลส่วนตัว')
 
 @section('content')
-<div class="row justify-content-center">
-    <div class="col-lg-6">
-        <div class="page-head"><h1>ข้อมูลส่วนตัว</h1></div>
+<div class="page-head"><h1>ข้อมูลส่วนตัว</h1></div>
+<div class="row g-3">
+    <div class="col-xl-8">
         <form method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data" class="card">
             @csrf @method('PUT')
             <div class="card-body row g-3">
@@ -17,21 +17,23 @@
                     <img id="avatarNew" class="d-none rounded-circle" style="width:64px;height:64px;object-fit:cover" alt="">
                     <div><div class="fw-semibold">{{ $user->username }}</div><div class="small text-muted">{{ $user->roleLabel() }} · แตะรูปเพื่อเปลี่ยน</div></div>
                 </div>
-                <div class="col-12"><label class="form-label">ชื่อ-สกุล</label><input name="name" value="{{ old('name', $user->name) }}" class="form-control" required @readonly($user->isStudent())>@if ($user->isStudent())<div class="form-text">แก้ชื่อได้ที่ครูประจำชั้น</div>@endif</div>
-                <div class="col-md-6"><label class="form-label">เบอร์โทร</label><input name="phone" value="{{ old('phone', $user->phone) }}" class="form-control"></div>
-                <div class="col-md-6"><label class="form-label">อีเมล</label><input type="email" name="email" value="{{ old('email', $user->email) }}" class="form-control"></div>
+                <div class="col-md-4"><label class="form-label">ชื่อ-สกุล</label><input name="name" value="{{ old('name', $user->name) }}" class="form-control" required @readonly($user->isStudent())>@if ($user->isStudent())<div class="form-text">แก้ชื่อได้ที่ครูประจำชั้น</div>@endif</div>
+                <div class="col-md-4"><label class="form-label">เบอร์โทร</label><input name="phone" value="{{ old('phone', $user->phone) }}" class="form-control"></div>
+                <div class="col-md-4"><label class="form-label">อีเมล</label><input type="email" name="email" value="{{ old('email', $user->email) }}" class="form-control"></div>
             </div>
             <div class="card-header border-top"><i class="bi bi-key"></i> เปลี่ยนรหัสผ่าน</div>
             <div class="card-body row g-3">
-                <div class="col-12"><label class="form-label">รหัสผ่านเดิม</label><input type="password" name="current_password" class="form-control" autocomplete="current-password"></div>
-                <div class="col-md-6"><label class="form-label">รหัสผ่านใหม่</label><input type="password" name="password" class="form-control" autocomplete="new-password" minlength="6"></div>
-                <div class="col-md-6"><label class="form-label">ยืนยันรหัสผ่านใหม่</label><input type="password" name="password_confirmation" class="form-control" autocomplete="new-password"></div>
+                <div class="col-md-4"><label class="form-label">รหัสผ่านเดิม</label><input type="password" name="current_password" class="form-control" autocomplete="current-password"></div>
+                <div class="col-md-4"><label class="form-label">รหัสผ่านใหม่</label><input type="password" name="password" class="form-control" autocomplete="new-password" minlength="6"></div>
+                <div class="col-md-4"><label class="form-label">ยืนยันรหัสผ่านใหม่</label><input type="password" name="password_confirmation" class="form-control" autocomplete="new-password"></div>
             </div>
             <div class="card-footer bg-transparent"><button class="btn btn-primary"><i class="bi bi-save"></i> บันทึก</button></div>
         </form>
+    </div>
 
-        {{-- เชื่อม LINE รับแจ้งเตือน --}}
-        <div class="card mt-3">
+    {{-- เชื่อม LINE รับแจ้งเตือน --}}
+    <div class="col-xl-4">
+        <div class="card">
             <div class="card-header"><i class="bi bi-chat-dots" style="color:#06c755"></i> รับแจ้งเตือนทาง LINE</div>
             <div class="card-body">
                 @if ($user->hasLine())
