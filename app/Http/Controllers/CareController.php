@@ -148,6 +148,20 @@ class CareController extends Controller
         ]);
     }
 
+    /** แบบบันทึกการเยี่ยมบ้าน 4 หน้า A4 ตามแบบ สพฐ. (ยังไม่บันทึก = แบบเปล่าไว้กรอกด้วยมือ) */
+    public function printVisit(Request $request, Student $student)
+    {
+        $this->authorizeStudent($request, $student);
+        $term = Term::current();
+        abort_unless($term, 422, 'ยังไม่ได้ตั้งภาคเรียนปัจจุบัน');
+
+        return view('care.visit-print', [
+            'student' => $student->load('classroom'),
+            'term' => $term,
+            'visit' => HomeVisit::with('visitor')->firstOrNew(['student_id' => $student->id, 'term_id' => $term->id]),
+        ]);
+    }
+
     public function saveVisit(Request $request, Student $student)
     {
         $this->authorizeStudent($request, $student);

@@ -145,6 +145,8 @@ class StudentCareTest extends TestCase
         // เปิดกลับมาแก้ ค่าที่กรอกไว้ยังอยู่ และมีหัวข้อครบตามแบบ
         $this->get(route('care.visits.form', $student))->assertOk()->assertSee('สมศรี')->assertSee('จำนวนสมาชิกในครัวเรือน')
             ->assertSee('ความสัมพันธ์ในครอบครัว')->assertSee('พฤติกรรมและความเสี่ยง')->assertSee('การติดเกม')->assertSee('ภาพถ่ายภายในบ้านนักเรียน');
+        // หน้าพิมพ์ตามแบบ 4 หน้า
+        $this->get(route('care.visits.print', $student))->assertOk()->assertSee('หน้า 4/4')->assertSee('สมศรี')->assertSee('6,600')->assertSee('ขอรับรองว่าข้อมูลดังกล่าวเป็นจริง');
         $this->get(route('care.visits'))->assertOk()->assertSee('เศรษฐกิจ/รายได้');
 
         // รูปเยี่ยมบ้าน: ครูประจำชั้นเปิดได้ ผู้ปกครองของเด็กเองก็เปิดไม่ได้

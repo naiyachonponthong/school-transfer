@@ -14,10 +14,6 @@
     .hv-table input { min-width: 0; }
     .hv-savebar { position: sticky; bottom: 0; z-index: 5; background: var(--sb-card); border-top: 1px solid var(--sb-border); }
     @media (max-width: 991.98px) { .hv-savebar { position: static; } } /* จอเล็กมีแถบเมนูล่างอยู่แล้ว */
-    @media print {
-        .hv-savebar, .page-head .actions { display: none !important; }
-        .card { break-inside: avoid; box-shadow: none !important; border: 1px solid #bbb !important; }
-    }
 </style>
 @endpush
 
@@ -38,7 +34,7 @@
 <div class="page-head">
     <div><h1>บันทึกการเยี่ยมบ้าน</h1><div class="sub">{{ $student->fullName() }} · {{ $student->classroom?->name() }} · {{ $term->label() }} · แบบบันทึกนี้รวมการคัดกรองนักเรียนยากจน</div></div>
     <div class="actions">
-        <button type="button" onclick="print()" class="btn btn-light border"><i class="bi bi-printer"></i> พิมพ์</button>
+        <a href="{{ route('care.visits.print', $student) }}" target="_blank" class="btn btn-light border" title="พิมพ์ตามแบบ 4 หน้า จากข้อมูลที่บันทึกแล้ว"><i class="bi bi-printer"></i> พิมพ์แบบ</a>
         <a href="{{ route('care.visits', ['classroom' => $student->classroom_id]) }}" class="btn btn-light border"><i class="bi bi-arrow-left"></i> กลับ</a>
     </div>
 </div>
@@ -298,7 +294,7 @@
     </div>
 
     <div class="hv-savebar d-flex align-items-center gap-3 px-3 py-2 mt-3 rounded-3">
-        <span class="small text-muted flex-grow-1">○ ตอบได้ข้อเดียว · ☐ ตอบได้มากกว่า 1 ข้อ · บันทึกแล้วกลับมาแก้ไขได้ตลอดภาคเรียน</span>
+        <span class="small text-muted flex-grow-1">○ ตอบได้ข้อเดียว · ☐ ตอบได้มากกว่า 1 ข้อ · บันทึกแล้วกลับมาแก้ไขได้ตลอดภาคเรียน · ปุ่ม "พิมพ์แบบ" พิมพ์จากข้อมูลที่บันทึกแล้ว</span>
         <button class="btn btn-primary"><i class="bi bi-check-lg"></i> บันทึก</button>
     </div>
 </form>

@@ -561,7 +561,7 @@ a.card:hover { box-shadow: var(--sb-shadow-lg); }
     .card { box-shadow: none; }
     .print-only { display: block; }
     body { background: #fff; font-size: 13px; }
-    @page { size: A4; margin: 12mm; }
+    @page { size: A4; margin: 14mm 12mm 12mm; }
     /* เอกสาร ปพ.: หนึ่งการ์ด = หนึ่งหน้ากระดาษ */
     .doc-page { border: 0; margin-top: 0 !important; break-after: page; }
     .doc-page:last-of-type { break-after: auto; }
@@ -606,7 +606,7 @@ a.card:hover { box-shadow: var(--sb-shadow-lg); }
 .sheet-preview svg { width: 100%; max-width: 560px; height: auto; box-shadow: 0 4px 20px rgba(0,0,0,.12); background: #fff; }
 #printArea { display: none; }
 @media print {
-    @page { size: A4; margin: 0; }
+    /* ขอบ 0 ของกระดาษคำตอบใส่ตอนสั่งพิมพ์ใน scangrade/sheet.js เท่านั้น — ใส่ @page ตรงนี้จะทับขอบกระดาษของทุกหน้า */
     body.printing-omr > *:not(#printArea) { display: none !important; }
     body.printing-omr #printArea { display: block !important; }
     #printArea .omr-page { width: 210mm; height: 297mm; page-break-after: always; break-after: page; overflow: hidden; }

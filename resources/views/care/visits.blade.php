@@ -32,7 +32,7 @@
                     <td class="small">{{ $v?->guardian_met ?: '-' }}</td>
                     <td class="small">{{ $v ? (\App\Models\HomeVisit::HOUSING[$v->housing] ?? '-') : '-' }}</td>
                     <td class="small {{ $v && $v->riskLabels() ? 'text-danger' : 'text-muted' }}">{{ $v ? (implode(', ', $v->riskLabels()) ?: 'ไม่พบ') : '' }}</td>
-                    <td class="text-end no-print"><a href="{{ route('care.visits.form', $s) }}" class="btn btn-sm {{ $v ? 'btn-light border' : 'btn-primary' }}">{{ $v ? 'แก้ไข' : 'บันทึก' }}</a></td>
+                    <td class="text-end no-print text-nowrap"><a href="{{ route('care.visits.print', $s) }}" target="_blank" class="btn btn-sm btn-light border" title="พิมพ์แบบบันทึกการเยี่ยมบ้าน"><i class="bi bi-printer"></i></a> <a href="{{ route('care.visits.form', $s) }}" class="btn btn-sm {{ $v ? 'btn-light border' : 'btn-primary' }}">{{ $v ? 'แก้ไข' : 'บันทึก' }}</a></td>
                 </tr>
             @empty
                 <tr><td colspan="6"><div class="empty"><i class="bi bi-people"></i>{{ $classroom ? 'ห้องนี้ยังไม่มีนักเรียน' : 'คุณยังไม่ได้เป็นครูประจำชั้นของห้องใด' }}</div></td></tr>

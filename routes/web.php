@@ -266,6 +266,7 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
         Route::get('/care/visits', [CareController::class, 'visits'])->name('care.visits');
         Route::get('/care/visits/{student}', [CareController::class, 'visitForm'])->name('care.visits.form');
         Route::post('/care/visits/{student}', [CareController::class, 'saveVisit'])->name('care.visits.save');
+        Route::get('/care/visits/{student}/print', [CareController::class, 'printVisit'])->name('care.visits.print');
         Route::get('/care/{case}', [CareController::class, 'show'])->name('care.show')->whereNumber('case');
         Route::put('/care/{case}', [CareController::class, 'update'])->name('care.update')->whereNumber('case');
         Route::post('/care/{case}/actions', [CareController::class, 'addAction'])->name('care.actions.store')->whereNumber('case');

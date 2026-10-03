@@ -121,11 +121,16 @@
     if (!pa) { pa = document.createElement('div'); pa.id = 'printArea'; document.body.appendChild(pa); }
     pa.innerHTML = pages.map(function (p) { return '<div class="omr-page">' + p + '</div>'; }).join('');
     document.body.classList.add('printing-omr');
+    if (!document.getElementById('omrPageStyle')) {
+      var st = document.createElement('style'); st.id = 'omrPageStyle'; st.textContent = '@page { size: A4; margin: 0; }';
+      document.head.appendChild(st);
+    }
     var go = function () { setTimeout(function () { window.print(); }, 150); };
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(go); else go();
   }
   window.addEventListener('afterprint', function () {
     document.body.classList.remove('printing-omr');
+    var st = document.getElementById('omrPageStyle'); if (st) st.remove();
     var pa = document.getElementById('printArea'); if (pa) pa.innerHTML = '';
   });
 
