@@ -35,6 +35,7 @@ class Permissions
             'users.manage' => 'ผู้ใช้งาน ตำแหน่งงานและสิทธิ์',
             'settings.manage' => 'ตั้งค่าโรงเรียน LINE แจ้งเตือน สำรองข้อมูล',
             'audit.view' => 'ประวัติการแก้ไข (ใครแก้อะไร เมื่อไร)',
+            'executive.view' => 'แดชบอร์ดภาพรวมผู้บริหาร',
         ],
     ];
 
@@ -42,7 +43,7 @@ class Permissions
     public const DEFAULT_ROLES = [
         // บุคลากรที่ยังไม่ได้กำหนดตำแหน่งใช้สิทธิ์ของ "ครู"
         'teacher' => ['ครู', ['students.edit', 'gate.use', 'health.manage', 'library.manage', 'reports.view']],
-        'executive' => ['ผู้บริหาร', ['finance.view', 'reports.view', 'staff.manage', 'audit.view', 'care.manage']],
+        'executive' => ['ผู้บริหาร', ['finance.view', 'reports.view', 'staff.manage', 'audit.view', 'care.manage', 'executive.view']],
         'academic' => ['วิชาการ/ทะเบียน', ['students.edit', 'reports.view', 'academics.manage', 'admissions.manage']],
         'finance' => ['การเงิน', ['finance.view', 'finance.manage']],
         'nurse' => ['พยาบาล', ['health.manage']],

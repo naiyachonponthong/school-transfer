@@ -28,6 +28,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EvaluationController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\ExamScanController;
+use App\Http\Controllers\ExecutiveController;
 use App\Http\Controllers\FeedController;
 use App\Http\Controllers\FeePlanController;
 use App\Http\Controllers\FileController;
@@ -49,6 +50,7 @@ use App\Http\Controllers\ManifestController;
 use App\Http\Controllers\ParentController;
 use App\Http\Controllers\PeriodAttendanceController;
 use App\Http\Controllers\PortfolioController;
+use App\Http\Controllers\PrivacyController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportCardController;
 use App\Http\Controllers\RepairController;
@@ -99,9 +101,11 @@ Route::middleware('guest')->group(function () {
     Route::post('/reset-password', [PasswordController::class, 'reset'])->name('password.reset.save')->middleware('throttle:10,1');
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'privacy.accepted'])->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
     Route::get('/files/{type}/{id}', [FileController::class, 'show'])->name('files.show')->whereNumber('id');
+    Route::get('/privacy', [PrivacyController::class, 'show'])->name('privacy.show');
+    Route::post('/privacy', [PrivacyController::class, 'accept'])->name('privacy.accept');
     Route::get('/password/change', [PasswordController::class, 'showChange'])->name('password.change');
     Route::post('/password/change', [PasswordController::class, 'change'])->name('password.change.save');
     Route::get('/', [DashboardController::class, 'index'])->name('home');
@@ -535,6 +539,9 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/settings/messages', [LineController::class, 'logs'])->name('settings.messages')->middleware('permission:settings.manage');
         Route::post('/settings/line-test', [LineController::class, 'test'])->name('settings.line-test')->middleware('permission:settings.manage');
+
+        Route::get('/executive', [ExecutiveController::class, 'index'])->name('executive.index')->middleware('permission:executive.view');
+        Route::get('/students/{student}/data-export', [PrivacyController::class, 'export'])->name('students.data-export')->middleware('permission:users.manage');
 
         Route::middleware('permission:users.manage')->group(function () {
             Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');

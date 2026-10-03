@@ -56,6 +56,16 @@
                 <div class="col-md-4"><label class="form-label">วันเรียน</label><select name="school_days" class="form-select"><option value="5" @selected($settings['school_days'] != 6)>จันทร์–ศุกร์</option><option value="6" @selected($settings['school_days'] == 6)>จันทร์–เสาร์</option></select></div>
                 <div class="col-12"><label class="form-label">เวลาแต่ละคาบ (บรรทัดละคาบ)</label><textarea name="period_times" rows="5" class="form-control font-monospace small">{{ $settings['period_times'] }}</textarea></div>
             </div>
+            <div class="card-header border-top" id="privacy"><i class="bi bi-shield-lock"></i> ประกาศความเป็นส่วนตัว (PDPA)</div>
+            <div class="card-body row g-3">
+                <div class="col-12">
+                    <textarea name="privacy_notice" rows="6" class="form-control" placeholder="เว้นว่าง = ไม่บังคับให้รับทราบ · ใส่ข้อความแล้วผู้ใช้ทุกคนต้องกดรับทราบก่อนเข้าใช้งานครั้งถัดไป">{{ old('privacy_notice', $settings['privacy_notice']) }}</textarea>
+                    <div class="d-flex flex-wrap gap-3 mt-2 small">
+                        <label><input type="checkbox" class="form-check-input" name="privacy_bump" value="1"> แก้ไขสาระสำคัญ ให้ทุกคนรับทราบใหม่ (ตอนนี้ฉบับที่ {{ $settings['privacy_version'] }})</label>
+                        <span class="text-muted">รับทราบฉบับปัจจุบันแล้ว {{ \Illuminate\Support\Facades\DB::table('privacy_consents')->where('version', (int) $settings['privacy_version'])->count() }} คน</span>
+                    </div>
+                </div>
+            </div>
             <div class="card-header border-top"><i class="bi bi-bank"></i> ช่องทางรับชำระเงิน (แสดงในใบแจ้งหนี้)</div>
             <div class="card-body row g-3">
                 <div class="col-md-5"><label class="form-label">พร้อมเพย์</label><input name="promptpay_id" value="{{ $settings['promptpay_id'] }}" class="form-control" placeholder="เบอร์โทร/เลขผู้เสียภาษี"></div>

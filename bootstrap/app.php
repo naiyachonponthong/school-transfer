@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureRole::class,
             'permission' => \App\Http\Middleware\EnsurePermission::class,
+            'privacy.accepted' => \App\Http\Middleware\EnsurePrivacyAccepted::class,
         ]);
         $middleware->appendToGroup('web', \App\Http\Middleware\EnsurePasswordChanged::class);
         $middleware->validateCsrfTokens(except: ['line/webhook']);

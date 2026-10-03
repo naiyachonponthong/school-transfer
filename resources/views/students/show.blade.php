@@ -323,6 +323,9 @@
     </div>
 </div>
 
+@if (auth()->user()->hasPermission('users.manage'))
+    <div class="mt-4 text-end no-print"><a href="{{ route('students.data-export', $student) }}" class="btn btn-sm btn-link text-muted"><i class="bi bi-download"></i> ส่งออกข้อมูลส่วนบุคคลทั้งหมด (PDPA)</a></div>
+@endif
 @if (auth()->user()->isAdmin())
     <form method="POST" action="{{ route('students.destroy', $student) }}" class="mt-4 text-end" data-confirm="ลบนักเรียนคนนี้? ลบได้เฉพาะคนที่ยังไม่มีคะแนน การมาเรียน หรือใบแจ้งหนี้ (เช่น เพิ่มผิด) — ถ้าย้ายหรือลาออกให้เปลี่ยนสถานะแทน">
         @csrf @method('DELETE')

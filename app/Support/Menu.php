@@ -93,6 +93,7 @@ class Menu
             $groups['สื่อสารและการเงิน'][] = self::item('finreports', 'รายงานการเงิน', 'bi-graph-up', route('finance.reports'), 'teal', 0, ['finance.reports']);
             $groups['สื่อสารและการเงิน'][] = self::item('slips', 'ตรวจสลิป', 'bi-receipt-cutoff', route('slips.index'), 'teal', $slips, ['slips.*']);
             $groups['ผู้ดูแลระบบ'] = [
+                self::item('executive', 'ภาพรวมผู้บริหาร', 'bi-speedometer2', route('executive.index'), 'slate', 0, ['executive.*']),
                 self::item('admissions', 'รับสมัครนักเรียน', 'bi-person-plus', route('admissions.index'), 'slate', $admissions, ['admissions.*']),
                 self::item('admissionexams', 'สอบคัดเลือก', 'bi-trophy', route('admission-exams.index'), 'slate', 0, ['admission-exams.*']),
                 self::item('line', 'LINE แจ้งเตือน', 'bi-chat-dots', route('settings.messages'), 'slate', 0, ['settings.messages']),
@@ -117,7 +118,7 @@ class Menu
             'gate' => 'gate.use', 'cards' => 'gate.use', 'health' => 'health.manage', 'library' => 'library.manage', 'report' => 'reports.view',
             'invoices' => 'finance.view', 'slips' => 'finance.manage', 'fees' => 'finance.manage', 'closing' => 'finance.manage', 'finreports' => 'finance.view', 'admissions' => 'admissions.manage', 'admissionexams' => 'admissions.manage',
             'line' => 'settings.manage', 'backups' => 'settings.manage', 'settings' => 'settings.manage', 'users' => 'users.manage', 'roles' => 'users.manage',
-            'classrooms' => 'academics.manage', 'approvals' => 'academics.manage', 'substitutions' => 'academics.manage', 'subjects' => 'academics.manage', 'terms' => 'academics.manage', 'staff' => 'staff.manage', 'stafflist' => 'staff.manage', 'audit' => 'audit.view',
+            'classrooms' => 'academics.manage', 'approvals' => 'academics.manage', 'substitutions' => 'academics.manage', 'subjects' => 'academics.manage', 'terms' => 'academics.manage', 'staff' => 'staff.manage', 'stafflist' => 'staff.manage', 'audit' => 'audit.view', 'executive' => 'executive.view',
         ];
 
         return array_filter(array_map(

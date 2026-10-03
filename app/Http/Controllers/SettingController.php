@@ -41,6 +41,7 @@ class SettingController extends Controller
             'periods_per_day' => ['required', 'integer', 'min:1', 'max:12'],
             'period_times' => ['nullable', 'string', 'max:1000'],
             'school_days' => ['nullable', 'in:5,6'],
+            'privacy_notice' => ['nullable', 'string', 'max:20000'],
             'grade_scale' => ['nullable', 'string', 'max:60', fn ($attr, $value, $fail) => \App\Support\Grade::parseScale((string) $value) === null ? $fail('เกณฑ์ตัดเกรดต้องเป็นจำนวนเต็ม 7 ค่า เรียงจากมากไปน้อย คั่นด้วยจุลภาค เช่น 80,75,70,65,60,55,50') : null],
             'promptpay_id' => ['nullable', 'string', 'max:20'],
             'bank_info' => ['nullable', 'string', 'max:500'],
@@ -58,6 +59,10 @@ class SettingController extends Controller
             'facility_manager_ids.*' => ['integer', 'exists:users,id'],
         ], ['theme_color.regex' => 'รหัสสีต้องเป็นรูปแบบ #RRGGBB']);
         $data['theme_color'] = strtoupper($data['theme_color']);
+        // แก้ประกาศความเป็นส่วนตัวแล้วต้องการให้ทุกคนรับทราบใหม่ = ขึ้นฉบับใหม่
+        if ($request->boolean('privacy_bump')) {
+            $data['privacy_version'] = (string) ((int) Settings::get('privacy_version', 1) + 1);
+        }
         $data['facility_manager_ids'] = implode(',', $data['facility_manager_ids'] ?? []);
         foreach (['line_notify_gate', 'line_notify_absent', 'gps_required'] as $flag) {
             $data[$flag] = $request->boolean($flag) ? '1' : '0';
