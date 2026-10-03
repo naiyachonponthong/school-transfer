@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\HomeVisit;
 use App\Models\LeaveRequest;
 use App\Models\Message;
 use App\Models\PaymentSlip;
@@ -24,6 +25,7 @@ class FileController extends Controller
         'staff-leave' => [StaffLeave::class, 'attachment'],
         'chat' => [Message::class, 'attachment'],
         'submission' => [Submission::class, 'file'],
+        'home-visit' => [HomeVisit::class, 'photo'],
     ];
 
     public function show(Request $request, string $type, int $id)
@@ -49,6 +51,8 @@ class FileController extends Controller
             'staff-leave' => $user->hasPermission('staff.manage') || $model->user_id === $user->id,
             'chat' => $model->conversation->hasParticipant($user),
             'submission' => $model->student->canBeViewedBy($user),
+            // รูปเยี่ยมบ้าน: เฉพาะครูประจำชั้นและผู้มีสิทธิ์ดูแลช่วยเหลือ ผู้ปกครองเปิดไม่ได้
+            'home-visit' => $user->hasPermission('care.manage') || $user->myClassrooms()->contains('id', $model->student->classroom_id),
             default => false,
         };
     }

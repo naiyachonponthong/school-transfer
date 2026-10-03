@@ -16,6 +16,7 @@ class Permissions
             'health.manage' => 'ห้องพยาบาล บันทึกน้ำหนัก-ส่วนสูง',
             'library.manage' => 'ห้องสมุด ยืม-คืนหนังสือ ลงทะเบียนหนังสือ',
             'reports.view' => 'รายงาน / ส่งออก DMC',
+            'care.manage' => 'ดูแลช่วยเหลือและเยี่ยมบ้านนักเรียนทุกห้อง (ครูประจำชั้นดูแลห้องตัวเองได้อยู่แล้ว)',
         ],
         'การเงิน' => [
             'finance.view' => 'ดูใบแจ้งหนี้และยอดค้างชำระทั้งโรงเรียน',
@@ -40,7 +41,7 @@ class Permissions
     public const DEFAULT_ROLES = [
         // บุคลากรที่ยังไม่ได้กำหนดตำแหน่งใช้สิทธิ์ของ "ครู"
         'teacher' => ['ครู', ['students.edit', 'gate.use', 'health.manage', 'library.manage', 'reports.view']],
-        'executive' => ['ผู้บริหาร', ['finance.view', 'reports.view', 'staff.manage', 'audit.view']],
+        'executive' => ['ผู้บริหาร', ['finance.view', 'reports.view', 'staff.manage', 'audit.view', 'care.manage']],
         'academic' => ['วิชาการ/ทะเบียน', ['students.edit', 'reports.view', 'academics.manage', 'admissions.manage']],
         'finance' => ['การเงิน', ['finance.view', 'finance.manage']],
         'nurse' => ['พยาบาล', ['health.manage']],

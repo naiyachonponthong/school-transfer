@@ -40,6 +40,8 @@ class Menu
                 self::item('today', 'สรุปวันนี้', 'bi-clipboard-data', route('attendance.today'), 'primary', 0, ['attendance.today']),
                 self::item('leaves', 'ใบลานักเรียน', 'bi-envelope-paper', route('leaves.index'), 'primary', $pendingLeaves, ['leaves.*']),
                 self::item('behavior', 'ความประพฤติ', 'bi-award', route('behavior.index'), 'primary', 0, ['behavior.*']),
+                self::item('care', 'ดูแลช่วยเหลือ', 'bi-clipboard-heart', route('care.index'), 'primary', 0, ['care.*']),
+                self::item('consents', 'ขออนุญาตผู้ปกครอง', 'bi-envelope-check', route('consents.index'), 'primary', 0, ['consents.*']),
                 self::item('health', 'ห้องพยาบาล', 'bi-heart-pulse', route('health.index'), 'primary', 0, ['health.*']),
             ],
             'วิชาการ' => [
@@ -210,6 +212,7 @@ class Menu
                 self::item('leave', 'ส่งใบลา', 'bi-envelope-paper', route('parent.leave'), 'primary', 0, ['parent.leave']),
                 self::item('homework', 'การบ้าน', 'bi-journal-text', route('parent.homework'), 'primary', 0, ['parent.homework']),
                 self::item('chat', 'คุยกับครู', 'bi-chat-dots', route('chat.index'), 'blue', Conversation::unreadTotal($user), ['chat.*']),
+                self::item('consents', 'หนังสือขออนุญาต', 'bi-envelope-check', route('parent.consents'), 'primary', 0, ['parent.consents']),
                 self::item('portfolio', 'แฟ้มผลงาน', 'bi-folder2-open', $child ? route('portfolio.show', $child) : route('parent.home'), 'primary', 0, ['portfolio.*']),
                 self::item('survey', 'แบบประเมิน', 'bi-clipboard-heart', $tab('survey'), 'primary'),
                 self::item('attendance', 'การมาเรียน', 'bi-calendar-check', $tab('overview'), 'primary'),

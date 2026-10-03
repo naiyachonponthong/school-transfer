@@ -18,7 +18,9 @@ use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\CareController;
 use App\Http\Controllers\ClassroomController;
+use App\Http\Controllers\ConsentController;
 use App\Http\Controllers\CourseApprovalController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\CourseMemberController;
@@ -154,6 +156,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/child/{student}', [ParentController::class, 'child'])->name('child');
         Route::get('/leave', [ParentController::class, 'leaveForm'])->name('leave');
         Route::post('/leave', [ParentController::class, 'leaveStore'])->name('leave.store');
+        Route::get('/consents', [ConsentController::class, 'parentIndex'])->name('consents');
+        Route::post('/consents/{form}', [ConsentController::class, 'respond'])->name('consents.respond');
         Route::get('/homework', [HomeworkController::class, 'parentIndex'])->name('homework');
         Route::post('/homework/{assignment}', [HomeworkController::class, 'submit'])->name('homework.submit');
     });
@@ -234,6 +238,24 @@ Route::middleware('auth')->group(function () {
         Route::put('/assessments/{assessment}', [GradebookController::class, 'updateAssessment'])->name('assessments.update');
         Route::delete('/assessments/{assessment}', [GradebookController::class, 'destroyAssessment'])->name('assessments.destroy');
         Route::get('/courses/{course}/export', [GradebookController::class, 'export'])->name('gradebook.export');
+
+        // ดูแลช่วยเหลือนักเรียน (ครูประจำชั้น = ห้องตัวเอง, care.manage = ทุกห้อง — ตรวจใน controller)
+        Route::get('/care', [CareController::class, 'index'])->name('care.index');
+        Route::get('/care/create', [CareController::class, 'create'])->name('care.create');
+        Route::post('/care', [CareController::class, 'store'])->name('care.store');
+        Route::get('/care/visits', [CareController::class, 'visits'])->name('care.visits');
+        Route::get('/care/visits/{student}', [CareController::class, 'visitForm'])->name('care.visits.form');
+        Route::post('/care/visits/{student}', [CareController::class, 'saveVisit'])->name('care.visits.save');
+        Route::get('/care/{case}', [CareController::class, 'show'])->name('care.show')->whereNumber('case');
+        Route::put('/care/{case}', [CareController::class, 'update'])->name('care.update')->whereNumber('case');
+        Route::post('/care/{case}/actions', [CareController::class, 'addAction'])->name('care.actions.store')->whereNumber('case');
+
+        // หนังสือขออนุญาตผู้ปกครอง
+        Route::get('/consents', [ConsentController::class, 'index'])->name('consents.index');
+        Route::post('/consents', [ConsentController::class, 'store'])->name('consents.store');
+        Route::get('/consents/{form}', [ConsentController::class, 'show'])->name('consents.show');
+        Route::post('/consents/{form}/record', [ConsentController::class, 'record'])->name('consents.record');
+        Route::post('/consents/{form}/close', [ConsentController::class, 'close'])->name('consents.close');
         Route::post('/courses/{course}/submit', [CourseApprovalController::class, 'submit'])->name('courses.submit');
         Route::get('/courses/{course}/pp5', [GradebookController::class, 'pp5'])->name('gradebook.pp5');
 
