@@ -12,6 +12,21 @@
         if (e.target.closest('.sb-backdrop')) document.body.classList.remove('sb-open');
     });
 
+    /* ---------- แจ้งเตือนแบบป๊อปอัป (partials/flash) ---------- */
+    const closeToast = (t) => { t.classList.add('hide'); t.classList.remove('show'); setTimeout(() => t.remove(), 300); };
+    $$('.sb-toast').forEach((t, i) => {
+        setTimeout(() => t.classList.add('show'), 60 + i * 90);
+        const life = parseInt(t.dataset.life, 10);
+        if (!life) return; // ข้อผิดพลาด: ค้างไว้จนกดปิด
+        t.style.setProperty('--life', life + 'ms');
+        // แถบเวลาหยุดเมื่อชี้เมาส์ค้าง (CSS) จึงปิดเมื่อแถบวิ่งจบ ไม่ใช้ตัวจับเวลาแยก
+        t.querySelector('.bar')?.addEventListener('animationend', () => closeToast(t));
+    });
+    document.addEventListener('click', (e) => {
+        const x = e.target.closest('[data-toast-close]');
+        if (x) closeToast(x.closest('.sb-toast'));
+    });
+
     /* ---------- ยืนยันก่อนลบ ---------- */
     document.addEventListener('submit', (e) => {
         // ข้อความยืนยันอยู่ที่ปุ่มที่กด (ฟอร์มเดียวหลายปุ่ม) หรือที่ตัวฟอร์ม
