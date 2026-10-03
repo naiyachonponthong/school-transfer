@@ -103,6 +103,19 @@ class ConsentController extends Controller
         return view('consents.parent', compact('children', 'forms', 'responses'));
     }
 
+    /** นักเรียน: อ่านหนังสือและดูว่าผู้ปกครองตอบแล้วหรือยัง (ตอบแทนผู้ปกครองไม่ได้) */
+    public function studentIndex(Request $request)
+    {
+        $me = $request->user()->studentProfile;
+        abort_unless($me, 403, 'บัญชีนี้ยังไม่ได้ผูกกับข้อมูลนักเรียน กรุณาติดต่อครูประจำชั้น');
+        $children = collect([$me->load('classroom')]);
+        $forms = ConsentForm::latest()->get()->filter(fn ($f) => $f->includes($me))->values();
+        $responses = ConsentResponse::whereIn('consent_form_id', $forms->pluck('id'))->where('student_id', $me->id)->get()
+            ->keyBy(fn ($r) => $r->consent_form_id.'-'.$r->student_id);
+
+        return view('consents.parent', compact('children', 'forms', 'responses') + ['readonly' => true]);
+    }
+
     public function respond(Request $request, ConsentForm $form)
     {
         $data = $request->validate([

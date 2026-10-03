@@ -179,6 +179,14 @@ class StudentCareTest extends TestCase
         $this->post(route('parent.consents.respond', $form), ['student_id' => $child->id, 'agreed' => 0, 'note' => 'ติดธุระ'])->assertSessionHasNoErrors();
         $this->assertSame(1, ConsentResponse::where('student_id', $child->id)->count());
         $this->assertFalse(ConsentResponse::first()->agreed);
+
+        // นักเรียน: อ่านหนังสือและเห็นคำตอบของผู้ปกครองได้ แต่ตอบเองไม่ได้
+        $studentUser = $child->user ?? User::create(['name' => $child->fullName(), 'username' => 'stu-consent', 'password' => 'secret123', 'role' => 'student', 'is_active' => true]);
+        $child->update(['user_id' => $studentUser->id]);
+        $this->actingAs($studentUser->fresh())->get(route('student.consents'))->assertOk()
+            ->assertSee('ไปสวนสัตว์ วันศุกร์')->assertSee('ไม่อนุญาต')->assertSee('ผู้ปกครองตอบแล้ว')->assertDontSee('parent/consents');
+        $this->post(route('parent.consents.respond', $form), ['student_id' => $child->id, 'agreed' => 1])->assertForbidden();
+        $this->actingAs($parent);
         $stranger = Student::where('classroom_id', $child->classroom_id)->whereDoesntHave('guardians', fn ($q) => $q->whereKey($parent->id))->first();
         $this->post(route('parent.consents.respond', $form), ['student_id' => $stranger->id, 'agreed' => 1])->assertSessionHasErrors('student_id');
 

@@ -172,6 +172,7 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
     Route::middleware('role:student')->prefix('me')->name('student.')->group(function () {
         Route::get('/', [StudentPortalController::class, 'home'])->name('home');
         Route::get('/info', [StudentPortalController::class, 'info'])->name('info');
+        Route::get('/consents', [ConsentController::class, 'studentIndex'])->name('consents');
         Route::get('/homework', [HomeworkController::class, 'parentIndex'])->name('homework');
         Route::post('/homework/{assignment}', [HomeworkController::class, 'submit'])->name('homework.submit');
     });

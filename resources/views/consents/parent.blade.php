@@ -2,8 +2,9 @@
 @section('title', 'หนังสือขออนุญาต')
 
 @section('content')
+@php($readonly = $readonly ?? false)
 <div class="page-head">
-    <div><h1>หนังสือขออนุญาตจากโรงเรียน</h1><div class="sub">อ่านรายละเอียดแล้วกดอนุญาตหรือไม่อนุญาต แก้คำตอบได้จนกว่าจะปิดรับ</div></div>
+    <div><h1>หนังสือขออนุญาตจากโรงเรียน</h1><div class="sub">{{ $readonly ? 'ผู้ปกครองเป็นผู้ตอบหนังสือเหล่านี้ · ถ้ายังไม่ได้ตอบ ช่วยแจ้งผู้ปกครองให้เข้ามาตอบด้วย' : 'อ่านรายละเอียดแล้วกดอนุญาตหรือไม่อนุญาต แก้คำตอบได้จนกว่าจะถึงกำหนด' }}</div></div>
 </div>
 
 @forelse ($forms as $f)
@@ -19,7 +20,9 @@
                     <span class="flex-grow-1"><b>{{ $child->fullName() }}</b> <span class="text-muted small">{{ $child->classroom?->name() }}</span>
                         @if ($r)<span class="badge bg-{{ $r->agreed ? 'success' : 'danger' }} ms-1">{{ $r->agreed ? 'อนุญาตแล้ว' : 'ไม่อนุญาต' }}</span>@endif
                     </span>
-                    @if ($f->acceptsResponses())
+                    @if ($readonly)
+                        <span class="small text-muted">{{ $r ? 'ผู้ปกครองตอบแล้ว' : ($f->acceptsResponses() ? 'รอผู้ปกครองตอบ' : 'ปิดรับคำตอบแล้ว') }}</span>
+                    @elseif ($f->acceptsResponses())
                         @foreach ([1 => ['อนุญาต', 'success'], 0 => ['ไม่อนุญาต', 'outline-danger']] as $val => [$label, $color])
                             <form method="POST" action="{{ route('parent.consents.respond', $f) }}">
                                 @csrf<input type="hidden" name="student_id" value="{{ $child->id }}"><input type="hidden" name="agreed" value="{{ $val }}">
