@@ -20,3 +20,11 @@ Artisan::command('users:require-password-change {--role=* : เฉพาะบ�
     $count = User::query()->when($roles, fn ($q) => $q->whereIn('role', $roles))->update(['must_change_password' => true]);
     $this->info("ตั้งให้ {$count} บัญชีต้องเปลี่ยนรหัสผ่านเมื่อเข้าระบบครั้งถัดไป");
 })->purpose('บังคับให้บัญชีตั้งรหัสผ่านใหม่ตอนเข้าระบบครั้งถัดไป');
+
+// แจ้งเตือนตามเวลา
+Schedule::command('attendance:remind-unchecked')->weekdays()->at('09:00');
+Schedule::command('fees:remind')->dailyAt('10:00');
+Schedule::command('library:remind-overdue')->mondays()->at('10:30');
+
+// ส่งข้อความ LINE ที่ค้างในคิว (งานจำนวนมาก/การส่งซ้ำ) — ถ้ารัน `queue:work` ค้างไว้อยู่แล้ว บรรทัดนี้ไม่มีผลเสีย
+Schedule::command('queue:work --stop-when-empty --tries=3 --max-time=50')->everyMinute()->withoutOverlapping(5);

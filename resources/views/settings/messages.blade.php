@@ -3,7 +3,7 @@
 
 @section('content')
 <div class="page-head">
-    <div><h1>LINE แจ้งเตือน</h1><div class="sub">ผู้ปกครองเชื่อม LINE แล้ว {{ $linked }} บัญชี (จากผู้ปกครอง {{ $parents }} คน)</div></div>
+    <div><h1>LINE แจ้งเตือน</h1><div class="sub">ผู้ปกครองเชื่อม LINE แล้ว {{ $linked }} บัญชี (จากผู้ปกครอง {{ $parents }} คน) · เดือนนี้ส่งสำเร็จ <b>{{ number_format($sentThisMonth) }}</b> ข้อความ{{ $queued ? ' · รอในคิว '.number_format($queued) : '' }}</div></div>
     <div class="actions">
         <a href="{{ route('settings') }}#line" class="btn btn-light border"><i class="bi bi-gear"></i> ตั้งค่า LINE</a>
         <form method="POST" action="{{ route('settings.line-test') }}">@csrf<button class="btn btn-primary"><i class="bi bi-send"></i> ส่งทดสอบหาตัวเอง</button></form>

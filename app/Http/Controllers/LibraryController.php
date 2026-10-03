@@ -416,12 +416,6 @@ class LibraryController extends Controller
     /** แจ้งเตือนผู้ปกครองของคนที่เกินกำหนดคืน */
     public function remindOverdue()
     {
-        $loans = BookLoan::with(['book', 'student'])->whereNull('returned_on')->where('due_on', '<', today()->toDateString())->get();
-        foreach ($loans->groupBy('student_id') as $group) {
-            $s = $group->first()->student;
-            Notifier::parents($s, '📚 น้อง'.($s->nickname ?: $s->first_name).' มีหนังสือห้องสมุดเกินกำหนดคืน: '.$group->pluck('book.title')->implode(', '));
-        }
-
-        return back()->with('success', 'ส่งแจ้งเตือนผู้ปกครอง '.$loans->groupBy('student_id')->count().' คนแล้ว (เฉพาะคนที่เชื่อม LINE)');
+        return back()->with('success', 'ส่งแจ้งเตือนผู้ปกครอง '.BookLoan::notifyOverdue().' คนแล้ว (เฉพาะคนที่เชื่อม LINE)');
     }
 }

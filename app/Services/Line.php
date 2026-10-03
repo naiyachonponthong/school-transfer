@@ -31,18 +31,20 @@ class Line
     }
 
     /** ส่งข้อความถึงผู้ใช้หลายคน (เฉพาะคนที่เชื่อม LINE แล้ว) */
-    public static function send(iterable $users, string $text): void
+    public static function send(iterable $users, string $text): Collection
     {
+        // ค่าที่คืน = คนที่ส่งไม่ถึงเพราะปัญหาชั่วคราว (เครือข่าย/LINE ล่ม/ถูกจำกัดความถี่) ควรส่งซ้ำภายหลัง
+        $retry = collect();
         $users = collect($users)->filter(fn (User $u) => $u->line_user_id)->unique('id');
         if ($users->isEmpty()) {
-            return;
+            return $retry;
         }
         $text = mb_substr($text, 0, 4900);
 
         if (! self::configured()) {
             self::log($users, $text, 'skipped', 'ยังไม่ได้ตั้งค่า LINE Channel access token');
 
-            return;
+            return $retry;
         }
 
         // multicast ได้ครั้งละ 500 คน
@@ -53,13 +55,29 @@ class Line
                         'to' => $chunk->pluck('line_user_id')->values()->all(),
                         'messages' => [['type' => 'text', 'text' => $text]],
                     ]);
-                $res->successful()
-                    ? self::log($chunk, $text, 'sent')
-                    : self::log($chunk, $text, 'failed', 'HTTP '.$res->status().' '.mb_substr($res->body(), 0, 180));
+                if ($res->successful()) {
+                    self::log($chunk, $text, 'sent');
+
+                    continue;
+                }
+                self::log($chunk, $text, 'failed', 'HTTP '.$res->status().' '.mb_substr($res->body(), 0, 180));
+                // 4xx อื่น ๆ (token ผิด/โควตาหมด/ข้อความผิดรูปแบบ) ส่งซ้ำก็ไม่ผ่าน
+                if ($res->serverError() || $res->status() === 429) {
+                    $retry = $retry->concat($chunk);
+                }
             } catch (\Throwable $e) {
                 self::log($chunk, $text, 'failed', mb_substr($e->getMessage(), 0, 190));
+                $retry = $retry->concat($chunk);
             }
         }
+
+        return $retry;
+    }
+
+    /** จำนวนข้อความที่ส่งสำเร็จในเดือนนี้ (LINE คิดโควตาตามจำนวนผู้รับ) */
+    public static function sentThisMonth(): int
+    {
+        return MessageLog::where('channel', 'line')->where('status', 'sent')->where('created_at', '>=', now()->startOfMonth())->count();
     }
 
     /** ตอบกลับข้อความใน webhook */

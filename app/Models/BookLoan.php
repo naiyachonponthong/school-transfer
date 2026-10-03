@@ -30,6 +30,18 @@ class BookLoan extends Model
         return $this->belongsTo(Student::class);
     }
 
+    /** แจ้งผู้ปกครองของนักเรียนที่มีหนังสือเกินกำหนด (คนละ 1 ข้อความ รวมทุกเล่ม) คืนจำนวนนักเรียน */
+    public static function notifyOverdue(): int
+    {
+        $byStudent = self::with(['book', 'student'])->whereNull('returned_on')->where('due_on', '<', today()->toDateString())->get()->groupBy('student_id');
+        foreach ($byStudent as $group) {
+            $s = $group->first()->student;
+            \App\Services\Notifier::parents($s, '📚 น้อง'.($s->nickname ?: $s->first_name).' มีหนังสือห้องสมุดเกินกำหนดคืน: '.$group->pluck('book.title')->implode(', '));
+        }
+
+        return $byStudent->count();
+    }
+
     public function isOverdue(): bool
     {
         return ! $this->returned_on && $this->due_on->lt(today());

@@ -92,6 +92,8 @@ class LineController extends Controller
             'linked' => User::whereNotNull('line_user_id')->count(),
             'parents' => User::where('role', 'parent')->count(),
             'configured' => Line::configured(),
+            'sentThisMonth' => Line::sentThisMonth(),
+            'queued' => \Illuminate\Support\Facades\DB::table('jobs')->count(),
         ]);
     }
 

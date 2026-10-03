@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\SendLineMessage;
 use App\Models\Announcement;
 use App\Models\Student;
 use App\Models\User;
@@ -15,6 +16,22 @@ use function Illuminate\Support\defer;
  */
 class Notifier
 {
+    /** ส่งทันทีได้ไม่เกินกี่ชุดต่อ 1 request ที่เหลือเข้าคิว */
+    public const INLINE_LIMIT = 20;
+
+    private static int $inline = 0;
+
+    /** คำสั่งตามเวลา (ไม่มีหน้าเว็บให้รอ): ส่งทุกข้อความผ่านคิว */
+    public static function viaQueue(): void
+    {
+        self::$inline = self::INLINE_LIMIT;
+    }
+
+    public static function resetInlineCount(): void
+    {
+        self::$inline = 0;
+    }
+
     /** ส่งถึงผู้ปกครองของนักเรียน */
     public static function parents(Student $student, string $text, ?string $url = null): void
     {
@@ -47,6 +64,25 @@ class Notifier
     {
         $prefix = '['.(Settings::get('school_short') ?: Settings::get('school_name')).'] ';
         $message = $prefix.$text.($url ? "\n\n".$url : '');
-        defer(fn () => Line::send($users, $message));
+        $users = collect($users)->filter(fn (User $u) => $u->line_user_id)->values();
+        if ($users->isEmpty()) {
+            return;
+        }
+
+        // งานจำนวนมากใน request เดียว (ออกใบแจ้งหนี้ทั้งชั้น, คำสั่งเตือนตามเวลา) เข้าคิว ไม่ถ่วง request
+        if (++self::$inline > self::INLINE_LIMIT) {
+            SendLineMessage::dispatch($users->pluck('id')->all(), $message);
+
+            return;
+        }
+
+        // งานปกติส่งทันทีหลังตอบหน้าเว็บ ผู้ปกครองจึงได้แจ้งเตือนเข้า-ออกโรงเรียนแบบไม่ต้องรอคิว
+        // ส่งไม่ถึงเพราะปัญหาชั่วคราว → เข้าคิวไว้ส่งซ้ำ
+        defer(function () use ($users, $message) {
+            $failed = Line::send($users, $message);
+            if ($failed->isNotEmpty()) {
+                SendLineMessage::dispatch($failed->pluck('id')->all(), $message, 2)->delay(now()->addMinutes(2));
+            }
+        });
     }
 }
