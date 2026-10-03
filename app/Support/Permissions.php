@@ -27,7 +27,8 @@ class Permissions
             'admissions.manage' => 'รับสมัครนักเรียน สอบคัดเลือก มอบตัว',
         ],
         'บุคลากรและบริหารทั่วไป' => [
-            'staff.manage' => 'รายงานลงเวลาครู อนุมัติใบลาบุคลากร',
+            'staff.manage' => 'รายงานลงเวลาครู อนุมัติใบลาบุคลากร ทะเบียนประวัติบุคลากร',
+            'office.manage' => 'สารบรรณ: ลงทะเบียนหนังสือ เวียนหนังสือ ดูการรับทราบ',
             'facilities.manage' => 'งานพัสดุ/อาคารสถานที่: ครุภัณฑ์ ตรวจสอบพัสดุ คลังวัสดุ รับเรื่องแจ้งซ่อม อนุมัติการจอง',
         ],
         'ระบบ' => [
@@ -46,7 +47,7 @@ class Permissions
         'finance' => ['การเงิน', ['finance.view', 'finance.manage']],
         'nurse' => ['พยาบาล', ['health.manage']],
         'librarian' => ['บรรณารักษ์', ['library.manage']],
-        'clerk' => ['ธุรการ/พัสดุ', ['students.edit', 'gate.use', 'reports.view', 'admissions.manage', 'facilities.manage']],
+        'clerk' => ['ธุรการ/พัสดุ', ['students.edit', 'gate.use', 'reports.view', 'admissions.manage', 'facilities.manage', 'office.manage']],
     ];
 
     public const FALLBACK_ROLE = 'teacher';

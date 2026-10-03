@@ -44,6 +44,7 @@ use App\Http\Controllers\LibraryLabelController;
 use App\Http\Controllers\ManualController;
 use App\Http\Controllers\LineController;
 use App\Http\Controllers\MenuController;
+use App\Http\Controllers\OfficeDocumentController;
 use App\Http\Controllers\ManifestController;
 use App\Http\Controllers\ParentController;
 use App\Http\Controllers\PeriodAttendanceController;
@@ -59,6 +60,7 @@ use App\Http\Controllers\SettingController;
 use App\Http\Controllers\SlipController;
 use App\Http\Controllers\StaffAttendanceController;
 use App\Http\Controllers\StaffLeaveController;
+use App\Http\Controllers\StaffProfileController;
 use App\Http\Controllers\StudentAccountController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentImportController;
@@ -238,6 +240,20 @@ Route::middleware('auth')->group(function () {
         Route::put('/assessments/{assessment}', [GradebookController::class, 'updateAssessment'])->name('assessments.update');
         Route::delete('/assessments/{assessment}', [GradebookController::class, 'destroyAssessment'])->name('assessments.destroy');
         Route::get('/courses/{course}/export', [GradebookController::class, 'export'])->name('gradebook.export');
+
+        // ทะเบียนบุคลากร (เจ้าตัวดู/แก้ของตัวเองได้ ฝ่ายบุคคลดูได้ทุกคน — ตรวจใน controller)
+        Route::get('/staff', [StaffProfileController::class, 'index'])->name('staff.index')->middleware('permission:staff.manage');
+        Route::get('/staff/{user}', [StaffProfileController::class, 'show'])->name('staff.show');
+        Route::put('/staff/{user}', [StaffProfileController::class, 'update'])->name('staff.update');
+        Route::post('/staff/{user}/trainings', [StaffProfileController::class, 'storeTraining'])->name('staff.trainings.store');
+        Route::delete('/staff-trainings/{training}', [StaffProfileController::class, 'destroyTraining'])->name('staff.trainings.destroy');
+
+        // สารบรรณ
+        Route::get('/office', [OfficeDocumentController::class, 'index'])->name('office.index');
+        Route::post('/office', [OfficeDocumentController::class, 'store'])->name('office.store')->middleware('permission:office.manage');
+        Route::get('/office/{document}', [OfficeDocumentController::class, 'show'])->name('office.show');
+        Route::post('/office/{document}/recipients', [OfficeDocumentController::class, 'addRecipients'])->name('office.recipients')->middleware('permission:office.manage');
+        Route::post('/office/{document}/acknowledge', [OfficeDocumentController::class, 'acknowledge'])->name('office.acknowledge');
 
         // ดูแลช่วยเหลือนักเรียน (ครูประจำชั้น = ห้องตัวเอง, care.manage = ทุกห้อง — ตรวจใน controller)
         Route::get('/care', [CareController::class, 'index'])->name('care.index');

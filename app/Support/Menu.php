@@ -72,11 +72,15 @@ class Menu
                 $user->canManageFacilities() ? self::item('assetcheck', 'ตรวจสอบพัสดุ', 'bi-clipboard-check', route('asset-checks.index'), 'teal', 0, ['asset-checks.*']) : null,
             ])),
             'บุคลากร' => [
+                self::item('myprofile', 'ประวัติของฉัน', 'bi-person-vcard', route('staff.show', $user), 'primary', 0, [], 'staff/'.$user->id),
+                self::item('stafflist', 'ทะเบียนบุคลากร', 'bi-people-fill', route('staff.index'), 'slate', 0, ['staff.index']),
                 self::item('checkin', 'ลงเวลา', 'bi-fingerprint', route('checkin'), 'primary', 0, ['checkin']),
                 self::item('staffleave', 'ลางาน', 'bi-briefcase', route('staff-leaves.index'), 'primary', $staffLeaves, ['staff-leaves.*']),
             ],
             'สื่อสารและการเงิน' => [
                 self::item('chat', 'ข้อความ', 'bi-chat-dots', route('chat.index'), 'blue', Conversation::unreadTotal($user), ['chat.*']),
+                self::item('office', 'สารบรรณ', 'bi-file-earmark-text', route('office.index'), 'blue',
+                    \Illuminate\Support\Facades\DB::table('office_document_user')->where('user_id', $user->id)->whereNull('acknowledged_at')->count(), ['office.*']),
                 self::item('feed', 'ฟีดข่าว', 'bi-newspaper', route('feed.index'), 'blue', 0, ['feed.*']),
                 self::item('announcements', 'ประกาศ', 'bi-megaphone', route('announcements.index'), 'primary', 0, ['announcements.*']),
                 self::item('invoices', 'ค่าธรรมเนียม', 'bi-wallet2', route('invoices.index'), 'teal', 0, ['invoices.*', 'payments.*']),
@@ -113,7 +117,7 @@ class Menu
             'gate' => 'gate.use', 'cards' => 'gate.use', 'health' => 'health.manage', 'library' => 'library.manage', 'report' => 'reports.view',
             'invoices' => 'finance.view', 'slips' => 'finance.manage', 'fees' => 'finance.manage', 'closing' => 'finance.manage', 'finreports' => 'finance.view', 'admissions' => 'admissions.manage', 'admissionexams' => 'admissions.manage',
             'line' => 'settings.manage', 'backups' => 'settings.manage', 'settings' => 'settings.manage', 'users' => 'users.manage', 'roles' => 'users.manage',
-            'classrooms' => 'academics.manage', 'approvals' => 'academics.manage', 'substitutions' => 'academics.manage', 'subjects' => 'academics.manage', 'terms' => 'academics.manage', 'staff' => 'staff.manage', 'audit' => 'audit.view',
+            'classrooms' => 'academics.manage', 'approvals' => 'academics.manage', 'substitutions' => 'academics.manage', 'subjects' => 'academics.manage', 'terms' => 'academics.manage', 'staff' => 'staff.manage', 'stafflist' => 'staff.manage', 'audit' => 'audit.view',
         ];
 
         return array_filter(array_map(
