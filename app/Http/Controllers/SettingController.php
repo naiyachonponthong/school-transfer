@@ -40,6 +40,7 @@ class SettingController extends Controller
             'staff_late_time' => ['required', 'date_format:H:i'],
             'periods_per_day' => ['required', 'integer', 'min:1', 'max:12'],
             'period_times' => ['nullable', 'string', 'max:1000'],
+            'school_days' => ['nullable', 'in:5,6'],
             'promptpay_id' => ['nullable', 'string', 'max:20'],
             'bank_info' => ['nullable', 'string', 'max:500'],
             'logo' => ['nullable', 'image', 'max:2048'],

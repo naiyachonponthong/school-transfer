@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Attendance;
 use App\Models\Course;
 use App\Models\PeriodAttendance;
+use App\Models\Substitution;
 use App\Models\Term;
 use App\Models\TimetableSlot;
 use App\Services\Notifier;
@@ -20,6 +21,13 @@ use Illuminate\Validation\Rule;
  */
 class PeriodAttendanceController extends Controller
 {
+    /** ครูประจำวิชา ผู้ดูแล หรือครูที่ได้รับมอบให้สอนแทนในวันนั้น */
+    private function authorizeCourse(Request $request, Course $course): void
+    {
+        $date = rescue(fn () => Carbon::parse($request->input('date') ?: today())->toDateString(), today()->toDateString(), false);
+        abort_unless($course->canEdit($request->user()) || Substitution::covers($request->user(), $course, $date), 403, 'รายวิชานี้ไม่ได้อยู่ในความรับผิดชอบของคุณ');
+    }
+
     /** คาบที่ต้องเช็ควันนี้ (จากตารางสอน) + เลือกวิชาอื่น/วันอื่นเองได้ */
     public function index(Request $request)
     {
@@ -28,10 +36,12 @@ class PeriodAttendanceController extends Controller
         $date = Carbon::parse($request->query('date', today()->toDateString()));
 
         $slots = collect();
-        if ($term && $date->isWeekday()) {
+        if ($term && isset(TimetableSlot::days()[$date->dayOfWeekIso])) {
+            // คาบที่รับสอนแทนในวันนั้นขึ้นในรายการของครูสอนแทนด้วย
+            $covering = Substitution::where('substitute_id', $user->id)->where('date', $date->toDateString())->pluck('timetable_slot_id');
             $slots = TimetableSlot::with(['course.subject', 'classroom'])
                 ->where('term_id', $term->id)->where('day', $date->dayOfWeekIso)->whereNotNull('course_id')
-                ->when(! $user->isAdmin(), fn ($q) => $q->whereHas('course', fn ($c) => $c->where('teacher_id', $user->id)))
+                ->when(! $user->isAdmin(), fn ($q) => $q->where(fn ($w) => $w->whereHas('course', fn ($c) => $c->where('teacher_id', $user->id))->orWhereIn('id', $covering)))
                 ->orderBy('period')->get();
         }
 
@@ -57,7 +67,7 @@ class PeriodAttendanceController extends Controller
 
     public function sheet(Request $request, Course $course)
     {
-        abort_unless($course->canEdit($request->user()), 403, 'รายวิชานี้ไม่ได้อยู่ในความรับผิดชอบของคุณ');
+        $this->authorizeCourse($request, $course);
         $data = $request->validate([
             'date' => ['nullable', 'date', 'before_or_equal:today'],
             'period' => ['required', 'integer', 'between:1,12'],
@@ -87,7 +97,7 @@ class PeriodAttendanceController extends Controller
 
     public function save(Request $request, Course $course)
     {
-        abort_unless($course->canEdit($request->user()), 403);
+        $this->authorizeCourse($request, $course);
         $data = $request->validate([
             'date' => ['required', 'date', 'before_or_equal:today'],
             'period' => ['required', 'integer', 'between:1,12'],
@@ -129,7 +139,7 @@ class PeriodAttendanceController extends Controller
     /** สรุปเวลาเรียนรายวิชา ใครเสี่ยง มส. */
     public function report(Request $request, Course $course)
     {
-        abort_unless($course->canEdit($request->user()), 403);
+        $this->authorizeCourse($request, $course);
         $course->load('subject', 'classroom', 'term');
 
         return view('period-attendance.report', [

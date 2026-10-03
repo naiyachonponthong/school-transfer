@@ -185,7 +185,7 @@
                 <table class="table tt mb-0">
                     <thead><tr><th class="day">วัน</th>@foreach ($periods as $i => $t)<th>คาบ {{ $i + 1 }}<div class="small text-muted fw-normal">{{ $t }}</div></th>@endforeach</tr></thead>
                     <tbody>
-                    @foreach (\App\Models\TimetableSlot::DAYS as $d => $dn)
+                    @foreach (\App\Models\TimetableSlot::days() as $d => $dn)
                         <tr><th class="day">{{ $dn }}</th>
                             @foreach ($periods as $i => $t)
                                 @php($s = $slots[$d.'-'.($i + 1)] ?? null)

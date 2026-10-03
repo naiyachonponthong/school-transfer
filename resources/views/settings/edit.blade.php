@@ -52,6 +52,7 @@
                 <div class="col-md-4"><label class="form-label">นักเรียนมาสายหลัง</label><input type="time" name="late_time" value="{{ $settings['late_time'] }}" class="form-control"></div>
                 <div class="col-md-4"><label class="form-label">ครูมาสายหลัง</label><input type="time" name="staff_late_time" value="{{ $settings['staff_late_time'] }}" class="form-control"></div>
                 <div class="col-md-4"><label class="form-label">จำนวนคาบ/วัน</label><input type="number" name="periods_per_day" min="1" max="12" value="{{ $settings['periods_per_day'] }}" class="form-control"></div>
+                <div class="col-md-4"><label class="form-label">วันเรียน</label><select name="school_days" class="form-select"><option value="5" @selected($settings['school_days'] != 6)>จันทร์–ศุกร์</option><option value="6" @selected($settings['school_days'] == 6)>จันทร์–เสาร์</option></select></div>
                 <div class="col-12"><label class="form-label">เวลาแต่ละคาบ (บรรทัดละคาบ)</label><textarea name="period_times" rows="5" class="form-control font-monospace small">{{ $settings['period_times'] }}</textarea></div>
             </div>
             <div class="card-header border-top"><i class="bi bi-bank"></i> ช่องทางรับชำระเงิน (แสดงในใบแจ้งหนี้)</div>

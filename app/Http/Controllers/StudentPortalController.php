@@ -30,7 +30,7 @@ class StudentPortalController extends Controller
         $term = Term::current();
         $today = today()->toDateString();
 
-        $slots = ($term && $student->classroom_id && today()->isWeekday())
+        $slots = ($term && $student->classroom_id && isset(TimetableSlot::days()[today()->dayOfWeekIso]))
             ? TimetableSlot::with('course.subject', 'course.teacher')->where('term_id', $term->id)
                 ->where('classroom_id', $student->classroom_id)->where('day', today()->dayOfWeekIso)->orderBy('period')->get()
             : collect();

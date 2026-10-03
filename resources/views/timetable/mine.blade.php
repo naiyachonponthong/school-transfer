@@ -14,7 +14,7 @@
         <table class="table tt mb-0">
             <thead><tr><th class="day">วัน / คาบ</th>@foreach ($periods as $i => $time)<th>คาบ {{ $i + 1 }}<div class="small text-muted fw-normal">{{ $time }}</div></th>@endforeach</tr></thead>
             <tbody>
-            @foreach (\App\Models\TimetableSlot::DAYS as $d => $dayName)
+            @foreach (\App\Models\TimetableSlot::days() as $d => $dayName)
                 <tr>
                     <th class="day {{ $d === now()->dayOfWeekIso ? 'text-primary' : '' }}">{{ $dayName }}</th>
                     @foreach ($periods as $i => $time)

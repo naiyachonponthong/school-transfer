@@ -48,7 +48,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                    @foreach (\App\Models\TimetableSlot::DAYS as $d => $dayName)
+                    @foreach (\App\Models\TimetableSlot::days() as $d => $dayName)
                         <tr>
                             <th class="day {{ $d === $nowDay ? 'text-primary' : '' }}">{{ $dayName }}</th>
                             @foreach ($periods as $i => $time)

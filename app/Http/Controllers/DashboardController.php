@@ -48,7 +48,7 @@ class DashboardController extends Controller
         $pendingLeaveCount = (clone $leaveQuery)->count();
 
         $todaySlots = collect();
-        if ($term && today()->isWeekday()) {
+        if ($term && isset(TimetableSlot::days()[today()->dayOfWeekIso])) {
             $todaySlots = TimetableSlot::with(['course.subject', 'classroom'])
                 ->where('term_id', $term->id)
                 ->where('day', today()->dayOfWeekIso)

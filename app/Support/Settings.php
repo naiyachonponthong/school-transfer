@@ -29,6 +29,7 @@ class Settings
         'late_time' => '08:00',        // หลังเวลานี้ถือว่าสาย
         'staff_late_time' => '08:00',
         'periods_per_day' => '7',
+        'school_days' => '5', // 5 = จันทร์–ศุกร์, 6 = รวมวันเสาร์
         'period_times' => "08:30-09:20\n09:20-10:10\n10:20-11:10\n11:10-12:00\n13:00-13:50\n13:50-14:40\n14:40-15:30",
         'theme_color' => Theme::DEFAULT,
         'promptpay_id' => '',

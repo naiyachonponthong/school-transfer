@@ -60,6 +60,7 @@ use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentImportController;
 use App\Http\Controllers\StudentPortalController;
 use App\Http\Controllers\SubjectController;
+use App\Http\Controllers\SubstitutionController;
 use App\Http\Controllers\SupplyController;
 use App\Http\Controllers\SurveyController;
 use App\Http\Controllers\TermController;
@@ -411,6 +412,8 @@ Route::middleware('auth')->group(function () {
         });
 
         Route::post('/timetable', [TimetableController::class, 'save'])->name('timetable.save')->middleware('permission:academics.manage');
+        Route::get('/substitutions', [SubstitutionController::class, 'index'])->name('substitutions.index')->middleware('permission:academics.manage');
+        Route::post('/substitutions', [SubstitutionController::class, 'store'])->name('substitutions.store')->middleware('permission:academics.manage');
 
         Route::get('/terms', [TermController::class, 'index'])->name('terms.index')->middleware('permission:academics.manage');
         Route::post('/terms', [TermController::class, 'store'])->name('terms.store')->middleware('permission:academics.manage');
