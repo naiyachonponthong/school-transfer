@@ -9,7 +9,7 @@
             @foreach ($years as $y)<option value="{{ $y }}" @selected($y == $year)>{{ $y }}</option>@endforeach
             <option value="{{ $years->max() + 1 }}">{{ $years->max() + 1 }} (ใหม่)</option>
         </select></form>
-        <button class="btn btn-light border" data-bs-toggle="modal" data-bs-target="#promote"><i class="bi bi-arrow-up-circle"></i> เลื่อนชั้นขึ้นปีใหม่</button>
+        <a class="btn btn-light border" href="{{ route('classrooms.promote.form', ['from_year' => $year]) }}"><i class="bi bi-arrow-up-circle"></i> เลื่อนชั้นขึ้นปีใหม่</a>
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRoom"><i class="bi bi-plus-lg"></i> เพิ่มห้อง</button>
     </div>
 </div>
@@ -65,21 +65,4 @@
     </form></div>
 </div>
 
-<div class="modal fade" id="promote" tabindex="-1">
-    <div class="modal-dialog"><form method="POST" action="{{ route('classrooms.promote') }}" class="modal-content" data-confirm="ยืนยันเลื่อนชั้นนักเรียนทั้งหมดจากปี {{ $year }} ไปปี {{ $year + 1 }}?">
-        @csrf
-        <input type="hidden" name="from_year" value="{{ $year }}">
-        <div class="modal-header"><h5 class="modal-title">เลื่อนชั้น {{ $year }} → {{ $year + 1 }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body">
-            <p class="small">ระบบจะสร้างห้องปี {{ $year + 1 }} และย้ายนักเรียนขึ้นชั้นถัดไปโดยใช้เลขห้องเดิม (ป.1/2 → ป.2/2) ข้อมูลเช็คชื่อและคะแนนของปีเก่ายังอยู่ครบ</p>
-            <label class="form-label">ชั้นที่จบการศึกษา (ไม่เลื่อนต่อ)</label>
-            <div class="d-flex flex-wrap gap-3">
-                @foreach (['อ.3', 'ป.6', 'ม.3', 'ม.6'] as $l)
-                    <label class="small"><input type="checkbox" class="form-check-input" name="graduate_levels[]" value="{{ $l }}" @checked(in_array($l, ['ป.6', 'ม.6']))> {{ $l }}</label>
-                @endforeach
-            </div>
-        </div>
-        <div class="modal-footer"><button class="btn btn-primary">เลื่อนชั้น</button></div>
-    </form></div>
-</div>
 @endsection

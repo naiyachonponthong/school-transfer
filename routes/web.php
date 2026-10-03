@@ -369,7 +369,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/classrooms', [ClassroomController::class, 'store'])->name('classrooms.store');
         Route::put('/classrooms/{classroom}', [ClassroomController::class, 'update'])->name('classrooms.update');
         Route::delete('/classrooms/{classroom}', [ClassroomController::class, 'destroy'])->name('classrooms.destroy');
+        Route::get('/classrooms/promote', [ClassroomController::class, 'promoteForm'])->name('classrooms.promote.form');
         Route::post('/classrooms/promote', [ClassroomController::class, 'promote'])->name('classrooms.promote');
+        Route::post('/classrooms/promote/undo', [ClassroomController::class, 'undoPromote'])->name('classrooms.promote.undo');
 
         Route::resource('subjects', SubjectController::class)->only(['index', 'store', 'update', 'destroy']);
 

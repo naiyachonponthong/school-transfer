@@ -100,13 +100,15 @@ class StudentController extends Controller
     /** ผลการเรียนทุกวิชาของนักเรียนในภาคเรียนที่ระบุ */
     public static function gradesFor(Student $student, ?Term $term)
     {
-        if (! $term || ! $student->classroom_id) {
+        // ห้องของปีการศึกษานั้น — ดูภาคเรียนเก่าหลังเลื่อนชั้นแล้วต้องได้รายวิชาของห้องเดิม
+        $classroomId = $term ? $student->classroomIdForTerm($term) : null;
+        if (! $classroomId) {
             return collect();
         }
 
         return Course::with(['subject', 'teacher', 'assessments'])
             ->where('term_id', $term->id)
-            ->where('classroom_id', $student->classroom_id)
+            ->where('classroom_id', $classroomId)
             ->get()
             ->sortBy(fn ($c) => [$c->subject->typeOrder(), $c->subject->code])
             ->map(function (Course $course) use ($student) {

@@ -38,6 +38,11 @@ class ReportCardController extends Controller
     public static function data(Student $student, ?Term $term): array
     {
         $student->loadMissing('classroom.homeroomTeacher');
+        // ปพ.6 ของปีเก่า: หัวกระดาษต้องเป็นห้อง/เลขที่/ครูประจำชั้นของปีนั้น ไม่ใช่ห้องปัจจุบัน
+        if ($term && ($past = $student->enrollments()->where('year', $term->year)->with('classroom.homeroomTeacher')->first())) {
+            $student->setRelation('classroom', $past->classroom);
+            $student->number = $past->number ?? $student->number;
+        }
         $grades = StudentController::gradesFor($student, $term);
         [$activities, $academic] = $grades->partition(fn ($g) => $g['course']->isActivity());
         $credit = fn ($g) => (float) $g['course']->subject->credit;

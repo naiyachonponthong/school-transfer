@@ -63,6 +63,25 @@ class Classroom extends Model
         return $this->hasMany(Student::class)->where('status', 'active')->orderBy('number')->orderBy('student_code');
     }
 
+    /**
+     * รายชื่อของห้องนี้ตามประวัติชั้นเรียน ใช้กับสมุดคะแนน เพราะรายวิชาของปีเก่า
+     * ต้องเห็นนักเรียนที่เคยอยู่ห้องนี้ แม้ตอนนี้เลื่อนชั้นหรือจบไปแล้ว
+     */
+    public function roster(): Builder
+    {
+        return Student::query()
+            ->join('enrollments', 'enrollments.student_id', '=', 'students.id')
+            ->where('enrollments.classroom_id', $this->id)
+            ->whereIn('enrollments.status', Enrollment::IN_ROSTER)
+            ->orderBy('enrollments.number')->orderBy('students.student_code')
+            ->select('students.*', 'enrollments.number as number');
+    }
+
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(Enrollment::class);
+    }
+
     public function allStudents(): HasMany
     {
         return $this->hasMany(Student::class);

@@ -32,6 +32,52 @@ class Student extends Model
     {
         // โทเคนสุ่มสำหรับ QR บนบัตรนักเรียน (ไม่ใช้รหัสนักเรียนตรง ๆ เพื่อกันปลอมบัตร)
         static::creating(fn (Student $s) => $s->qr_token ??= self::newQrToken());
+
+        // ห้อง/เลขที่/สถานะเปลี่ยน → ปรับประวัติชั้นเรียนของปีนั้นให้ตรงกัน
+        static::saved(function (Student $s) {
+            if ($s->classroom_id && ($s->wasRecentlyCreated || $s->wasChanged(['classroom_id', 'number', 'status']))) {
+                $s->syncEnrollment();
+            }
+        });
+    }
+
+    public function syncEnrollment(): void
+    {
+        $year = Classroom::whereKey($this->classroom_id)->value('year');
+        if (! $year) {
+            return;
+        }
+        Enrollment::updateOrCreate(
+            ['student_id' => $this->id, 'year' => $year],
+            ['classroom_id' => $this->classroom_id, 'number' => $this->number, 'status' => Enrollment::FROM_STUDENT[$this->status] ?? 'studying'],
+        );
+    }
+
+    /**
+     * ห้องที่ใช้หารายวิชาของนักเรียนในภาคเรียนนั้น
+     * ปกติคือห้องตามประวัติของปีนั้น ถ้าปีนั้นไม่มีประวัติ (ข้อมูลก่อนมีระบบประวัติชั้นเรียน
+     * ซึ่งรายวิชาของปีเก่าผูกกับห้องปัจจุบัน) ใช้ห้องของนักเรียนที่มีรายวิชาในภาคเรียนนั้น
+     */
+    public function classroomIdForTerm(Term $term): ?int
+    {
+        if ($id = $this->classroomIdForYear($term->year)) {
+            return $id;
+        }
+        $candidates = $this->enrollments()->pluck('classroom_id')->push($this->classroom_id)->filter()->unique();
+
+        return Course::where('term_id', $term->id)->whereIn('classroom_id', $candidates)->value('classroom_id');
+    }
+
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(Enrollment::class)->orderByDesc('year');
+    }
+
+    /** ห้องที่นักเรียนอยู่ในปีการศึกษานั้น (ปีเก่าอ่านจากประวัติ ไม่ใช่ห้องปัจจุบัน) */
+    public function classroomIdForYear(int $year): ?int
+    {
+        return $this->enrollments()->where('year', $year)->value('classroom_id')
+            ?? ($this->classroom?->year === $year ? $this->classroom_id : null);
     }
 
     public static function newQrToken(): string

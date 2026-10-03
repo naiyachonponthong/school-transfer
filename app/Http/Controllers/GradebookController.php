@@ -36,7 +36,7 @@ class GradebookController extends Controller
     {
         $this->authorizeCourse($request, $course);
         $course->load(['assessments', 'subject', 'classroom', 'teacher', 'term']);
-        $students = $course->classroom->students()->get();
+        $students = $course->classroom->roster()->get();
 
         $scores = Score::whereIn('assessment_id', $course->assessments->pluck('id'))->get()
             ->groupBy('student_id')
@@ -59,7 +59,7 @@ class GradebookController extends Controller
     {
         $this->authorizeCourse($request, $course);
         $course->load(['assessments', 'subject', 'classroom.homeroomTeacher', 'teacher', 'term']);
-        $students = $course->classroom->students()->get();
+        $students = $course->classroom->roster()->get();
         $scores = Score::whereIn('assessment_id', $course->assessments->pluck('id'))->get()
             ->groupBy('student_id')->map(fn ($rows) => $rows->pluck('score', 'assessment_id'));
         $results = $course->results();
@@ -87,7 +87,7 @@ class GradebookController extends Controller
         $max = $course->assessments->pluck('max_score', 'id');
 
         $request->validate(['scores' => ['array']]);
-        $studentIds = $course->classroom->students()->pluck('id')->flip();
+        $studentIds = $course->classroom->roster()->pluck('students.id')->flip();
 
         $errors = [];
         $edits = []; // รายวิชาที่ล็อกแล้ว (ผู้ดูแลแก้): เก็บค่าเดิม → ใหม่ ลงประวัติ
@@ -217,7 +217,7 @@ class GradebookController extends Controller
         $special = $course->isActivity() ? 'มผ' : 'มส';
         $count = 0;
         foreach (PeriodAttendance::summaryFor($course) as $studentId => $row) {
-            if (! $row['ms'] || ! $course->classroom->students()->whereKey($studentId)->exists()) {
+            if (! $row['ms'] || ! $course->classroom->roster()->where('students.id', $studentId)->exists()) {
                 continue;
             }
             $result = CourseResult::firstOrNew(['course_id' => $course->id, 'student_id' => $studentId]);
@@ -275,7 +275,7 @@ class GradebookController extends Controller
     {
         $this->authorizeCourse($request, $course);
         $course->load(['assessments', 'subject', 'classroom']);
-        $students = $course->classroom->students()->get();
+        $students = $course->classroom->roster()->get();
         $scores = Score::whereIn('assessment_id', $course->assessments->pluck('id'))->get()
             ->groupBy('student_id')->map(fn ($r) => $r->pluck('score', 'assessment_id'));
         $results = $course->results();
