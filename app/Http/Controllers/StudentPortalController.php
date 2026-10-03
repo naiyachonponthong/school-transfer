@@ -38,7 +38,7 @@ class StudentPortalController extends Controller
             ->keyBy(fn ($p) => $p->course_id.'-'.$p->period);
 
         $assignments = Assignment::with('course.subject')
-            ->whereHas('course', fn ($q) => $q->where('classroom_id', $student->classroom_id)->when($term, fn ($t) => $t->where('term_id', $term->id)))
+            ->whereHas('course', fn ($q) => $q->forStudent($student, $student->classroom_id)->when($term, fn ($t) => $t->where('term_id', $term->id)))
             ->latest()->limit(30)->get();
         $subs = Submission::where('student_id', $student->id)->whereIn('assignment_id', $assignments->pluck('id'))->get()->keyBy('assignment_id');
         $pending = $assignments->filter(fn ($a) => ! $subs->get($a->id)?->submitted_at)->sortBy(fn ($a) => $a->due_at ?? now()->addYears(5))->values();

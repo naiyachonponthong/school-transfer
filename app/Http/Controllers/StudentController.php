@@ -108,7 +108,7 @@ class StudentController extends Controller
 
         return Course::with(['subject', 'teacher', 'assessments'])
             ->where('term_id', $term->id)
-            ->where('classroom_id', $classroomId)
+            ->forStudent($student, $classroomId)
             ->get()
             ->sortBy(fn ($c) => [$c->subject->typeOrder(), $c->subject->code])
             ->map(function (Course $course) use ($student) {

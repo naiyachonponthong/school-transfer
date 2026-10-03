@@ -277,7 +277,7 @@ class ExamController extends Controller
 
                 continue;
             }
-            foreach ($course->classroom->students()->pluck('id') as $sid) {
+            foreach ($course->students()->pluck('students.id') as $sid) {
                 if (($r = $responses->get($sid)) && $r->max_score > 0) {
                     Score::updateOrCreate(['assessment_id' => $a->id, 'student_id' => $sid], ['score' => round($r->score / $r->max_score * $a->max_score, 2)]);
                     $done++;

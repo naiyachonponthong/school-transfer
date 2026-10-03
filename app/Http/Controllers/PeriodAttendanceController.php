@@ -64,7 +64,7 @@ class PeriodAttendanceController extends Controller
         ]);
         $date = Carbon::parse($data['date'] ?? today()->toDateString());
         $course->load('subject', 'classroom');
-        $students = $course->classroom->students()->get();
+        $students = $course->students()->get();
 
         $records = PeriodAttendance::where(['course_id' => $course->id, 'date' => $date->toDateString(), 'period' => $data['period']])
             ->get()->keyBy('student_id');
@@ -94,7 +94,7 @@ class PeriodAttendanceController extends Controller
             'status' => ['required', 'array'],
             'status.*' => [Rule::in(array_keys(Attendance::STATUSES))],
         ]);
-        $validIds = $course->classroom->students()->pluck('id')->flip();
+        $validIds = $course->students()->pluck('students.id')->flip();
         $date = $data['date'];
         $before = PeriodAttendance::where(['course_id' => $course->id, 'date' => $date, 'period' => $data['period']])->pluck('status', 'student_id');
 
@@ -115,7 +115,7 @@ class PeriodAttendanceController extends Controller
             $cutting = array_keys(array_filter($data['status'], fn ($s, $sid) => $s === 'absent' && ($before[$sid] ?? null) !== 'absent', ARRAY_FILTER_USE_BOTH));
             $presentToday = Attendance::where('date', $date)->whereIn('student_id', $cutting)->whereIn('status', ['present', 'late'])->pluck('student_id');
             $course->loadMissing('subject');
-            foreach ($course->classroom->students()->whereIn('id', $presentToday)->get() as $s) {
+            foreach ($course->students()->whereIn('students.id', $presentToday)->get() as $s) {
                 Notifier::parents($s, '⚠️ น้อง'.($s->nickname ?: $s->first_name)." มาโรงเรียนวันนี้ แต่ไม่เข้าเรียนวิชา{$course->subject->name} คาบที่ {$data['period']}");
             }
         }
@@ -134,7 +134,7 @@ class PeriodAttendanceController extends Controller
 
         return view('period-attendance.report', [
             'course' => $course,
-            'students' => $course->classroom->students()->get(),
+            'students' => $course->students()->get(),
             'summary' => PeriodAttendance::summaryFor($course),
             // จำนวนคาบที่สอนไปแล้ว (นับคู่ วันที่+คาบ ไม่ซ้ำ) — เขียนแบบไม่พึ่ง || ซึ่ง MySQL ถือเป็น OR ไม่ใช่ต่อสตริง
             'sessions' => PeriodAttendance::where('course_id', $course->id)->select('date', 'period')->distinct()->get()->count(),

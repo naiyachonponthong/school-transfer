@@ -127,6 +127,7 @@
             <div class="card-header"><i class="bi bi-mortarboard"></i> {{ $term?->label() }}
                 <a href="{{ route('report-card', $student) }}" class="ms-auto btn btn-sm btn-light border"><i class="bi bi-printer"></i> สมุดพก</a>
             </div>
+            @if ($resultsHidden ?? false)<div class="alert alert-info m-3 mb-0 small"><i class="bi bi-calendar-event"></i> โรงเรียนจะประกาศผลการเรียนวันที่ {{ thai_date($term->results_announce_on) }}</div>@endif
             @forelse ($grades as $g)
                 <div class="d-flex align-items-center gap-2 px-3 py-2 border-bottom">
                     <div class="flex-grow-1">

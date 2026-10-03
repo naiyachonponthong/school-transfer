@@ -158,7 +158,7 @@ class Notifications
         // การบ้านที่ยังไม่ส่ง (สั่งใน 7 วัน)
         foreach ($children as $child) {
             $pending = Assignment::with('course.subject')
-                ->whereHas('course', fn ($q) => $q->where('classroom_id', $child->classroom_id))
+                ->whereHas('course', fn ($q) => $q->forStudent($child, $child->classroom_id))
                 ->where('created_at', '>=', now()->subDays(7))
                 ->whereDoesntHave('submissions', fn ($q) => $q->where('student_id', $child->id)->whereNotNull('submitted_at'))->get();
             foreach ($pending as $a) {
@@ -204,7 +204,7 @@ class Notifications
         }
 
         $pending = Assignment::with('course.subject')
-            ->whereHas('course', fn ($q) => $q->where('classroom_id', $me->classroom_id))
+            ->whereHas('course', fn ($q) => $q->forStudent($me, $me->classroom_id))
             ->where('created_at', '>=', now()->subDays(14))
             ->whereDoesntHave('submissions', fn ($q) => $q->where('student_id', $me->id)->whereNotNull('submitted_at'))->get();
         foreach ($pending as $a) {

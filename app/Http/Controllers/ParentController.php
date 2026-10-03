@@ -77,7 +77,9 @@ class ParentController extends Controller
             ->when($term?->start_date && $term?->end_date, fn ($q) => $q->whereBetween('date', [$term->start_date->toDateString(), $term->end_date->toDateString()]))
             ->get()->countBy('status');
 
-        $grades = StudentController::gradesFor($student, $term);
+        // ก่อนวันประกาศผล ผู้ปกครอง/นักเรียนยังไม่เห็นผลการเรียนของภาคนี้
+        $resultsHidden = $term && ! $term->resultsVisibleTo($request->user());
+        $grades = $resultsHidden ? collect() : StudentController::gradesFor($student, $term);
 
         $slots = ($term && $student->classroom_id) ? TimetableSlot::with('course.subject', 'course.teacher')
             ->where('term_id', $term->id)->where('classroom_id', $student->classroom_id)->get()
@@ -94,6 +96,7 @@ class ParentController extends Controller
             'termAtt' => $termAtt,
             'term' => $term,
             'grades' => $grades,
+            'resultsHidden' => $resultsHidden,
             'gpa' => Grade::gpa($grades->map(fn ($g) => ['grade' => $g['grade'], 'credit' => (float) $g['course']->subject->credit])),
             'slots' => $slots,
             'periods' => Settings::periodTimes(),

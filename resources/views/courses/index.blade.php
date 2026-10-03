@@ -49,7 +49,9 @@
                     </div>
                     <div class="small text-muted mb-3">
                         <i class="bi bi-person"></i> {{ $c->teacher?->name ?? 'ยังไม่กำหนดครู' }} · {{ $c->assessments_count }} ช่องคะแนน
-                        @if ($c->locked)<span class="badge bg-secondary ms-1"><i class="bi bi-lock-fill"></i> ล็อกแล้ว</span>@endif
+                        @if ($c->locked)<span class="badge bg-secondary ms-1"><i class="bi bi-lock-fill"></i> ล็อกแล้ว</span>
+                        @elseif ($c->submitted_at)<span class="badge bg-info ms-1">รอตรวจ</span>
+                        @elseif ($c->return_note)<span class="badge bg-warning text-dark ms-1">ตีกลับ</span>@endif
                     </div>
                     <div class="mt-auto d-flex gap-2">
                         @if ($c->canEdit($u))
@@ -57,6 +59,7 @@
                             <a href="{{ route('period-attendance.report', $c) }}" class="btn btn-light border" title="เวลาเรียนรายวิชา / มส."><i class="bi bi-clock-history"></i></a>
                         @endif
                         @if ($u->hasPermission('academics.manage'))
+                            <a href="{{ route('courses.members', $c) }}" class="btn btn-light border" title="รายชื่อผู้เรียน (วิชาเลือก/ชุมนุม)"><i class="bi bi-people"></i></a>
                             <button class="btn btn-light border" data-bs-toggle="modal" data-bs-target="#edit{{ $c->id }}"><i class="bi bi-gear"></i></button>
                         @endif
                     </div>

@@ -3,7 +3,7 @@
 
 @section('content')
 @php
-    $readonly = $course->locked && ! auth()->user()->isAdmin();
+    $readonly = ($course->locked && ! auth()->user()->isAdmin()) || ($course->isSubmitted() && ! auth()->user()->hasPermission('academics.manage'));
     $max = $course->maxTotal();
     $activity = $course->isActivity();
     $specials = \App\Support\Grade::specialOptions($activity);
@@ -17,11 +17,20 @@
         <span id="saveState" class="save-state align-self-center">@if($readonly)<i class="bi bi-lock-fill" aria-hidden="true"></i> ล็อกแล้ว ดูได้อย่างเดียว@else พิมพ์แล้วบันทึกเอง ไม่ต้องกดปุ่ม@endif</span>
         <a href="{{ route('gradebook.pp5', $course) }}" class="btn btn-light border"><i class="bi bi-printer"></i> ปพ.5</a>
         <a href="{{ route('gradebook.export', $course) }}" class="btn btn-light border"><i class="bi bi-file-earmark-spreadsheet"></i> ส่งออก</a>
+        @if (! $course->locked && ! $course->submitted_at && $course->canEdit(auth()->user()))
+            <form method="POST" action="{{ route('courses.submit', $course) }}" data-confirm="ส่งผลการเรียนให้ฝ่ายวิชาการตรวจ? หลังส่งแล้วจะแก้คะแนนไม่ได้จนกว่าจะถูกตีกลับ">@csrf<button class="btn btn-success"><i class="bi bi-send"></i> ส่งผลการเรียน</button></form>
+        @endif
         @unless ($readonly)
             <button class="btn btn-light border" data-bs-toggle="modal" data-bs-target="#columns"><i class="bi bi-layout-three-columns"></i> ช่องคะแนน</button>
         @endunless
     </div>
 </div>
+
+@if ($course->isSubmitted())
+    <div class="alert alert-info py-2 small"><i class="bi bi-hourglass-split"></i> ส่งผลการเรียนแล้วเมื่อ {{ thai_datetime($course->submitted_at) }} รอฝ่ายวิชาการตรวจ</div>
+@elseif ($course->return_note && ! $course->locked)
+    <div class="alert alert-warning py-2 small"><i class="bi bi-arrow-counterclockwise"></i> ฝ่ายวิชาการตีกลับ: {{ $course->return_note }}</div>
+@endif
 
 @if ($pendingMs > 0)
     <div class="alert alert-danger d-flex align-items-center gap-2 py-2 small">

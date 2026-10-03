@@ -8,13 +8,14 @@
         <div class="card">
             <div class="table-responsive">
                 <table class="table table-cards align-middle">
-                    <thead><tr><th>ภาคเรียน</th><th>เปิดภาค</th><th>ปิดภาค</th><th class="text-center">รายวิชา</th><th></th></tr></thead>
+                    <thead><tr><th>ภาคเรียน</th><th>เปิดภาค</th><th>ปิดภาค</th><th>ประกาศผล</th><th class="text-center">รายวิชา</th><th></th></tr></thead>
                     <tbody>
                     @forelse ($terms as $t)
                         <tr class="{{ $t->is_current ? 'table-primary' : '' }}">
                                 <td class="fw-semibold">{{ $t->label() }} @if($t->is_current)<span class="badge bg-primary">ปัจจุบัน</span>@endif</td>
                                 <td><input form="tm{{ $t->id }}" type="date" name="start_date" value="{{ $t->start_date?->toDateString() }}" class="form-control form-control-sm"></td>
                                 <td><input form="tm{{ $t->id }}" type="date" name="end_date" value="{{ $t->end_date?->toDateString() }}" class="form-control form-control-sm"></td>
+                                <td><input form="tm{{ $t->id }}" type="date" name="results_announce_on" value="{{ $t->results_announce_on?->toDateString() }}" class="form-control form-control-sm" title="ก่อนวันนี้ผู้ปกครอง/นักเรียนยังไม่เห็นผลการเรียน" aria-label="วันประกาศผล"></td>
                                 <td class="text-center">{{ $t->courses_count }}</td>
                                 <td class="text-end text-nowrap">
                                 <form id="tm{{ $t->id }}" method="POST" action="{{ route('terms.update', $t) }}" class="d-inline">@csrf @method('PUT')<button class="btn btn-sm btn-light border"><i class="bi bi-check-lg"></i></button></form>

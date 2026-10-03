@@ -2,18 +2,20 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use App\Support\Grade;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Course extends Model
 {
-    protected $fillable = ['term_id', 'classroom_id', 'subject_id', 'teacher_id', 'locked'];
+    protected $fillable = ['term_id', 'classroom_id', 'subject_id', 'teacher_id', 'locked', 'submitted_at', 'submitted_by', 'approved_at', 'approved_by', 'return_note'];
 
     protected function casts(): array
     {
-        return ['locked' => 'boolean'];
+        return ['locked' => 'boolean', 'submitted_at' => 'datetime', 'approved_at' => 'datetime'];
     }
 
     public function term(): BelongsTo
@@ -39,6 +41,56 @@ class Course extends Model
     public function assessments(): HasMany
     {
         return $this->hasMany(Assessment::class)->orderBy('sort')->orderBy('id');
+    }
+
+    /** รายชื่อเฉพาะของรายวิชา (วิชาเลือก/ชุมนุม) — ว่าง = เรียนทั้งห้อง */
+    public function members(): BelongsToMany
+    {
+        return $this->belongsToMany(Student::class, 'course_students');
+    }
+
+    private ?array $memberIdCache = null;
+
+    /** @return list<int> */
+    public function memberIds(): array
+    {
+        return $this->memberIdCache ??= $this->members()->pluck('students.id')->all();
+    }
+
+    /**
+     * ผู้เรียนของรายวิชานี้: รายชื่อเฉพาะถ้ากำหนดไว้ ไม่งั้นทั้งห้อง
+     * $activeOnly = false ใช้กับสมุดคะแนน/ผลการเรียน ที่ต้องเห็นคนที่เคยเรียนแม้เลื่อนชั้นหรือจบไปแล้ว
+     */
+    public function students(bool $activeOnly = true)
+    {
+        if ($ids = $this->memberIds()) {
+            return Student::query()->whereIn('students.id', $ids)->when($activeOnly, fn ($q) => $q->where('status', 'active'))
+                ->orderBy('student_code');
+        }
+
+        return $activeOnly ? $this->classroom->students() : $this->classroom->roster();
+    }
+
+    /** นักเรียนคนนี้เรียนรายวิชานี้หรือไม่ ($classroomId = ห้องของนักเรียนในปีการศึกษาของรายวิชา) */
+    public function includesStudent(Student $student, ?int $classroomId): bool
+    {
+        $ids = $this->memberIds();
+
+        return $ids ? in_array($student->id, $ids, true) : $this->classroom_id === $classroomId;
+    }
+
+    /** รายวิชาที่นักเรียนเรียน: วิชาของห้องตัวเองที่ไม่จำกัดรายชื่อ + วิชาที่มีชื่ออยู่ในรายชื่อเฉพาะ */
+    public function scopeForStudent(Builder $q, Student $student, ?int $classroomId): Builder
+    {
+        return $q->where(fn ($w) => $w
+            ->where(fn ($a) => $a->where('classroom_id', $classroomId)->whereDoesntHave('members'))
+            ->orWhereHas('members', fn ($m) => $m->where('students.id', $student->id)));
+    }
+
+    /** ครูผู้สอนส่งผลแล้ว รอฝ่ายวิชาการตรวจ */
+    public function isSubmitted(): bool
+    {
+        return $this->submitted_at !== null && ! $this->locked;
     }
 
     public function canEdit(User $user): bool

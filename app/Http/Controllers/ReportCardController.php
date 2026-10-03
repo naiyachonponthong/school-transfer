@@ -16,6 +16,7 @@ class ReportCardController extends Controller
     {
         abort_unless($student->canBeViewedBy($request->user()), 403);
         $term = Term::find($request->query('term')) ?? Term::current();
+        abort_if($term && ! $term->resultsVisibleTo($request->user()), 403, 'โรงเรียนยังไม่ประกาศผลการเรียนของภาคเรียนนี้');
 
         return view('students.report-card', ['term' => $term, 'cards' => [self::data($student, $term)], 'back' => url()->previous()]);
     }

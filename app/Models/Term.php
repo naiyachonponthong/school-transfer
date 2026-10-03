@@ -8,13 +8,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Term extends Model
 {
-    protected $fillable = ['year', 'term', 'start_date', 'end_date', 'is_current'];
+    protected $fillable = ['year', 'term', 'start_date', 'end_date', 'is_current', 'results_announce_on'];
 
     protected function casts(): array
     {
         return [
             'start_date' => DateOnly::class,
             'end_date' => DateOnly::class,
+            'results_announce_on' => DateOnly::class,
             'is_current' => 'boolean',
         ];
     }
@@ -42,6 +43,12 @@ class Term extends Model
     public function courses(): HasMany
     {
         return $this->hasMany(Course::class);
+    }
+
+    /** ผู้ปกครอง/นักเรียนเห็นผลการเรียนของภาคนี้ได้ตั้งแต่วันประกาศผล (ไม่ตั้งวัน = เห็นได้ตลอด) บุคลากรเห็นเสมอ */
+    public function resultsVisibleTo(User $user): bool
+    {
+        return $user->isStaff() || $this->results_announce_on === null || $this->results_announce_on->lte(today());
     }
 
     public function label(): string

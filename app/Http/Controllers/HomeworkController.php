@@ -59,7 +59,7 @@ class HomeworkController extends Controller
         $a = Assignment::create($data + ['created_by' => $request->user()->id]);
 
         if ($request->boolean('notify', true)) {
-            foreach ($course->classroom->students()->get() as $s) {
+            foreach ($course->students()->get() as $s) {
                 Notifier::parents($s, "📘 งานใหม่วิชา{$course->subject->name}: {$a->title}".($a->due_at ? ' ส่งภายใน '.thai_datetime($a->due_at) : ''), route('parent.homework'));
             }
         }
@@ -71,7 +71,7 @@ class HomeworkController extends Controller
     {
         $assignment->load('course.classroom', 'course.subject', 'assessment');
         abort_unless($assignment->course->canEdit($request->user()), 403);
-        $students = $assignment->course->classroom->students()->get();
+        $students = $assignment->course->students()->get();
         $subs = $assignment->submissions()->get()->keyBy('student_id');
 
         return view('homework.show', compact('assignment', 'students', 'subs'));
@@ -96,7 +96,7 @@ class HomeworkController extends Controller
             'rows.*.feedback' => ['nullable', 'string', 'max:255'],
             'rows.*.paper' => ['nullable', 'boolean'],
         ]);
-        $valid = $assignment->course->classroom->students()->pluck('id')->flip();
+        $valid = $assignment->course->students()->pluck('students.id')->flip();
 
         DB::transaction(function () use ($data, $assignment, $valid, $request) {
             foreach ($data['rows'] ?? [] as $sid => $row) {
@@ -152,7 +152,7 @@ class HomeworkController extends Controller
             : $user->children()->with('classroom')->get();
         $data = $children->map(function (Student $child) use ($term) {
             $assignments = Assignment::with('course.subject')
-                ->whereHas('course', fn ($q) => $q->where('classroom_id', $child->classroom_id)->when($term, fn ($t) => $t->where('term_id', $term->id)))
+                ->whereHas('course', fn ($q) => $q->forStudent($child, $child->classroom_id)->when($term, fn ($t) => $t->where('term_id', $term->id)))
                 ->latest()->limit(40)->get();
             $subs = Submission::where('student_id', $child->id)->whereIn('assignment_id', $assignments->pluck('id'))->get()->keyBy('assignment_id');
 
@@ -171,7 +171,7 @@ class HomeworkController extends Controller
             'file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf,doc,docx,ppt,pptx,xls,xlsx,mp4,mov', 'max:20480'],
         ], ['text.required_without' => 'พิมพ์คำตอบหรือแนบไฟล์อย่างน้อยหนึ่งอย่าง']);
         $student = Student::findOrFail($data['student_id']);
-        abort_unless(($student->isOwnedBy($user) || $student->isGuardedBy($user)) && $student->classroom_id === $assignment->course->classroom_id, 403);
+        abort_unless(($student->isOwnedBy($user) || $student->isGuardedBy($user)) && $assignment->course->includesStudent($student, $student->classroom_id), 403);
 
         $sub = Submission::firstOrNew(['assignment_id' => $assignment->id, 'student_id' => $student->id]);
         abort_if($sub->score !== null, 422, 'ครูตรวจงานนี้แล้ว ส่งใหม่ไม่ได้');

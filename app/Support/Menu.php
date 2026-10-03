@@ -89,6 +89,8 @@ class Menu
                 self::item('line', 'LINE แจ้งเตือน', 'bi-chat-dots', route('settings.messages'), 'slate', 0, ['settings.messages']),
                 self::item('users', 'ผู้ใช้งาน', 'bi-person-gear', route('users.index'), 'slate', 0, ['users.*']),
                 self::item('roles', 'ตำแหน่งและสิทธิ์', 'bi-shield-lock', route('roles.index'), 'slate', 0, ['roles.*']),
+                self::item('approvals', 'อนุมัติผลการเรียน', 'bi-clipboard-check', route('courses.approvals'), 'slate',
+                    $can('academics.manage') ? \App\Models\Course::whereNotNull('submitted_at')->where('locked', false)->count() : 0, ['courses.approvals']),
                 self::item('classrooms', 'ห้องเรียน', 'bi-door-open', route('classrooms.index'), 'slate', 0, ['classrooms.*']),
                 self::item('subjects', 'รายวิชา', 'bi-book', route('subjects.index'), 'slate', 0, ['subjects.*']),
                 self::item('terms', 'ปีการศึกษา', 'bi-calendar-range', route('terms.index'), 'slate', 0, ['terms.*']),
@@ -105,7 +107,7 @@ class Menu
             'gate' => 'gate.use', 'cards' => 'gate.use', 'health' => 'health.manage', 'library' => 'library.manage', 'report' => 'reports.view',
             'invoices' => 'finance.view', 'slips' => 'finance.manage', 'admissions' => 'admissions.manage', 'admissionexams' => 'admissions.manage',
             'line' => 'settings.manage', 'backups' => 'settings.manage', 'settings' => 'settings.manage', 'users' => 'users.manage', 'roles' => 'users.manage',
-            'classrooms' => 'academics.manage', 'subjects' => 'academics.manage', 'terms' => 'academics.manage', 'staff' => 'staff.manage', 'audit' => 'audit.view',
+            'classrooms' => 'academics.manage', 'approvals' => 'academics.manage', 'subjects' => 'academics.manage', 'terms' => 'academics.manage', 'staff' => 'staff.manage', 'audit' => 'audit.view',
         ];
 
         return array_filter(array_map(

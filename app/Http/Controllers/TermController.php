@@ -37,6 +37,7 @@ class TermController extends Controller
         $term->update($request->validate([
             'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date', 'after:start_date'],
+            'results_announce_on' => ['nullable', 'date'],
         ]));
 
         return back()->with('success', 'บันทึกแล้ว');

@@ -19,7 +19,9 @@ use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ClassroomController;
+use App\Http\Controllers\CourseApprovalController;
 use App\Http\Controllers\CourseController;
+use App\Http\Controllers\CourseMemberController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EvaluationController;
 use App\Http\Controllers\ExamController;
@@ -229,6 +231,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/assessments/{assessment}', [GradebookController::class, 'updateAssessment'])->name('assessments.update');
         Route::delete('/assessments/{assessment}', [GradebookController::class, 'destroyAssessment'])->name('assessments.destroy');
         Route::get('/courses/{course}/export', [GradebookController::class, 'export'])->name('gradebook.export');
+        Route::post('/courses/{course}/submit', [CourseApprovalController::class, 'submit'])->name('courses.submit');
         Route::get('/courses/{course}/pp5', [GradebookController::class, 'pp5'])->name('gradebook.pp5');
 
         // แจ้งซ่อม (ครูทุกคนแจ้งได้ · งานอาคารสถานที่จัดการ)
@@ -399,6 +402,13 @@ Route::middleware('auth')->group(function () {
         Route::post('/courses/bulk', [CourseController::class, 'bulk'])->name('courses.bulk')->middleware('permission:academics.manage');
         Route::put('/courses/{course}', [CourseController::class, 'update'])->name('courses.update')->middleware('permission:academics.manage');
         Route::delete('/courses/{course}', [CourseController::class, 'destroy'])->name('courses.destroy')->middleware('permission:academics.manage');
+        Route::middleware('permission:academics.manage')->group(function () {
+            Route::get('/courses/{course}/members', [CourseMemberController::class, 'edit'])->name('courses.members');
+            Route::put('/courses/{course}/members', [CourseMemberController::class, 'update'])->name('courses.members.update');
+            Route::get('/course-approvals', [CourseApprovalController::class, 'index'])->name('courses.approvals');
+            Route::post('/courses/{course}/approve', [CourseApprovalController::class, 'approve'])->name('courses.approve');
+            Route::post('/courses/{course}/return', [CourseApprovalController::class, 'return'])->name('courses.return');
+        });
 
         Route::post('/timetable', [TimetableController::class, 'save'])->name('timetable.save')->middleware('permission:academics.manage');
 
