@@ -204,8 +204,8 @@ class PeriodAttendanceAndStudentAccountTest extends TestCase
             "/portfolio/{$me->id}", "/transcript/{$me->id}", "/report-card/{$me->id}"] as $url) {
             $this->assertSame(200, $this->get($url)->status(), $url);
         }
-        // ไม่มีแท็บค่าเทอม/แบบประเมิน
-        $this->get('/me/info?tab=fees')->assertDontSee('id="p-fees"', false)->assertDontSee('id="p-survey"', false);
+        // ค่าธรรมเนียม: นักเรียนดูได้อย่างเดียว (ไม่มีลิงก์ไปหน้าใบแจ้งหนี้) · แบบประเมินเป็นของผู้ปกครอง
+        $this->get('/me/info?tab=fees')->assertSee('id="p-fees"', false)->assertDontSee('/invoices/')->assertDontSee('id="p-survey"', false);
     }
 
     public function test_student_is_confined_to_own_data(): void

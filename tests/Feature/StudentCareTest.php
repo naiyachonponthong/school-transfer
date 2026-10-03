@@ -186,6 +186,14 @@ class StudentCareTest extends TestCase
         $this->actingAs($studentUser->fresh())->get(route('student.consents'))->assertOk()
             ->assertSee('ไปสวนสัตว์ วันศุกร์')->assertSee('ไม่อนุญาต')->assertSee('ผู้ปกครองตอบแล้ว')->assertDontSee('parent/consents');
         $this->post(route('parent.consents.respond', $form), ['student_id' => $child->id, 'agreed' => 1])->assertForbidden();
+        // นักเรียนเห็นค่าธรรมเนียม (ดูอย่างเดียว) และใบลาของตัวเอง แต่เปิดใบแจ้งหนี้/ส่งใบลาเองไม่ได้
+        \App\Models\LeaveRequest::create(['student_id' => $child->id, 'requested_by' => $parent->id, 'type' => 'sick', 'start_date' => today(), 'end_date' => today(), 'reason' => 'มีไข้ตัวร้อน', 'status' => 'pending']);
+        $this->get(route('student.info', ['tab' => 'fees']))->assertOk()->assertSee('ค่าธรรมเนียมของฉัน')->assertSee('มีไข้ตัวร้อน')
+            ->assertSee('id="p-leaves"', false)->assertDontSee('id="p-survey"', false)->assertDontSee('/invoices/');
+        if ($inv = $child->invoices()->first()) {
+            $this->get(route('invoices.show', $inv))->assertForbidden();
+        }
+        $this->get(route('parent.leave'))->assertForbidden();
         $this->actingAs($parent);
         $stranger = Student::where('classroom_id', $child->classroom_id)->whereDoesntHave('guardians', fn ($q) => $q->whereKey($parent->id))->first();
         $this->post(route('parent.consents.respond', $form), ['student_id' => $stranger->id, 'agreed' => 1])->assertSessionHasErrors('student_id');

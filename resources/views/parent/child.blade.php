@@ -10,10 +10,11 @@
     $prevMonth = $month->copy()->subMonth()->format('Y-m');
     $nextMonth = $month->copy()->addMonth()->format('Y-m');
     $tabs = ['overview' => 'การมาเรียน', 'grades' => 'ผลการเรียน', 'behavior' => 'ความประพฤติ', 'timetable' => 'ตารางเรียน', 'fees' => 'ค่าธรรมเนียม', 'health' => 'สุขภาพ', 'survey' => 'แบบประเมิน'];
-    // นักเรียนดูของตัวเอง: ค่าธรรมเนียมกับแบบประเมินเป็นเรื่องของผู้ปกครอง
+    // นักเรียนดูของตัวเอง: ค่าธรรมเนียมดูได้อย่างเดียว (ผู้ปกครองเป็นผู้ชำระ) แบบประเมินเป็นเรื่องของผู้ปกครอง
     if ($isStudent ?? false) {
-        unset($tabs['fees'], $tabs['survey']);
+        unset($tabs['survey']);
     }
+    $tabs['leaves'] = 'ใบลา';
     $msCount = collect($periodSummary ?? [])->filter(fn ($s) => $s['ms'] ?? false)->count();
 @endphp
 
@@ -199,11 +200,17 @@
         </div>
     </div>
 
-    @unless ($isStudent ?? false)
     <div class="tab-pane fade {{ $tab === 'fees' ? 'show active' : '' }}" id="p-fees">
         <div class="card">
+            @if ($isStudent ?? false)
+                @php($owed = $student->invoices->where('status', '!=', 'void')->sum(fn ($i) => max(0, $i->balance())))
+                <div class="card-header"><i class="bi bi-wallet2"></i> ค่าธรรมเนียมของฉัน
+                    <span class="ms-auto small fw-normal {{ $owed > 0 ? 'text-danger' : 'text-success' }}">{{ $owed > 0 ? 'ค้างชำระรวม '.baht($owed) : 'ไม่มียอดค้างชำระ' }}</span>
+                </div>
+                <div class="px-3 py-2 small text-muted border-bottom">ดูได้อย่างเดียว · การชำระเงินและแนบสลิปทำโดยผู้ปกครอง</div>
+            @endif
             @forelse ($student->invoices->where('status', '!=', 'void') as $inv)
-                <a href="{{ route('invoices.show', $inv) }}" class="d-flex align-items-center gap-2 px-3 py-3 border-bottom text-decoration-none text-body">
+                @if ($isStudent ?? false)<div class="d-flex align-items-center gap-2 px-3 py-3 border-bottom">@else<a href="{{ route('invoices.show', $inv) }}" class="d-flex align-items-center gap-2 px-3 py-3 border-bottom text-decoration-none text-body">@endif
                     <div class="flex-grow-1">
                         <div class="fw-semibold">{{ $inv->title }}</div>
                         <div class="small text-muted">{{ $inv->invoice_no }} · กำหนดชำระ {{ $inv->due_date ? thai_date($inv->due_date) : '-' }}</div>
@@ -212,12 +219,34 @@
                         <div class="fw-bold">{{ baht($inv->balance() > 0 ? $inv->balance() : $inv->netTotal()) }}</div>
                         <span class="badge bg-{{ $inv->statusColor() }}">{{ $inv->statusLabel() }}</span>
                     </div>
-                </a>
+                @if ($isStudent ?? false)</div>@else</a>@endif
             @empty
                 <div class="empty"><i class="bi bi-receipt"></i>ไม่มีรายการ</div>
             @endforelse
         </div>
     </div>
+
+    <div class="tab-pane fade {{ $tab === 'leaves' ? 'show active' : '' }}" id="p-leaves">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-envelope-paper"></i> ใบลา
+                @unless ($isStudent ?? false)<a href="{{ route('parent.leave', ['student' => $student->id]) }}" class="ms-auto small fw-normal">+ ส่งใบลา</a>@endunless
+            </div>
+            @if ($isStudent ?? false)<div class="px-3 py-2 small text-muted border-bottom">ผู้ปกครองเป็นผู้ส่งใบลา · ที่นี่ดูได้ว่าครูอนุมัติแล้วหรือยัง</div>@endif
+            @forelse ($leaves ?? [] as $l)
+                <div class="d-flex align-items-center gap-2 px-3 py-3 border-bottom">
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold">{{ $l->typeLabel() }} · {{ thai_date($l->start_date) }}@if ($l->days() > 1) – {{ thai_date($l->end_date) }} ({{ $l->days() }} วัน)@endif</div>
+                        <div class="small text-muted">{{ $l->reason }}</div>
+                    </div>
+                    <span class="badge bg-{{ $l->statusColor() }}">{{ $l->statusLabel() }}</span>
+                </div>
+            @empty
+                <div class="empty"><i class="bi bi-envelope-paper"></i>ยังไม่มีใบลา</div>
+            @endforelse
+        </div>
+    </div>
+
+    @unless ($isStudent ?? false)
 
     <div class="tab-pane fade {{ $tab === 'survey' ? 'show active' : '' }}" id="p-survey">
         <div class="card">

@@ -102,6 +102,7 @@ class ParentController extends Controller
             'periods' => Settings::periodTimes(),
             'tab' => $request->query('tab', 'overview'),
             'surveys' => $surveys,
+            'leaves' => LeaveRequest::where('student_id', $student->id)->latest()->limit(30)->get(),
             'surveyResponses' => \App\Models\SurveyResponse::where('student_id', $student->id)->where('respondent_role', 'parent')
                 ->where('term_id', $term?->id)->whereIn('survey_id', $surveys->pluck('id'))->get()->keyBy('survey_id'),
             // เวลาเรียนรายวิชา (เช็คชื่อรายคาบ) ภาคนี้ — เห็นล่วงหน้าว่าวิชาไหนเสี่ยง มส.

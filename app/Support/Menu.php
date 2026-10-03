@@ -196,6 +196,8 @@ class Menu
                 self::item('behavior', 'ความประพฤติ', 'bi-award', $tab('behavior'), 'primary'),
                 self::item('health', 'สุขภาพ', 'bi-heart-pulse', $tab('health'), 'primary'),
                 self::item('consents', 'หนังสือขออนุญาต', 'bi-envelope-check', route('student.consents'), 'primary', 0, ['student.consents']),
+                self::item('leaves', 'ใบลา', 'bi-envelope-paper', $tab('leaves'), 'primary'),
+                self::item('fees', 'ค่าเทอม', 'bi-wallet2', $tab('fees'), 'teal'),
                 self::item('portfolio', 'แฟ้มผลงาน', 'bi-folder2-open', $me ? route('portfolio.show', $me) : route('student.home'), 'primary', 0, ['portfolio.*']),
                 self::item('transcript', 'ปพ.1', 'bi-file-earmark-text', $me ? route('transcript', $me) : route('student.home'), 'teal'),
             ],
