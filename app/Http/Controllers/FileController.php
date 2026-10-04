@@ -55,7 +55,7 @@ class FileController extends Controller
     {
         return match ($type) {
             'slip' => $user->hasPermission('finance.view') || $model->invoice->student->isGuardedBy($user),
-            'wallet-slip' => $user->hasPermission('wallet.manage') || $model->wallet->student->isGuardedBy($user),
+            'wallet-slip' => $user->hasPermission('wallet.manage') || $model->wallet->user_id === $user->id || (bool) $model->wallet->student?->isGuardedBy($user),
             'leave' => $model->student->canBeViewedBy($user),
             'staff-leave' => $user->hasPermission('staff.manage') || $model->user_id === $user->id,
             'chat' => $model->conversation->hasParticipant($user),

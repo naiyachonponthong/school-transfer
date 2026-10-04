@@ -3,7 +3,7 @@
 
 @section('content')
 <div class="page-head">
-    <div><h1>กระเป๋าเงินนักเรียน</h1><div class="sub">เติมเงิน ตรวจสลิป ร้านค้า และรายงานการขาย</div></div>
+    <div><h1>กระเป๋าเงิน</h1><div class="sub">เติมเงิน ตรวจสลิป ร้านค้า และรายงานการขาย</div></div>
     <div class="actions">
         <a href="{{ route('pos.index') }}" class="btn btn-light border"><i class="bi bi-shop"></i> หน้าจอขาย</a>
         <a href="{{ route('wallets.cards') }}" class="btn btn-light border"><i class="bi bi-credit-card-2-front"></i> บัตรแตะ <span class="badge bg-light text-body border">{{ $cardCount }}</span></a>
@@ -26,17 +26,24 @@
             <div class="card-header"><i class="bi bi-cash-coin"></i> เติมเงินสด</div>
             <div class="card-body row g-3">
                 <div class="col-12">
-                    <label class="form-label" for="topupScan">สแกนหรือแตะบัตรนักเรียน</label>
+                    <label class="form-label" for="topupScan">สแกนหรือแตะบัตร (นักเรียน หรือรหัสบุคลากร)</label>
                     <input id="topupScan" class="form-control" autocomplete="off" placeholder="สแกนบัตร… หรือเลือกชื่อด้านล่าง" data-url="{{ route('wallets.lookup') }}">
                     <div class="form-text" id="topupScanMsg" role="status" aria-live="polite"></div>
                 </div>
                 <div class="col-12">
-                    <label class="form-label">นักเรียน</label>
-                    <select name="student_id" class="form-select @error('student_id') is-invalid @enderror" required>
+                    <label class="form-label">เจ้าของกระเป๋า</label>
+                    <select name="owner" class="form-select @error('owner') is-invalid @enderror" required>
                         <option value="">— เลือกหรือค้นหา —</option>
-                        @foreach ($students as $s)
-                            <option value="{{ $s->id }}" @selected((int) old('student_id') === $s->id)>{{ $s->student_code }} {{ $s->fullName() }} · {{ $s->classroom?->name() }}</option>
-                        @endforeach
+                        <optgroup label="นักเรียน">
+                            @foreach ($students as $s)
+                                <option value="s:{{ $s->id }}" @selected(old('owner') === 's:'.$s->id)>{{ $s->student_code }} {{ $s->fullName() }} · {{ $s->classroom?->name() }}</option>
+                            @endforeach
+                        </optgroup>
+                        <optgroup label="ครูและบุคลากร">
+                            @foreach ($staff as $u)
+                                <option value="u:{{ $u->id }}" @selected(old('owner') === 'u:'.$u->id)>{{ $u->gateCode() }} {{ $u->name }}{{ $u->position ? ' · '.$u->position : '' }}</option>
+                            @endforeach
+                        </optgroup>
                     </select>
                 </div>
                 <div class="col-sm-5">
@@ -55,8 +62,8 @@
         <div class="card">
             <div class="card-header"><i class="bi bi-clock-history"></i> เติมเงินล่าสุด</div>
             @forelse ($recent as $t)
-                <a href="{{ route('wallets.student', $t->wallet->student) }}" class="d-flex align-items-center gap-2 px-3 py-2 border-bottom small text-decoration-none text-body">
-                    <div class="flex-grow-1">{{ $t->wallet->student->fullName() }}<div class="text-muted">{{ thai_datetime($t->created_at) }} · {{ $t->note }}</div></div>
+                <a href="{{ $t->wallet->adminUrl() }}" class="d-flex align-items-center gap-2 px-3 py-2 border-bottom small text-decoration-none text-body">
+                    <div class="flex-grow-1">{{ $t->wallet->ownerName() }}<div class="text-muted">{{ thai_datetime($t->created_at) }} · {{ $t->note }}</div></div>
                     <span class="fw-semibold text-success">+{{ baht($t->amount) }}</span>
                 </a>
             @empty
@@ -98,11 +105,11 @@
             @forelse ($pending as $t)
                 <div class="d-flex flex-wrap align-items-center gap-2 px-3 py-2 border-bottom">
                     <div class="flex-grow-1">
-                        <div class="fw-semibold">{{ $t->wallet->student->fullName() }} <span class="small text-muted fw-normal">{{ $t->wallet->student->classroom?->name() }}</span></div>
+                        <div class="fw-semibold">{{ $t->wallet->ownerName() }} <span class="small text-muted fw-normal">{{ $t->wallet->ownerSub() }}</span></div>
                         <div class="small text-muted">{{ baht($t->amount) }} บาท · ส่งโดย {{ $t->requester?->name ?? '-' }} · {{ thai_datetime($t->created_at) }}</div>
                     </div>
                     <a href="{{ route('files.show', ['wallet-slip', $t->id]) }}" target="_blank" class="btn btn-sm btn-light border"><i class="bi bi-image"></i> ดูสลิป</a>
-                    <form method="POST" action="{{ route('wallets.topups.approve', $t) }}" data-confirm="อนุมัติเติมเงิน {{ baht($t->amount) }} บาท ให้ {{ $t->wallet->student->fullName() }}?">@csrf<button class="btn btn-sm btn-success">อนุมัติ</button></form>
+                    <form method="POST" action="{{ route('wallets.topups.approve', $t) }}" data-confirm="อนุมัติเติมเงิน {{ baht($t->amount) }} บาท ให้ {{ $t->wallet->ownerName() }}?">@csrf<button class="btn btn-sm btn-success">อนุมัติ</button></form>
                     <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#reject{{ $t->id }}">ไม่อนุมัติ</button>
                 </div>
             @empty
@@ -160,7 +167,7 @@
 // สแกนบัตรที่ช่องเติมเงินสด: เลือกนักเรียนให้ แล้วไปที่ช่องจำนวนเงิน
 (function () {
     const scan = document.getElementById('topupScan'), msg = document.getElementById('topupScanMsg');
-    const form = scan.closest('form'), select = form.querySelector('[name=student_id]');
+    const form = scan.closest('form'), select = form.querySelector('[name=owner]');
     scan.addEventListener('keydown', async (e) => {
         if (e.key !== 'Enter') return;
         e.preventDefault();
@@ -170,7 +177,7 @@
             const res = await fetch(scan.dataset.url, { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ code }) });
             const data = await res.json();
             if (data.ok) {
-                select.value = String(data.id); select.dispatchEvent(new Event('change', { bubbles: true }));
+                select.value = data.key; select.dispatchEvent(new Event('change', { bubbles: true }));
                 msg.className = 'form-text text-success'; msg.textContent = data.name + ' · คงเหลือ ' + Number(data.balance).toLocaleString('th-TH', { minimumFractionDigits: 2 }) + ' บาท';
                 form.querySelector('[name=amount]').focus();
             } else { msg.className = 'form-text text-danger'; msg.textContent = data.message || 'ไม่พบนักเรียน'; }

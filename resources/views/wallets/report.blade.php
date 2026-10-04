@@ -17,7 +17,7 @@
 </div>
 
 <div class="row g-3 mb-3">
-    <div class="col-6 col-md-3"><div class="card"><div class="stat"><div class="stat-icon tint-info"><i class="bi bi-basket"></i></div><div><div class="stat-value">{{ baht($salesTotal) }}</div><div class="stat-label">ยอดขาย (ต้องจ่ายให้ร้าน)</div></div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card"><div class="stat"><div class="stat-icon tint-info"><i class="bi bi-basket"></i></div><div><div class="stat-value">{{ baht($salesTotal) }}</div><div class="stat-label">ยอดขายรวม · จากกระเป๋า {{ baht($salesTotal - $qrTotal) }} · QR {{ baht($qrTotal) }}</div></div></div></div></div>
     <div class="col-6 col-md-3"><div class="card"><div class="stat"><div class="stat-icon tint-success"><i class="bi bi-cash-coin"></i></div><div><div class="stat-value">{{ baht($topups['cash']->total ?? 0) }}</div><div class="stat-label">เติมเงินสด {{ $topups['cash']->n ?? 0 }} ครั้ง</div></div></div></div></div>
     <div class="col-6 col-md-3"><div class="card"><div class="stat"><div class="stat-icon tint-success"><i class="bi bi-qr-code"></i></div><div><div class="stat-value">{{ baht($topups['transfer']->total ?? 0) }}</div><div class="stat-label">เติมด้วยการโอน {{ $topups['transfer']->n ?? 0 }} ครั้ง</div></div></div></div></div>
     <div class="col-6 col-md-3"><div class="card"><div class="stat"><div class="stat-icon tint-primary"><i class="bi bi-wallet2"></i></div><div><div class="stat-value">{{ baht($outstanding) }}</div><div class="stat-label">เงินคงค้างในกระเป๋า (ณ ตอนนี้)</div></div></div></div></div>
@@ -63,7 +63,7 @@
             <tr class="{{ $s->voided_at ? 'text-muted' : '' }}">
                 <td class="small text-nowrap">{{ thai_datetime($s->created_at) }}</td>
                 <td class="small">{{ $s->shop->name }}</td>
-                <td><a href="{{ route('wallets.student', $s->wallet->student) }}">{{ $s->wallet->student->fullName() }}</a></td>
+                <td>@if ($s->wallet)<a href="{{ $s->wallet->adminUrl() }}">{{ $s->customerName() }}</a>@else{{ $s->customerName() }}@endif @if ($s->payment === 'qr')<span class="badge bg-info-subtle text-info-emphasis">QR</span>@endif</td>
                 <td class="small">{{ $s->itemsLabel() }}@if ($s->voided_at)<div class="text-danger">ยกเลิก: {{ $s->void_reason }}</div>@endif</td>
                 <td class="small">{{ $s->cashier?->name ?? '-' }}</td>
                 <td class="text-end {{ $s->voided_at ? 'text-decoration-line-through' : 'fw-semibold' }}">{{ baht($s->total) }}</td>
@@ -82,7 +82,7 @@
             @csrf
             <div class="modal-header"><h5 class="modal-title">ยกเลิกรายการ {{ baht($s->total) }} บาท</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button></div>
             <div class="modal-body">
-                <div class="small text-muted mb-2">{{ $s->wallet->student->fullName() }} · {{ $s->itemsLabel() }} · เงินจะคืนเข้ากระเป๋านักเรียน</div>
+                <div class="small text-muted mb-2">{{ $s->customerName() }} · {{ $s->itemsLabel() }} · {{ $s->wallet_id ? 'เงินจะคืนเข้ากระเป๋า' : 'จ่ายด้วย QR ต้องคืนเงินให้ลูกค้าเอง' }}</div>
                 <label class="form-label">เหตุผล</label><input name="reason" class="form-control" maxlength="200" required>
             </div>
             <div class="modal-footer"><button class="btn btn-danger">ยกเลิกรายการนี้</button></div>

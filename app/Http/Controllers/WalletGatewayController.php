@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\WalletTopup;
-use App\Services\Notifier;
 use App\Services\WalletException;
 use App\Services\WalletService;
 use App\Support\Settings;
@@ -50,8 +49,7 @@ class WalletGatewayController extends Controller
         } catch (WalletException) {
             return response()->json(['ok' => true, 'result' => 'already processed']);
         }
-        $student = $topup->wallet->student;
-        Notifier::parents($student, '✅ เติมเงินเข้ากระเป๋า '.baht($topup->amount).' บาท เรียบร้อยแล้ว', route('parent.wallet', $student));
+        WalletService::notify($topup->wallet->owner(), '✅ เติมเงินเข้ากระเป๋า '.baht($topup->amount).' บาท เรียบร้อยแล้ว');
 
         return response()->json(['ok' => true, 'result' => 'approved']);
     }

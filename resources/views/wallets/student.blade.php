@@ -1,9 +1,9 @@
 @extends('layouts.app')
-@section('title', 'กระเป๋าเงิน '.$student->fullName())
+@section('title', 'กระเป๋าเงิน '.$ownerName)
 
 @section('content')
 <div class="page-head">
-    <div><h1>{{ $student->fullName() }}</h1><div class="sub">{{ $student->student_code }} · {{ $student->classroom?->name() }} · คงเหลือ <b>{{ baht($wallet->balance) }}</b> บาท{{ $wallet->is_frozen ? ' · ระงับการใช้จ่ายอยู่' : '' }}{{ $wallet->daily_limit !== null ? ' · วงเงินต่อวัน '.baht($wallet->daily_limit) : '' }}</div></div>
+    <div><h1>{{ $ownerName }}</h1><div class="sub">{{ $ownerSub }} · คงเหลือ <b>{{ baht($wallet->balance) }}</b> บาท{{ $wallet->is_frozen ? ' · ระงับการใช้จ่ายอยู่' : '' }}{{ $wallet->daily_limit !== null ? ' · วงเงินต่อวัน '.baht($wallet->daily_limit) : '' }}</div></div>
     <div class="actions">
         <a href="{{ route('wallets.index') }}" class="btn btn-light border"><i class="bi bi-arrow-left"></i> กระเป๋าเงิน</a>
         <button class="btn btn-light border" data-bs-toggle="modal" data-bs-target="#adjust"><i class="bi bi-sliders"></i> ปรับยอด / ถอนคืน</button>
@@ -35,14 +35,14 @@
 </div>
 
 <div class="modal fade" id="adjust" tabindex="-1">
-    <div class="modal-dialog"><form method="POST" action="{{ route('wallets.adjust', $student) }}" class="modal-content">
+    <div class="modal-dialog"><form method="POST" action="{{ $adjustUrl }}" class="modal-content">
         @csrf
         <div class="modal-header"><h5 class="modal-title">ปรับยอด / ถอนเงินคืน</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button></div>
         <div class="modal-body row g-3">
             <div class="col-12">
                 <label class="form-label">ประเภท</label>
                 <select name="type" class="form-select">
-                    <option value="withdraw">ถอนเงินคืนผู้ปกครอง (จบ/ย้ายออก)</option>
+                    <option value="withdraw">{{ $isStaff ? 'ถอนเงินคืนเจ้าของ (ลาออก/ย้าย)' : 'ถอนเงินคืนผู้ปกครอง (จบ/ย้ายออก)' }}</option>
                     <option value="adjust_in">ปรับยอดเพิ่ม (แก้ข้อผิดพลาด)</option>
                     <option value="adjust_out">ปรับยอดลด (แก้ข้อผิดพลาด)</option>
                 </select>

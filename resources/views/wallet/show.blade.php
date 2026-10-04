@@ -3,13 +3,13 @@
 
 @section('content')
 <div class="page-head">
-    <div><h1>กระเป๋าเงิน</h1><div class="sub">{{ $student->fullName() }} · {{ $student->classroom?->name() }}</div></div>
+    <div><h1>กระเป๋าเงิน</h1><div class="sub">{{ $ownerName }}{{ $ownerSub ? ' · '.$ownerSub : '' }}</div></div>
 </div>
 
 @if ($children->count() > 1)
     <div class="d-flex flex-wrap gap-2 mb-3">
         @foreach ($children as $c)
-            <a href="{{ route('parent.wallet', $c) }}" class="btn btn-sm {{ $c->id === $student->id ? 'btn-primary' : 'btn-light border' }}">{{ $c->nickname ?: $c->first_name }}</a>
+            <a href="{{ route('parent.wallet', $c) }}" class="btn btn-sm {{ $c->id === $student?->id ? 'btn-primary' : 'btn-light border' }}">{{ $c->nickname ?: $c->first_name }}</a>
         @endforeach
     </div>
 @endif
@@ -29,19 +29,19 @@
                 <div class="card-body">
                     @if ($biller)
                         @if ($autoQr)
-                            <div class="text-center" id="autoBox" data-status="{{ route('parent.wallet.status', [$student, $auto]) }}">
+                            <div class="text-center" id="autoBox" data-status="{{ $urls['status'] }}">
                                 <div class="fw-semibold mb-1">สแกนจ่าย {{ baht($auto->amount) }} บาท ด้วยแอปธนาคาร</div>
                                 <div class="mx-auto bg-white p-2 rounded-3 border" style="width:220px" data-qr="{{ $autoQr }}" data-cell="4"></div>
                                 <div class="small mt-2">อ้างอิง {{ $auto->reference }} · QR นี้ใช้ได้ครั้งเดียว</div>
                                 <div class="small text-muted" id="autoMsg" role="status" aria-live="polite"><span class="spinner-border spinner-border-sm"></span> รอการชำระ เงินจะเข้ากระเป๋าเองภายในไม่กี่วินาทีหลังจ่าย</div>
-                                <a href="{{ route('parent.wallet', $student) }}" class="btn btn-light border btn-sm mt-2">เปลี่ยนจำนวน</a>
+                                <a href="{{ $urls['base'] }}" class="btn btn-light border btn-sm mt-2">เปลี่ยนจำนวน</a>
                             </div>
                         @elseif ($auto)
                             <div class="text-center text-success py-2"><i class="bi bi-check-circle fs-3"></i><div class="fw-semibold">เติมเงิน {{ baht($auto->amount) }} บาท เข้ากระเป๋าแล้ว</div>
-                                <a href="{{ route('parent.wallet', $student) }}" class="btn btn-light border btn-sm mt-2">เติมอีกครั้ง</a></div>
+                                <a href="{{ $urls['base'] }}" class="btn btn-light border btn-sm mt-2">เติมอีกครั้ง</a></div>
                         @else
                             <div class="small text-muted mb-2">สแกนจ่ายด้วยแอปธนาคาร เงินเข้ากระเป๋าทันที เลือกจำนวนเงิน</div>
-                            <form method="POST" action="{{ route('parent.wallet.auto', $student) }}">
+                            <form method="POST" action="{{ $urls['auto'] }}">
                                 @csrf
                                 <div class="d-flex flex-wrap gap-2 mb-3">
                                     @foreach ([50, 100, 200, 300, 500, 1000] as $a)
@@ -49,7 +49,7 @@
                                     @endforeach
                                 </div>
                             </form>
-                            <form method="POST" action="{{ route('parent.wallet.auto', $student) }}" class="input-group">
+                            <form method="POST" action="{{ $urls['auto'] }}" class="input-group">
                                 @csrf
                                 <input type="number" name="amount" class="form-control @error('amount') is-invalid @enderror" min="1" max="20000" step="1" inputmode="numeric" placeholder="จำนวนเงินอื่น" aria-label="จำนวนเงินอื่น" required>
                                 <button class="btn btn-primary">สร้าง QR</button>
@@ -64,10 +64,10 @@
                         <div class="small text-muted mb-2">เลือกจำนวนเงินที่ต้องการเติม</div>
                         <div class="d-flex flex-wrap gap-2 mb-3">
                             @foreach ([50, 100, 200, 300, 500, 1000] as $a)
-                                <a href="{{ route('parent.wallet', ['student' => $student, 'amount' => $a]) }}" class="btn btn-light border">{{ $a }} บาท</a>
+                                <a href="{{ $urls['base'] }}?amount={{ $a }}" class="btn btn-light border">{{ $a }} บาท</a>
                             @endforeach
                         </div>
-                        <form method="GET" action="{{ route('parent.wallet', $student) }}" class="input-group">
+                        <form method="GET" action="{{ $urls['base'] }}" class="input-group">
                             <input type="number" name="amount" class="form-control" min="1" max="20000" step="1" inputmode="numeric" placeholder="จำนวนเงินอื่น" aria-label="จำนวนเงินอื่น" required>
                             <button class="btn btn-primary">ตกลง</button>
                         </form>
@@ -78,14 +78,14 @@
                             <div class="mx-auto bg-white p-2 rounded-3 border" style="width:220px" data-qr="{{ $qr }}" data-cell="4"></div>
                             <div class="small mt-2">พร้อมเพย์ {{ $promptpay }} · {{ school('school_name') }}</div>
                         </div>
-                        <form method="POST" action="{{ route('parent.wallet.topup', $student) }}" enctype="multipart/form-data" class="mt-3">
+                        <form method="POST" action="{{ $urls['topup'] }}" enctype="multipart/form-data" class="mt-3">
                             @csrf
                             <input type="hidden" name="amount" value="{{ $amount }}">
                             <label class="form-label">โอนแล้วแนบสลิป</label>
                             <input type="file" name="slip" accept="image/*" class="form-control @error('slip') is-invalid @enderror" required>
                             @error('slip')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             <div class="d-flex gap-2 mt-3">
-                                <a href="{{ route('parent.wallet', $student) }}" class="btn btn-light border">เปลี่ยนจำนวน</a>
+                                <a href="{{ $urls['base'] }}" class="btn btn-light border">เปลี่ยนจำนวน</a>
                                 <button class="btn btn-primary flex-grow-1"><i class="bi bi-upload"></i> ส่งสลิป</button>
                             </div>
                             <div class="form-text">เงินจะเข้ากระเป๋าเมื่อฝ่ายการเงินตรวจสลิปแล้ว</div>
@@ -107,7 +107,7 @@
                 @endif
             </div>
 
-            <form method="POST" action="{{ route('parent.wallet.settings', $student) }}" class="card">
+            <form method="POST" action="{{ $urls['settings'] }}" class="card">
                 @csrf @method('PUT')
                 <div class="card-header"><i class="bi bi-shield-check"></i> ควบคุมการใช้จ่าย</div>
                 <div class="card-body row g-3">

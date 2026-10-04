@@ -406,6 +406,17 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
         Route::get('/pos/{shop}', [\App\Http\Controllers\PosController::class, 'show'])->name('pos.show');
         Route::post('/pos/{shop}/lookup', [\App\Http\Controllers\PosController::class, 'lookup'])->name('pos.lookup')->middleware('throttle:240,1');
         Route::post('/pos/{shop}/charge', [\App\Http\Controllers\PosController::class, 'charge'])->name('pos.charge')->middleware('throttle:240,1');
+        Route::post('/pos/{shop}/qr', [\App\Http\Controllers\PosController::class, 'qr'])->name('pos.qr')->middleware('throttle:240,1');
+        Route::post('/pos/{shop}/qr-paid', [\App\Http\Controllers\PosController::class, 'qrPaid'])->name('pos.qr.paid')->middleware('throttle:240,1');
+        Route::get('/pos/{shop}/display', [\App\Http\Controllers\PosController::class, 'display'])->name('pos.display');
+        Route::get('/pos/{shop}/display/state', [\App\Http\Controllers\PosController::class, 'displayState'])->name('pos.display.state');
+        Route::post('/pos/{shop}/display', [\App\Http\Controllers\PosController::class, 'displayPush'])->name('pos.display.push');
+        // กระเป๋าเงินของครู/บุคลากรเอง
+        Route::get('/my-wallet', [\App\Http\Controllers\WalletController::class, 'mine'])->name('wallet.mine');
+        Route::post('/my-wallet/topup', [\App\Http\Controllers\WalletController::class, 'topup'])->name('wallet.mine.topup')->middleware('throttle:20,1');
+        Route::post('/my-wallet/auto', [\App\Http\Controllers\WalletController::class, 'auto'])->name('wallet.mine.auto')->middleware('throttle:20,1');
+        Route::get('/my-wallet/topups/{topup}', [\App\Http\Controllers\WalletController::class, 'mineStatus'])->name('wallet.mine.status');
+        Route::put('/my-wallet/settings', [\App\Http\Controllers\WalletController::class, 'settings'])->name('wallet.mine.settings');
         Route::post('/pos-sales/{sale}/void', [\App\Http\Controllers\PosController::class, 'void'])->name('pos.void');
         Route::get('/pos-sales/{sale}/receipt', [\App\Http\Controllers\PosController::class, 'receipt'])->name('pos.receipt');
         Route::middleware('permission:wallet.manage')->group(function () {
@@ -420,6 +431,8 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
             Route::post('/wallets/topups/{topup}/reject', [\App\Http\Controllers\WalletAdminController::class, 'reject'])->name('wallets.topups.reject');
             Route::get('/wallets/students/{student}', [\App\Http\Controllers\WalletAdminController::class, 'student'])->name('wallets.student');
             Route::post('/wallets/students/{student}/adjust', [\App\Http\Controllers\WalletAdminController::class, 'adjust'])->name('wallets.adjust');
+            Route::get('/wallets/staff/{user}', [\App\Http\Controllers\WalletAdminController::class, 'staff'])->name('wallets.staff');
+            Route::post('/wallets/staff/{user}/adjust', [\App\Http\Controllers\WalletAdminController::class, 'adjustStaff'])->name('wallets.staff.adjust');
             Route::post('/wallets/shops', [\App\Http\Controllers\WalletAdminController::class, 'storeShop'])->name('wallets.shops.store');
             Route::get('/wallets/shops/{shop}', [\App\Http\Controllers\WalletAdminController::class, 'shop'])->name('wallets.shop');
             Route::put('/wallets/shops/{shop}', [\App\Http\Controllers\WalletAdminController::class, 'updateShop'])->name('wallets.shops.update');

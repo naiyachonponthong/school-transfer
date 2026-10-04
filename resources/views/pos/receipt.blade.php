@@ -27,7 +27,7 @@
     <div class="c">{{ school('school_name') }}</div>
     <hr>
     <div>เลขที่ {{ str_pad((string) $sale->id, 6, '0', STR_PAD_LEFT) }} · {{ $sale->created_at->format('d/m/') }}{{ $sale->created_at->year + 543 }} {{ $sale->created_at->format('H:i') }}</div>
-    <div>{{ $sale->wallet->student->fullName() }}{{ $sale->wallet->student->classroom ? ' ('.$sale->wallet->student->classroom->name().')' : '' }}</div>
+    <div>{{ $sale->customerName() }}{{ $sale->customerSub() ? ' ('.$sale->customerSub().')' : '' }}</div>
     @if ($sale->voided_at)<div class="void">ยกเลิกแล้ว</div>@endif
     <hr>
     <table>
@@ -38,8 +38,12 @@
     <hr>
     <table>
         <tr class="big"><td>รวม</td><td class="r">{{ baht($sale->total) }}</td></tr>
-        <tr><td>ชำระด้วยกระเป๋าเงิน</td><td class="r"></td></tr>
-        <tr><td>คงเหลือหลังซื้อ</td><td class="r">{{ baht($balance) }}</td></tr>
+        @if ($sale->payment === 'qr')
+            <tr><td>ชำระด้วย QR พร้อมเพย์</td><td class="r"></td></tr>
+        @else
+            <tr><td>ชำระด้วยกระเป๋าเงิน</td><td class="r"></td></tr>
+            <tr><td>คงเหลือหลังซื้อ</td><td class="r">{{ baht($balance) }}</td></tr>
+        @endif
     </table>
     <hr>
     <div class="c">ผู้ขาย: {{ $sale->cashier?->name ?? '-' }}</div>

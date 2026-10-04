@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /** การขายหนึ่งครั้งที่หน้าจอขาย */
 class WalletSale extends Model
 {
-    protected $fillable = ['shop_id', 'wallet_id', 'total', 'items', 'cashier_id', 'client_key', 'voided_at', 'voided_by', 'void_reason'];
+    protected $fillable = ['shop_id', 'wallet_id', 'total', 'items', 'cashier_id', 'client_key', 'voided_at', 'voided_by', 'void_reason', 'payment'];
 
     protected function casts(): array
     {
@@ -28,6 +28,17 @@ class WalletSale extends Model
     public function cashier(): BelongsTo
     {
         return $this->belongsTo(User::class, 'cashier_id');
+    }
+
+    /** ผู้ซื้อ: เจ้าของกระเป๋า หรือลูกค้าที่สแกนจ่ายด้วย QR เอง */
+    public function customerName(): string
+    {
+        return $this->wallet_id ? ($this->wallet?->ownerName() ?? '-') : 'ลูกค้าสแกนจ่าย QR';
+    }
+
+    public function customerSub(): ?string
+    {
+        return $this->wallet_id ? $this->wallet?->ownerSub() : null;
     }
 
     public function itemsLabel(): string
