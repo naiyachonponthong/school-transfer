@@ -107,24 +107,6 @@ class WalletService
         return $sale;
     }
 
-    /**
-     * บันทึกการขายที่ลูกค้าสแกนจ่ายด้วย QR พร้อมเพย์เอง (ไม่ผ่านกระเป๋า) หลังคนขายยืนยันว่าได้รับเงินแล้ว
-     */
-    public static function recordQrSale(Shop $shop, array $items, User $cashier, string $clientKey): WalletSale
-    {
-        if ($existing = WalletSale::where('client_key', $clientKey)->first()) {
-            return $existing;
-        }
-        $total = self::total($items);
-
-        return DB::transaction(function () use ($shop, $items, $cashier, $clientKey, $total) {
-            self::takeStock($items);
-
-            return WalletSale::create(['shop_id' => $shop->id, 'wallet_id' => null, 'total' => $total, 'items' => $items,
-                'cashier_id' => $cashier->id, 'client_key' => $clientKey, 'payment' => 'qr']);
-        });
-    }
-
     /** แจ้งผู้ปกครอง (กระเป๋านักเรียน) หรือเจ้าตัว (กระเป๋าครู) */
     public static function notify(Student|User $owner, string $text): void
     {
@@ -145,7 +127,7 @@ class WalletService
         }
     }
 
-    /** ยกเลิกการขาย: เงินคืนเข้ากระเป๋าเป็นรายการใหม่ (ไม่ลบรายการเดิม) และคืนสต็อก · รายการ QR คืนเงินสด/โอนคืนเองนอกระบบ */
+    /** ยกเลิกการขาย: เงินคืนเข้ากระเป๋าเป็นรายการใหม่ (ไม่ลบรายการเดิม) และคืนสต็อก */
     public static function void(WalletSale $sale, User $by, string $reason): void
     {
         DB::transaction(function () use ($sale, $by, $reason) {

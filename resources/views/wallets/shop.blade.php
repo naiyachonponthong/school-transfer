@@ -27,12 +27,6 @@
                     </div>
                 </div>
                 <div class="col-12">
-                    <label class="form-label">พร้อมเพย์ของร้าน <span class="text-muted small">(ไม่บังคับ)</span></label>
-                    <input name="promptpay_id" value="{{ old('promptpay_id', $shop->promptpay_id) }}" class="form-control @error('promptpay_id') is-invalid @enderror" maxlength="20" inputmode="numeric" placeholder="เบอร์มือถือ 10 หลัก หรือเลขผู้เสียภาษี 13 หลัก">
-                    @error('promptpay_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    <div class="form-text">ใช้เมื่อให้ลูกค้าสแกน QR จ่ายเองที่หน้าจอขาย เงินเข้าบัญชีนี้โดยตรง · เว้นว่าง = ใช้พร้อมเพย์ของโรงเรียน{{ school('promptpay_id') ? '' : ' (ยังไม่ได้ตั้ง จึงยังสแกนจ่ายไม่ได้)' }}</div>
-                </div>
-                <div class="col-12">
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" role="switch" name="show_balance" value="1" id="shopBalance" @checked($shop->show_balance)>
                         <label class="form-check-label" for="shopBalance">แสดงยอดคงเหลือของลูกค้าบนหน้าจอลูกค้า</label>

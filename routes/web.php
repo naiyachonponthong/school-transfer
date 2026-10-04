@@ -410,8 +410,6 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
         Route::get('/pos/{shop}', [\App\Http\Controllers\PosController::class, 'show'])->name('pos.show');
         Route::post('/pos/{shop}/lookup', [\App\Http\Controllers\PosController::class, 'lookup'])->name('pos.lookup')->middleware('throttle:240,1');
         Route::post('/pos/{shop}/charge', [\App\Http\Controllers\PosController::class, 'charge'])->name('pos.charge')->middleware('throttle:240,1');
-        Route::post('/pos/{shop}/qr', [\App\Http\Controllers\PosController::class, 'qr'])->name('pos.qr')->middleware('throttle:240,1');
-        Route::post('/pos/{shop}/qr-paid', [\App\Http\Controllers\PosController::class, 'qrPaid'])->name('pos.qr.paid')->middleware('throttle:240,1');
         Route::post('/pos/{shop}/pay-request', [\App\Http\Controllers\PosController::class, 'payRequest'])->name('pos.pay.request')->middleware('throttle:240,1');
         Route::get('/pos/{shop}/pay-request/{token}', [\App\Http\Controllers\PosController::class, 'payStatus'])->name('pos.pay.status')->where('token', '[A-Za-z0-9]+');
         Route::get('/pos/{shop}/display', [\App\Http\Controllers\PosController::class, 'display'])->name('pos.display');

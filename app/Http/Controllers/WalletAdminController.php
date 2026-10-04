@@ -266,10 +266,9 @@ class WalletAdminController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'], 'location' => ['nullable', 'string', 'max:255'],
             'cashiers' => ['nullable', 'array'], 'cashiers.*' => ['integer', 'exists:users,id'],
-            'promptpay_id' => ['nullable', 'string', 'max:20', fn ($attr, $value, $fail) => in_array(strlen(preg_replace('/[^0-9]/', '', (string) $value)), [10, 13, 15], true) ? null : $fail('พร้อมเพย์ต้องเป็นเบอร์มือถือ 10 หลัก หรือเลขผู้เสียภาษี 13 หลัก')],
-        ], [], ['name' => 'ชื่อร้าน', 'promptpay_id' => 'พร้อมเพย์ของร้าน']);
+        ], [], ['name' => 'ชื่อร้าน']);
         $shop->update(['name' => $data['name'], 'location' => $data['location'] ?? null, 'is_active' => $request->boolean('is_active'),
-            'promptpay_id' => $data['promptpay_id'] ?? null, 'show_balance' => $request->boolean('show_balance')]);
+            'show_balance' => $request->boolean('show_balance')]);
         $shop->cashiers()->sync($data['cashiers'] ?? []);
 
         return back()->with('success', 'บันทึกร้านค้าแล้ว');
@@ -356,7 +355,6 @@ class WalletAdminController extends Controller
             'topups' => WalletTopup::where('status', 'approved')->whereBetween('reviewed_at', [$from, $to])->selectRaw('method, sum(amount) as total, count(*) as n')->groupBy('method')->get()->keyBy('method'),
             'withdrawn' => (float) WalletTransaction::where('type', 'withdraw')->whereBetween('created_at', [$from, $to])->sum('amount'),
             'outstanding' => (float) Wallet::sum('balance'),
-            'qrTotal' => (float) $valid->where('payment', 'qr')->sum('total'),
         ]);
     }
 }

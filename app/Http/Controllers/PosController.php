@@ -8,13 +8,11 @@ use App\Models\User;
 use App\Models\WalletSale;
 use App\Services\WalletException;
 use App\Services\WalletService;
-use App\Support\PromptPay;
-use App\Support\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * หน้าจอขาย (POS) ของร้านค้าในโรงเรียน: สแกนบัตรนักเรียนหรือครูแล้วตัดเงินจากกระเป๋า หรือให้ลูกค้าสแกน QR พร้อมเพย์จ่ายเอง
+ * หน้าจอขาย (POS) ของร้านค้าในโรงเรียน: สแกนบัตรนักเรียนหรือครูแล้วตัดเงินจากกระเป๋า หรือให้ลูกค้าสแกน QR จ่ายจากกระเป๋าเงินของตัวเอง
  * ใช้บนเบราว์เซอร์ของแท็บเล็ต คอมพิวเตอร์ หรือเครื่อง POS แบบ Android ได้ · เครื่องอ่านบาร์โค้ด/บัตรแบบ USB พิมพ์รหัสลงช่องสแกนได้เลย
  */
 class PosController extends Controller
@@ -46,7 +44,6 @@ class PosController extends Controller
             'sales' => (clone $today)->with(['wallet.student.classroom', 'wallet.user'])->latest('id')->limit(20)->get(),
             'todayTotal' => (float) (clone $today)->whereNull('voided_at')->sum('total'),
             'todayCount' => (clone $today)->whereNull('voided_at')->count(),
-            'canQr' => filled($shop->promptpayId()),
         ]);
     }
 
@@ -134,35 +131,6 @@ class PosController extends Controller
         return response()->json(['ok' => true, 'sale_id' => $sale->id, 'total' => (float) $sale->total, 'balance' => (float) $sale->wallet->fresh()->balance]);
     }
 
-    /** ข้อความ QR พร้อมเพย์ของยอดที่จะขาย ให้ลูกค้าสแกนจ่ายด้วยแอปธนาคาร */
-    public function qr(Request $request, Shop $shop)
-    {
-        $this->authorizeShop($request, $shop);
-        $data = $request->validate(['amount' => ['required', 'numeric', 'min:0.01', 'max:99999']]);
-        $payload = PromptPay::payload((string) $shop->promptpayId(), round((float) $data['amount'], 2));
-        if (! $payload) {
-            return response()->json(['ok' => false, 'message' => 'ยังไม่ได้ตั้งพร้อมเพย์ของร้านหรือของโรงเรียน'], 422);
-        }
-
-        return response()->json(['ok' => true, 'qr' => $payload, 'promptpay' => $shop->promptpayId()]);
-    }
-
-    /** บันทึกการขายที่รับเงินด้วย QR: คนขายยืนยันเองว่าเห็นเงินเข้าแล้ว */
-    public function qrPaid(Request $request, Shop $shop)
-    {
-        $this->authorizeShop($request, $shop);
-        abort_unless(filled($shop->promptpayId()), 422, 'ยังไม่ได้ตั้งพร้อมเพย์');
-        [$items, $key] = $this->items($request, $shop);
-
-        try {
-            $sale = WalletService::recordQrSale($shop, $items, $request->user(), $key);
-        } catch (WalletException $e) {
-            return response()->json(['ok' => false, 'message' => $e->getMessage()], 422);
-        }
-
-        return response()->json(['ok' => true, 'sale_id' => $sale->id, 'total' => (float) $sale->total]);
-    }
-
     /** เปิดรายการให้ลูกค้าสแกนจ่ายจากกระเป๋าเงินของตัวเอง: ได้ที่อยู่ที่ใส่ใน QR (ใช้ได้ครั้งเดียว อยู่ได้ไม่กี่นาที) */
     public function payRequest(Request $request, Shop $shop)
     {
@@ -233,7 +201,6 @@ class PosController extends Controller
             'customer.balance' => ['nullable', 'numeric'],
             'balance_after' => ['nullable', 'numeric'],
             'qr' => ['nullable', 'string', 'max:600'],
-            'qr_kind' => ['nullable', 'in:wallet,promptpay'],
             'message' => ['nullable', 'string', 'max:255'],
         ]);
         // ร้านที่ตั้งไม่ให้แสดงยอดคงเหลือ: ไม่ส่งยอดไปที่หน้าจอลูกค้าเลย
@@ -270,8 +237,6 @@ class PosController extends Controller
             return back()->with('warning', $e->getMessage());
         }
 
-        return back()->with('success', $sale->wallet_id
-            ? 'ยกเลิกรายการแล้ว เงิน '.baht($sale->total).' บาท คืนเข้ากระเป๋า'
-            : 'ยกเลิกรายการแล้ว รายการนี้จ่ายด้วย QR ต้องคืนเงิน '.baht($sale->total).' บาท ให้ลูกค้าเอง');
+        return back()->with('success', 'ยกเลิกรายการแล้ว เงิน '.baht($sale->total).' บาท คืนเข้ากระเป๋า');
     }
 }

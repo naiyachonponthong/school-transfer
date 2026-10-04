@@ -94,46 +94,21 @@ class WalletStaffQrDisplayTest extends TestCase
         $this->actingAs($this->admin())->get('/wallets/staff/'.$parent->id)->assertNotFound();
     }
 
-    public function test_customer_scans_promptpay_qr_and_cashier_confirms(): void
+    public function test_goods_are_paid_from_wallets_only_and_promptpay_is_for_top_ups(): void
     {
-        [$shop, $rice] = $this->shop();
-        $items = [['product_id' => $rice->id, 'qty' => 2], ['price' => 5, 'qty' => 1]];
-
-        // ยังไม่ได้ตั้งพร้อมเพย์: ไม่มีปุ่ม และสร้าง QR ไม่ได้
-        Settings::set(['promptpay_id' => '']);
-        $this->actingAs($this->admin())->get("/pos/{$shop->id}")->assertOk()->assertSee('ให้ลูกค้าสแกนจ่าย')->assertDontSee('แอปธนาคาร (พร้อมเพย์)');
-        $this->actingAs($this->admin())->postJson("/pos/{$shop->id}/qr", ['amount' => 55])->assertStatus(422);
-        $this->actingAs($this->admin())->postJson("/pos/{$shop->id}/qr-paid", ['client_key' => 'qr-key-0000', 'items' => $items])->assertStatus(422);
-
-        // ใช้พร้อมเพย์ของโรงเรียน หรือของร้านเองถ้าตั้งไว้
         Settings::set(['promptpay_id' => '0812345678']);
-        $this->actingAs($this->admin())->get("/pos/{$shop->id}")->assertOk()->assertSee('แอปธนาคาร (พร้อมเพย์)');
-        $this->actingAs($this->admin())->postJson("/pos/{$shop->id}/qr", ['amount' => 55])->assertOk()->assertJsonPath('promptpay', '0812345678');
-        $this->actingAs($this->admin())->put("/wallets/shops/{$shop->id}", ['name' => $shop->name, 'is_active' => 1, 'promptpay_id' => '12345'])->assertSessionHasErrors('promptpay_id');
-        $this->actingAs($this->admin())->put("/wallets/shops/{$shop->id}", ['name' => $shop->name, 'is_active' => 1, 'show_balance' => 1, 'promptpay_id' => '0899999999'])->assertRedirect();
-        $qr = $this->actingAs($this->admin())->postJson("/pos/{$shop->id}/qr", ['amount' => 55])->assertOk()->assertJsonPath('promptpay', '0899999999')->json('qr');
-        $this->assertStringContainsString('0066899999999', $qr);
-        $this->assertStringContainsString('540555.00', $qr);
+        [$shop, $rice] = $this->shop();
+        $items = [['product_id' => $rice->id, 'qty' => 1]];
 
-        // คนขายยืนยันว่าได้รับเงิน: บันทึกการขายแบบ QR ตัดสต็อก ไม่แตะกระเป๋าใคร และกดซ้ำไม่บันทึกซ้ำ
-        $id = $this->actingAs($this->admin())->postJson("/pos/{$shop->id}/qr-paid", ['client_key' => 'qr-key-0001', 'items' => $items])->assertOk()->assertJsonPath('total', 55)->json('sale_id');
-        $again = $this->actingAs($this->admin())->postJson("/pos/{$shop->id}/qr-paid", ['client_key' => 'qr-key-0001', 'items' => $items])->json('sale_id');
-        $this->assertSame($id, $again);
-        $sale = WalletSale::sole();
-        $this->assertSame(['qr', null, '55.00'], [$sale->payment, $sale->wallet_id, $sale->total]);
-        $this->assertSame(3, $rice->fresh()->stock);
-        $this->assertSame(0, Wallet::count());
+        // หน้าจอขายมีแต่การจ่ายจากกระเป๋าเงิน ไม่มีทางรับเงินด้วยพร้อมเพย์
+        $this->actingAs($this->admin())->get("/pos/{$shop->id}")->assertOk()->assertSee('ให้ลูกค้าสแกนจ่าย')->assertDontSee('พร้อมเพย์');
+        $this->actingAs($this->admin())->postJson("/pos/{$shop->id}/qr", ['amount' => 25])->assertNotFound();
+        $this->actingAs($this->admin())->postJson("/pos/{$shop->id}/qr-paid", ['client_key' => 'qr-key-0001', 'items' => $items])->assertNotFound();
+        $this->actingAs($this->admin())->get("/wallets/shops/{$shop->id}")->assertOk()->assertDontSee('พร้อมเพย์');
+        $this->assertSame(0, WalletSale::count());
 
-        $this->actingAs($this->admin())->get("/pos/{$shop->id}")->assertOk()->assertSee('ลูกค้าสแกนจ่าย QR');
-        $this->actingAs($this->admin())->get("/pos-sales/{$id}/receipt")->assertOk()->assertSee('ชำระด้วย QR พร้อมเพย์')->assertDontSee('คงเหลือหลังซื้อ');
-        $this->actingAs($this->admin())->get('/wallets/report')->assertOk()->assertSee('ลูกค้าสแกนจ่าย QR')->assertSee('QR 55.00');
-
-        // ยกเลิก: คืนสต็อก ไม่มีเงินเข้ากระเป๋าใคร และเตือนให้คืนเงินเอง
-        $this->actingAs($this->admin())->post("/pos-sales/{$id}/void", ['reason' => 'ลูกค้าเปลี่ยนใจ'])->assertSessionHas('success', fn ($m) => str_contains($m, 'ต้องคืนเงิน'));
-        $this->assertSame(5, $rice->fresh()->stock);
-        $this->assertSame(0, Wallet::count());
-
-        $this->actingAs($this->teacher())->postJson("/pos/{$shop->id}/qr-paid", ['client_key' => 'qr-key-0002', 'items' => $items])->assertForbidden();
+        // พร้อมเพย์ใช้ที่หน้าเติมเงินของเจ้าของกระเป๋า
+        $this->actingAs($this->teacher())->get('/my-wallet?amount=100')->assertOk()->assertSee('พร้อมเพย์ 0812345678');
     }
 
     public function test_customer_display_shows_what_the_cashier_pushes(): void

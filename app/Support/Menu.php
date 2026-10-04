@@ -165,7 +165,7 @@ class Menu
         }
 
         $all = collect(self::groups($user, $pendingLeaves))->flatten(1)->keyBy('key');
-        $keys = ['attendance', 'period', 'gate', 'leaves', 'students', 'courses', 'exams', 'homework', 'chat', 'calendar', 'feed', 'invoices'];
+        $keys = ['attendance', 'period', 'gate', 'leaves', 'students', 'courses', 'exams', 'homework', 'chat', 'mywallet', 'calendar', 'feed', 'invoices'];
 
         return array_merge(
             [self::item('home', 'ภาพรวม', 'bi-grid-1x2', route('home'), 'primary', 0, ['home'])],
@@ -181,7 +181,7 @@ class Menu
         $keys = match (true) {
             $user->isParent() => ['leave', 'homework', 'grades', 'attendance', 'chat', 'fees', 'wallet', 'portfolio', 'calendar'],
             $user->isStudent() => ['homework', 'grades', 'timetable', 'attendance', 'wallet', 'scanpay', 'behavior', 'portfolio', 'transcript', 'calendar'],
-            default => ['attendance', 'period', 'gate', 'leaves', 'homework', 'courses', 'exams', 'chat', 'students', 'behavior', 'mytimetable', 'health', 'calendar', 'staffleave', 'repairs', 'surveys', 'library', 'report'],
+            default => ['attendance', 'period', 'gate', 'leaves', 'homework', 'courses', 'exams', 'chat', 'students', 'behavior', 'mywallet', 'mytimetable', 'health', 'calendar', 'staffleave', 'repairs', 'surveys', 'library', 'report'],
         };
 
         return collect($keys)->filter(fn ($k) => isset($all[$k]))->map(fn ($k) => $all[$k])->values()->all();

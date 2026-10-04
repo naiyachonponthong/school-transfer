@@ -111,26 +111,11 @@
     <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
         <div class="modal-header"><h5 class="modal-title">ให้ลูกค้าสแกนจ่าย <span id="qrAmount"></span> บาท</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button></div>
         <div class="modal-body text-center">
-            @if ($canQr)
-                <div class="btn-group mb-3" role="group" aria-label="วิธีจ่าย">
-                    <button type="button" class="btn btn-dark" id="qrModeWallet"><i class="bi bi-wallet2"></i> กระเป๋าเงิน</button>
-                    <button type="button" class="btn btn-light border" id="qrModeBank"><i class="bi bi-bank"></i> แอปธนาคาร (พร้อมเพย์)</button>
-                </div>
-            @endif
             <div class="mx-auto bg-white p-2 rounded-3 border" style="width:260px" id="qrBox"></div>
-            <div id="qrWalletInfo">
-                <div class="small mt-2">ให้ลูกค้าเปิด<b>กระเป๋าเงิน</b>ในระบบ กด <b>สแกนจ่าย</b> แล้วสแกน QR นี้</div>
-                <div class="small text-muted mt-2" id="qrWait" role="status" aria-live="polite"><span class="spinner-border spinner-border-sm"></span> รอลูกค้ายืนยันการจ่าย หน้านี้จะปิดเองเมื่อจ่ายแล้ว</div>
-            </div>
-            <div id="qrBankInfo" class="d-none">
-                <div class="small mt-2">พร้อมเพย์ <span id="qrId"></span> · {{ $shop->name }}</div>
-                <div class="alert alert-warning small text-start mt-3 mb-0"><i class="bi bi-exclamation-triangle"></i> ระบบไม่รู้เองว่าเงินเข้าแล้วหรือยัง <b>ตรวจยอดเงินเข้าในแอปธนาคารของร้านก่อน</b> แล้วจึงกด "ได้รับเงินแล้ว" อย่าดูจากสลิปบนมือถือลูกค้าอย่างเดียว</div>
-            </div>
+            <div class="small mt-2">ให้ลูกค้าเปิด<b>กระเป๋าเงิน</b>ในระบบ กด <b>สแกนจ่าย</b> แล้วสแกน QR นี้</div>
+            <div class="small text-muted mt-2" role="status" aria-live="polite"><span class="spinner-border spinner-border-sm"></span> รอลูกค้ายืนยันการจ่าย หน้านี้จะปิดเองเมื่อจ่ายแล้ว</div>
         </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-light border" data-bs-dismiss="modal">ยกเลิก</button>
-            <button type="button" class="btn btn-success d-none" id="qrPaid"><i class="bi bi-check2-circle"></i> ได้รับเงินแล้ว</button>
-        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-light border" data-bs-dismiss="modal">ยกเลิก</button></div>
     </div></div>
 </div>
 
@@ -157,7 +142,6 @@
 (function () {
     const urls = {
         lookup: @json(route('pos.lookup', $shop)), charge: @json(route('pos.charge', $shop)), receipt: @json(route('pos.receipt', '__ID__')),
-        qr: @json(route('pos.qr', $shop)), qrPaid: @json(route('pos.qr.paid', $shop)),
         payRequest: @json(route('pos.pay.request', $shop)), payStatus: @json(route('pos.pay.status', [$shop, '__TOKEN__'])), display: @json(route('pos.display.push', $shop)),
     };
     const token = document.querySelector('meta[name="csrf-token"]').content;
@@ -307,76 +291,41 @@
         busy = false; render(); $('scan').focus();
     });
 
-    /* ---------- ลูกค้าสแกนจ่ายเอง: จากกระเป๋าเงินในระบบ (หลัก) หรือแอปธนาคารด้วยพร้อมเพย์ (ถ้าร้านตั้งไว้) ---------- */
+    /* ---------- ลูกค้าสแกนจ่ายเองจากกระเป๋าเงินในระบบ (ไม่ต้องยื่นบัตร) ---------- */
     {
         // Bootstrap โหลดแบบ defer จึงยังไม่มีตอนสคริปต์นี้เริ่มทำงาน สร้างกล่องเมื่อจะใช้
         const modal = () => bootstrap.Modal.getOrCreateInstance($('qrModal'));
-        let qrOpen = false, poll = null, payToken = null, amount = 0;
-        const draw = (text) => { const qr = qrcode(0, 'M'); qr.addData(text); qr.make(); $('qrBox').innerHTML = qr.createSvgTag({ cellSize: 5, margin: 1, scalable: true }); };
-        const cartItems = () => cart.map((i) => ({ name: i.name, price: i.price, qty: i.qty }));
+        let qrOpen = false, poll = null;
         const stopPoll = () => { clearInterval(poll); poll = null; };
 
-        function setMode(bank) {
-            $('qrWalletInfo').classList.toggle('d-none', bank); $('qrBankInfo').classList.toggle('d-none', !bank); $('qrPaid').classList.toggle('d-none', !bank);
-            if ($('qrModeWallet')) { $('qrModeWallet').className = 'btn ' + (bank ? 'btn-light border' : 'btn-dark'); $('qrModeBank').className = 'btn ' + (bank ? 'btn-dark' : 'btn-light border'); }
-        }
-
-        /** QR ของรายการนี้สำหรับสแกนจากกระเป๋าเงิน แล้วคอยถามว่าลูกค้ายืนยันจ่ายหรือยัง */
-        async function walletMode() {
-            setMode(false); stopPoll();
-            const data = await (await post(urls.payRequest, { client_key: key, items: lines() })).json();
-            if (!data.ok) throw new Error(data.message || 'สร้าง QR ไม่ได้');
-            payToken = data.token; draw(data.url);
-            show({ status: 'qr', qr_kind: 'wallet', items: cartItems(), total: amount, qr: data.url });
-            poll = setInterval(async () => {
-                try {
-                    const s = await (await fetch(urls.payStatus.replace('__TOKEN__', payToken), { headers: { Accept: 'application/json' } })).json();
-                    if (s.status !== 'paid') return;
-                    stopPoll(); beep(true);
-                    say(`${s.customer.name} สแกนจ่าย ${money(s.total)} บาท แล้ว · คงเหลือ ${money(s.balance)} บาท`, true);
-                    sold({ sale_id: s.sale_id, total: s.total }); qrOpen = false; modal().hide();
-                    showResult({ status: 'paid', total: s.total, balance_after: s.balance, customer: s.customer }, 5000);
-                    render();
-                } catch (e) {}
-            }, 1500);
-        }
-
-        async function bankMode() {
-            setMode(true); stopPoll();
-            const data = await (await post(urls.qr, { amount })).json();
-            if (!data.ok) throw new Error(data.message || 'สร้าง QR ไม่ได้');
-            draw(data.qr); $('qrId').textContent = data.promptpay;
-            show({ status: 'qr', qr_kind: 'promptpay', items: cartItems(), total: amount, qr: data.qr });
-        }
-
-        const open = async (fn) => { try { await fn(); } catch (e) { beep(false); say(e.message || 'เชื่อมต่อไม่ได้ ลองใหม่อีกครั้ง', false); } };
-
         $('qrBtn').addEventListener('click', async () => {
-            amount = total();
+            const amount = total();
             if (busy || amount <= 0) return;
             $('qrAmount').textContent = money(amount); $('qrBox').innerHTML = '';
             qrOpen = true; clearTimeout(pushTimer); clearTimeout(hold); hold = setTimeout(() => {}, 0);
             modal().show();
-            await open(walletMode);
-        });
-        if ($('qrModeWallet')) {
-            $('qrModeWallet').addEventListener('click', () => open(walletMode));
-            $('qrModeBank').addEventListener('click', () => open(bankMode));
-        }
-        $('qrModal').addEventListener('hidden.bs.modal', () => { stopPoll(); if (qrOpen) { qrOpen = false; clearTimeout(hold); hold = null; pushCart(); } $('scan').focus(); });
-        $('qrPaid').addEventListener('click', async () => {
-            if (busy) return;
-            busy = true; $('qrPaid').disabled = true;
             try {
-                const data = await (await post(urls.qrPaid, { client_key: key, items: lines() })).json();
-                if (data.ok) {
-                    beep(true); say(`รับชำระด้วย QR พร้อมเพย์ ${money(data.total)} บาท แล้ว`, true);
-                    sold(data); qrOpen = false; modal().hide();
-                    showResult({ status: 'paid', total: data.total }, 5000);
-                } else { beep(false); say(data.message || 'บันทึกไม่สำเร็จ', false); }
-            } catch (e) { beep(false); say('เชื่อมต่อไม่ได้ กด "ได้รับเงินแล้ว" อีกครั้งได้ ระบบจะไม่บันทึกซ้ำ', false); }
-            busy = false; $('qrPaid').disabled = false; render();
+                // QR ของรายการนี้ ใช้ได้ครั้งเดียว แล้วคอยถามว่าลูกค้ายืนยันจ่ายหรือยัง
+                const data = await (await post(urls.payRequest, { client_key: key, items: lines() })).json();
+                if (!data.ok) throw new Error(data.message || 'สร้าง QR ไม่ได้');
+                const qr = qrcode(0, 'M'); qr.addData(data.url); qr.make();
+                $('qrBox').innerHTML = qr.createSvgTag({ cellSize: 5, margin: 1, scalable: true });
+                show({ status: 'qr', items: cart.map((i) => ({ name: i.name, price: i.price, qty: i.qty })), total: amount, qr: data.url });
+                stopPoll();
+                poll = setInterval(async () => {
+                    try {
+                        const s = await (await fetch(urls.payStatus.replace('__TOKEN__', data.token), { headers: { Accept: 'application/json' } })).json();
+                        if (s.status !== 'paid') return;
+                        stopPoll(); beep(true);
+                        say(`${s.customer.name} สแกนจ่าย ${money(s.total)} บาท แล้ว · คงเหลือ ${money(s.balance)} บาท`, true);
+                        sold({ sale_id: s.sale_id, total: s.total }); qrOpen = false; modal().hide();
+                        showResult({ status: 'paid', total: s.total, balance_after: s.balance, customer: s.customer }, 5000);
+                        render();
+                    } catch (e) {}
+                }, 1500);
+            } catch (e) { beep(false); say(e.message || 'เชื่อมต่อไม่ได้ ลองใหม่อีกครั้ง', false); }
         });
+        $('qrModal').addEventListener('hidden.bs.modal', () => { stopPoll(); if (qrOpen) { qrOpen = false; clearTimeout(hold); hold = null; pushCart(); } $('scan').focus(); });
     }
 
     // กล้อง (ไม่บังคับ): สำหรับแท็บเล็ต/มือถือที่ไม่มีเครื่องอ่านบาร์โค้ด

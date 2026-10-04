@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /** ร้านค้าในโรงเรียนที่รับชำระด้วยกระเป๋าเงินนักเรียน */
 class Shop extends Model
 {
-    protected $fillable = ['name', 'location', 'is_active', 'promptpay_id', 'show_balance'];
+    protected $fillable = ['name', 'location', 'is_active', 'show_balance'];
 
     protected function casts(): array
     {
@@ -29,12 +29,6 @@ class Shop extends Model
     public function sales(): HasMany
     {
         return $this->hasMany(WalletSale::class);
-    }
-
-    /** พร้อมเพย์ที่ใช้รับเงินเมื่อลูกค้าสแกนจ่าย: ของร้านเอง ถ้าไม่ได้ตั้งใช้ของโรงเรียน */
-    public function promptpayId(): ?string
-    {
-        return $this->promptpay_id ?: (\App\Support\Settings::get('promptpay_id') ?: null);
     }
 
     /** ขายที่ร้านนี้ได้: ผู้จัดการกระเป๋าเงินขายได้ทุกร้าน คนขายขายได้เฉพาะร้านที่ถูกกำหนด */

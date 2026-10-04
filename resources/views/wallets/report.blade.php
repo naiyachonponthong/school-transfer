@@ -17,7 +17,7 @@
 </div>
 
 <div class="row g-3 mb-3">
-    <div class="col-6 col-md-3"><div class="card"><div class="stat"><div class="stat-icon tint-info"><i class="bi bi-basket"></i></div><div><div class="stat-value">{{ baht($salesTotal) }}</div><div class="stat-label">ยอดขายรวม · จากกระเป๋า {{ baht($salesTotal - $qrTotal) }} · QR {{ baht($qrTotal) }}</div></div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card"><div class="stat"><div class="stat-icon tint-info"><i class="bi bi-basket"></i></div><div><div class="stat-value">{{ baht($salesTotal) }}</div><div class="stat-label">ยอดขาย (ต้องจ่ายให้ร้าน)</div></div></div></div></div>
     <div class="col-6 col-md-3"><div class="card"><div class="stat"><div class="stat-icon tint-success"><i class="bi bi-cash-coin"></i></div><div><div class="stat-value">{{ baht($topups['cash']->total ?? 0) }}</div><div class="stat-label">เติมเงินสด {{ $topups['cash']->n ?? 0 }} ครั้ง</div></div></div></div></div>
     <div class="col-6 col-md-3"><div class="card"><div class="stat"><div class="stat-icon tint-success"><i class="bi bi-qr-code"></i></div><div><div class="stat-value">{{ baht($topups['transfer']->total ?? 0) }}</div><div class="stat-label">เติมด้วยการโอน {{ $topups['transfer']->n ?? 0 }} ครั้ง</div></div></div></div></div>
     <div class="col-6 col-md-3"><div class="card"><div class="stat"><div class="stat-icon tint-primary"><i class="bi bi-wallet2"></i></div><div><div class="stat-value">{{ baht($outstanding) }}</div><div class="stat-label">เงินคงค้างในกระเป๋า (ณ ตอนนี้)</div></div></div></div></div>
