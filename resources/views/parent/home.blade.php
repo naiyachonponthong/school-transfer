@@ -64,14 +64,39 @@
             </div>
         </div>
 
-        @if ($unpaid->isNotEmpty())
+        @if ($unpaid->count() === 1)
             <a href="{{ route('invoices.show', $unpaid->first()) }}" class="card highlight-card m-section">
                 <span class="hi" style="background:linear-gradient(145deg,#2dd4bf,#0d9488)"><i class="bi bi-wallet2"></i></span>
                 <div>
-                    <div class="fw-bold">ค่าธรรมเนียมค้างชำระ {{ baht($unpaid->sum(fn ($i) => $i->balance())) }} บาท</div>
-                    <div class="small text-muted">{{ $unpaid->count() }} รายการ · แตะเพื่อดูช่องทางชำระ</div>
+                    <div class="fw-bold">ค่าธรรมเนียมค้างชำระ {{ baht($unpaid->first()->balance()) }} บาท</div>
+                    <div class="small text-muted">{{ $unpaid->first()->title }} · แตะเพื่อดูช่องทางชำระ</div>
                 </div>
             </a>
+        @elseif ($unpaid->isNotEmpty())
+            {{-- ค้างหลายใบ: แสดงทุกใบให้เลือก (ยอดรวมด้านบน = ผลรวมของรายการข้างล่าง) --}}
+            <div class="card m-section">
+                <div class="card-body pb-2">
+                    <div class="d-flex align-items-center gap-3 mb-1">
+                        <span class="hi flex-shrink-0 d-grid text-white rounded-4" style="width:46px;height:46px;place-items:center;background:linear-gradient(145deg,#2dd4bf,#0d9488)"><i class="bi bi-wallet2 fs-5"></i></span>
+                        <div>
+                            <div class="fw-bold">ค่าธรรมเนียมค้างชำระ {{ baht($unpaid->sum(fn ($i) => $i->balance())) }} บาท</div>
+                            <div class="small text-muted">{{ $unpaid->count() }} รายการ · แตะรายการเพื่อดูช่องทางชำระ</div>
+                        </div>
+                    </div>
+                    @foreach ($unpaid->sortBy(fn ($i) => $i->due_date?->toDateString() ?? '9999') as $inv)
+                        <a href="{{ route('invoices.show', $inv) }}" class="d-flex align-items-center gap-2 py-2 border-top small text-decoration-none text-body">
+                            <div class="flex-grow-1" style="min-width:0">
+                                <div class="fw-semibold text-truncate">{{ $inv->title }}</div>
+                                <div class="text-muted">น้อง{{ $inv->student->nickname ?: $inv->student->first_name }}{{ $inv->due_date ? ' · กำหนด '.thai_date($inv->due_date) : '' }}
+                                    @if ($inv->isOverdue())<span class="badge bg-danger ms-1">เลยกำหนด</span>@endif
+                                </div>
+                            </div>
+                            <span class="fw-bold text-nowrap">{{ baht($inv->balance()) }}</span>
+                            <i class="bi bi-chevron-right text-muted"></i>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
         @endif
 
         @include('partials.upcoming-events', ['class' => 'm-section'])

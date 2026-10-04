@@ -44,7 +44,7 @@ class ParentController extends Controller
             'posts' => FeedController::query($user)->paginate(8, ['*'], 'page', 1),
             'children' => $children,
             'todayStatus' => Attendance::whereIn('student_id', $ids)->where('date', today()->toDateString())->get()->keyBy('student_id'),
-            'unpaid' => Invoice::whereIn('student_id', $ids)->whereIn('status', ['unpaid', 'partial'])->get(),
+            'unpaid' => Invoice::with('student')->whereIn('student_id', $ids)->whereIn('status', ['unpaid', 'partial'])->get(),
             'announcements' => Announcement::visibleTo($user)->orderByDesc('pinned')->latest()->limit(5)->get(),
             'readIds' => $user->belongsToMany(Announcement::class, 'announcement_reads')->pluck('announcements.id')->all(),
             'leaves' => LeaveRequest::with('student')->whereIn('student_id', $ids)->latest()->limit(5)->get(),
