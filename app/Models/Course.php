@@ -11,7 +11,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Course extends Model
 {
-    protected $fillable = ['term_id', 'classroom_id', 'subject_id', 'teacher_id', 'locked', 'submitted_at', 'submitted_by', 'approved_at', 'approved_by', 'return_note'];
+    protected $fillable = ['term_id', 'classroom_id', 'subject_id', 'teacher_id', 'locked', 'submitted_at', 'submitted_by', 'approved_at', 'approved_by', 'return_note', 'grade_scale'];
+
+    protected static function booted(): void
+    {
+        // อนุมัติ/ล็อกผล = เก็บเกณฑ์ตัดเกรดที่ใช้ ณ ตอนนั้น · ปลดล็อก = กลับไปใช้เกณฑ์ปัจจุบัน
+        static::saving(function (Course $course) {
+            if ($course->isDirty('locked')) {
+                $course->grade_scale = $course->locked ? Grade::scaleString() : null;
+            }
+        });
+    }
 
     protected function casts(): array
     {
@@ -138,7 +148,7 @@ class Course extends Model
             $percent = $total !== null && $max > 0 ? $total / $max * 100 : null;
             $complete = $scores->count() >= $count && $count > 0;
             $computed = $complete && $percent !== null
-                ? ($activity ? Grade::activityFromPercent($percent) : Grade::fromPercent($percent))
+                ? ($activity ? Grade::activityFromPercent($percent) : Grade::fromPercent($percent, $this->grade_scale))
                 : null;
 
             $o = $outcomes[$studentId] ?? null;

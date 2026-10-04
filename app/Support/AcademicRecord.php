@@ -41,6 +41,41 @@ class AcademicRecord
                 // น้ำหนักในการคิดผลการเรียนเฉลี่ย: มัธยม = หน่วยกิต · ประถม = เวลาเรียน ÷ 40
                 'weight' => $byCredit ? (float) $c->subject->credit : (int) $c->subject->hours / 40,
             ])->values();
+
+        if ($stage === 'p') {
+            $this->rows = $this->rows->groupBy(fn ($r) => $r['course']->term->year.'-'.$r['course']->subject_id)
+                ->map(fn (Collection $terms) => $terms->count() > 1 ? $this->yearly($terms) : $terms->first())->values();
+        }
+    }
+
+    /**
+     * ผลรายปีของวิชาที่แบ่งสอนเป็นหลายภาคเรียน (ประถม): รวมคะแนนทุกภาคแล้วตัดเกรดครั้งเดียว เวลาเรียนนับครั้งเดียว
+     * ถ้ามีภาคใดติด ร/มส หรือแก้ตัวมาแล้ว ใช้ผลสุดท้ายของแต่ละภาคมาเฉลี่ยแทน (ปัดลงทีละ 0.5)
+     */
+    private function yearly(Collection $terms): array
+    {
+        $last = $terms->last();
+        $results = $terms->map(fn ($r) => $r['course']->results()[$this->student->id] ?? null);
+        $finals = $terms->pluck('grade');
+
+        $grade = match (true) {
+            $finals->contains(null) => null,
+            $finals->contains('มส') => 'มส',
+            $finals->contains('ร') => 'ร',
+            $last['course']->isActivity() => $finals->every(fn ($g) => $g === 'ผ') ? 'ผ' : 'มผ',
+            $results->contains(fn ($x) => $x === null || $x['special'] || $x['remedial']) => self::halfStep($finals->avg(fn ($g) => (float) $g)),
+            default => Grade::fromPercent(
+                $results->sum('total') / max(1, $terms->sum(fn ($r) => $r['course']->maxTotal())) * 100,
+                $last['course']->grade_scale,
+            ),
+        };
+
+        return ['grade' => $grade, 'terms' => $terms->count()] + $last;
+    }
+
+    private static function halfStep(float $value): string
+    {
+        return rtrim(rtrim(number_format(floor($value * 2) / 2, 1), '0'), '.');
     }
 
     /** ระดับที่ใช้ทำ ปพ.1 ของนักเรียน: ตามห้องปัจจุบัน หรือระดับล่าสุดที่มีผลการเรียน */

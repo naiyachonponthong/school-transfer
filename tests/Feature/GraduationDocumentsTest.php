@@ -87,6 +87,56 @@ class GraduationDocumentsTest extends TestCase
             ->assertSee('ปพ.1 : ป')->assertSee('ปีการศึกษา 2568 ชั้น ป.4')->assertSee('เวลาเรียน (ชม.)')->assertSee('3.50');
     }
 
+    public function test_primary_subject_taught_in_two_terms_gets_one_yearly_result(): void
+    {
+        $t1 = Term::firstOrCreate(['year' => 2567, 'term' => 1], ['start_date' => '2024-05-16', 'end_date' => '2024-10-10']);
+        $t2 = Term::firstOrCreate(['year' => 2567, 'term' => 2], ['start_date' => '2024-11-01', 'end_date' => '2025-03-31']);
+        $room = Classroom::create(['year' => 2567, 'level' => 'ป.3', 'room' => 1]);
+        $kid = $this->student($room, 'P301', 1);
+        $other = $this->student($room, 'P302', 2);
+
+        // ภาค 1 ได้ 90 · ภาค 2 ได้ 60 → รวม 150/200 = 75% → 3.5 และเวลาเรียน 200 ชม. นับครั้งเดียว
+        $c1 = $this->course($room, $t1, ['code' => 'ท13101', 'name' => 'ภาษาไทย', 'credit' => 0, 'hours' => 200, 'type' => 'basic'], [$kid->id => 90, $other->id => 40]);
+        $c2 = Course::create(['term_id' => $t2->id, 'classroom_id' => $room->id, 'subject_id' => $c1->subject_id]);
+        $a2 = Assessment::create(['course_id' => $c2->id, 'name' => 'รวม', 'max_score' => 100, 'sort' => 1]);
+        Score::create(['assessment_id' => $a2->id, 'student_id' => $kid->id, 'score' => 60]);
+        Score::create(['assessment_id' => $a2->id, 'student_id' => $other->id, 'score' => 70]);
+
+        $record = new AcademicRecord($kid, 'p');
+        $this->assertCount(1, $record->rows);
+        $this->assertSame('3.5', $record->rows->first()['grade']);
+        $this->assertSame(2, $record->rows->first()['terms']);
+        $this->assertSame(200, $record->totals()['total']['earned']);
+
+        // ภาค 1 ตก (0) แล้วแก้ตัวได้ 1 · ภาค 2 ได้ 3 → เฉลี่ยผลสุดท้าย (1 + 3) / 2 = 2
+        \App\Models\CourseResult::create(['course_id' => $c1->id, 'student_id' => $other->id, 'remedial_grade' => '1']);
+        $this->assertSame('2', (new AcademicRecord($other, 'p'))->rows->first()['grade']);
+
+        $this->actingAs($this->admin())->get("/transcript/{$kid->id}?stage=p")->assertOk()->assertSee('ปีการศึกษา 2567 ชั้น ป.3');
+    }
+
+    public function test_approved_course_keeps_the_grade_scale_it_was_approved_with(): void
+    {
+        $term = Term::where('year', 2568)->first();
+        $room = Classroom::create(['year' => 2568, 'level' => 'ม.2', 'room' => 9]);
+        $kid = $this->student($room, 'S901', 1);
+        $locked = $this->course($room, $term, ['code' => 'ค22901', 'name' => 'คณิตเสริม 1', 'credit' => 1, 'hours' => 40, 'type' => 'extra'], [$kid->id => 82]);
+        $open = $this->course($room, $term, ['code' => 'ค22902', 'name' => 'คณิตเสริม 2', 'credit' => 1, 'hours' => 40, 'type' => 'extra'], [$kid->id => 82]);
+
+        $locked->update(['locked' => true]);
+        $this->assertSame('80,75,70,65,60,55,50', $locked->fresh()->grade_scale);
+
+        // ปรับเกณฑ์ให้เข้มขึ้นทีหลัง: รายวิชาที่อนุมัติแล้วไม่เปลี่ยน รายวิชาที่ยังเปิดอยู่ใช้เกณฑ์ใหม่
+        \App\Support\Settings::set(['grade_scale' => '85,80,75,70,65,60,50']);
+        $this->assertSame('4', $locked->fresh()->results()[$kid->id]['grade']);
+        $this->assertSame('3.5', $open->fresh()->results()[$kid->id]['grade']);
+
+        // ปลดล็อก = กลับไปคิดตามเกณฑ์ปัจจุบัน
+        $locked->fresh()->update(['locked' => false]);
+        $this->assertNull($locked->fresh()->grade_scale);
+        $this->assertSame('3.5', $locked->fresh()->results()[$kid->id]['grade']);
+    }
+
     public function test_pp1_form_numbers_are_registered_once(): void
     {
         $student = Student::first();

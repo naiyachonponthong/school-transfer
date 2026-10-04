@@ -37,9 +37,10 @@ class Grade
      *
      * @return array<int, string>
      */
-    public static function scale(): array
+    /** $frozen = เกณฑ์ที่เก็บไว้กับรายวิชาตอนอนุมัติผล (null = ใช้ค่าตั้งปัจจุบัน) */
+    public static function scale(?string $frozen = null): array
     {
-        $mins = self::parseScale((string) Settings::get('grade_scale'));
+        $mins = self::parseScale((string) ($frozen ?? Settings::get('grade_scale')));
         if ($mins === null) {
             return self::SCALE;
         }
@@ -67,9 +68,15 @@ class Grade
         return $out;
     }
 
-    public static function fromPercent(float $percent): string
+    /** เกณฑ์ปัจจุบันในรูปแบบข้อความ "80,75,70,65,60,55,50" (ใช้เก็บกับรายวิชาตอนอนุมัติผล) */
+    public static function scaleString(): string
     {
-        foreach (self::scale() as $min => $grade) {
+        return implode(',', array_keys(array_diff(self::scale(), ['0'])));
+    }
+
+    public static function fromPercent(float $percent, ?string $frozen = null): string
+    {
+        foreach (self::scale($frozen) as $min => $grade) {
             if ($percent >= $min) {
                 return $grade;
             }
