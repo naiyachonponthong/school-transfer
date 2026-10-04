@@ -12,6 +12,9 @@
     .table.hv-table thead th { font-size: .78rem; font-weight: 600; text-align: center; vertical-align: middle; background: var(--sb-primary-50); white-space: normal; }
     .hv-table td { padding: .2rem; }
     .hv-table input { min-width: 0; }
+    .hv-sign { position: relative; border: 1px dashed var(--sb-border); border-radius: 12px; background: #fff; overflow: hidden; }
+    .hv-sign canvas { display: block; width: 100%; height: auto; touch-action: none; cursor: crosshair; }
+    .hv-sign img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; background: #fff; }
     .hv-savebar { position: sticky; bottom: 0; z-index: 5; background: var(--sb-card); border-top: 1px solid var(--sb-border); }
     @media (max-width: 991.98px) { .hv-savebar { position: static; } } /* จอเล็กมีแถบเมนูล่างอยู่แล้ว */
 </style>
@@ -253,7 +256,21 @@
                 <div class="card-header"><i class="bi bi-person-check"></i> ผู้ให้ข้อมูลนักเรียน</div>
                 <div class="card-body">
                     {{ $single('informant') }}
-                    <div class="small text-muted mt-3">ขอรับรองว่าข้อมูลดังกล่าวเป็นจริง — ลงชื่อผู้ปกครอง/ผู้แทนในแบบที่พิมพ์ออกมา</div>
+                    <div class="small text-muted mt-3">ขอรับรองว่าข้อมูลดังกล่าวเป็นจริง — เซ็นบนหน้าจอได้เลย (ใช้นิ้วหรือเมาส์) หรือเว้นไว้เซ็นในแบบที่พิมพ์ออกมา</div>
+                    <div class="row g-2 mt-1">
+                        @foreach (['sign_guardian' => ['ลงชื่อผู้ปกครอง/ผู้แทน', 'home-visit-sign-guardian'], 'sign_visitor' => ['ลงชื่อครูผู้เยี่ยมบ้าน', 'home-visit-sign-visitor']] as $field => [$label, $type])
+                            <div class="col-sm-6">
+                                <div class="d-flex align-items-center small mb-1"><span class="fw-semibold">{{ $label }}</span>
+                                    <button type="button" class="btn btn-link btn-sm p-0 ms-auto text-decoration-none" data-sign-clear="{{ $field }}">ล้าง</button>
+                                </div>
+                                <div class="hv-sign @error($field) border-danger @enderror">
+                                    <canvas data-sign="{{ $field }}" width="600" height="220" aria-label="{{ $label }}"></canvas>
+                                    @if ($visit->{$field})<img src="{{ route('files.show', [$type, $visit->id]) }}?v={{ md5($visit->{$field}) }}" alt="{{ $label }}" data-sign-saved="{{ $field }}">@endif
+                                </div>
+                                <input type="hidden" name="{{ $field }}" id="{{ $field }}">
+                            </div>
+                        @endforeach
+                    </div>
                     <hr>
                     <label class="form-label" for="note">บันทึกเพิ่มเติมของครูผู้เยี่ยมบ้าน</label>
                     <textarea id="note" name="note" rows="3" class="form-control">{{ old('note', $visit->note) }}</textarea>
@@ -320,6 +337,28 @@
     };
     document.getElementById('hvForm').addEventListener('input', recalc);
     recalc();
+
+    // ช่องเซ็นชื่อ: วาดด้วยนิ้ว/เมาส์/ปากกา แล้วส่งเป็น PNG ตอนบันทึก (ไม่แตะ = คงลายเซ็นเดิม)
+    document.querySelectorAll('canvas[data-sign]').forEach((cv) => {
+        const field = cv.dataset.sign, input = document.getElementById(field), ctx = cv.getContext('2d');
+        const saved = document.querySelector('[data-sign-saved="' + field + '"]');
+        let drawing = false;
+        ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#111';
+        const pos = (e) => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * cv.width / r.width, (e.clientY - r.top) * cv.height / r.height]; };
+        cv.addEventListener('pointerdown', (e) => {
+            if (saved) saved.remove();
+            drawing = true; cv.setPointerCapture(e.pointerId);
+            const [x, y] = pos(e); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + .1, y + .1); ctx.stroke();
+        });
+        cv.addEventListener('pointermove', (e) => { if (!drawing) return; const [x, y] = pos(e); ctx.lineTo(x, y); ctx.stroke(); });
+        const stop = () => { if (!drawing) return; drawing = false; input.value = cv.toDataURL('image/png'); };
+        cv.addEventListener('pointerup', stop); cv.addEventListener('pointercancel', stop);
+        document.querySelector('[data-sign-clear="' + field + '"]').addEventListener('click', () => {
+            ctx.clearRect(0, 0, cv.width, cv.height);
+            document.querySelector('[data-sign-saved="' + field + '"]')?.remove();
+            input.value = 'clear';
+        });
+    });
 
     document.getElementById('locate').addEventListener('click', function () {
         if (!navigator.geolocation) return alert('อุปกรณ์นี้ไม่รองรับการระบุตำแหน่ง');

@@ -142,6 +142,18 @@ class StudentCareTest extends TestCase
         $this->assertArrayNotHasKey('unknown_field', $visit->form);
         Storage::disk('local')->assertExists($visit->photo);
         Storage::disk('local')->assertExists($visit->photo_inside);
+
+        // เซ็นชื่อบนหน้าจอ: เก็บเป็นไฟล์ PNG ส่วนตัว · ข้อมูลที่ไม่ใช่ PNG ถูกปฏิเสธ · "clear" ลบลายเซ็น
+        $png = 'data:image/png;base64,'.base64_encode(UploadedFile::fake()->image('sign.png', 300, 110)->getContent());
+        $this->post(route('care.visits.save', $student), $payload + ['sign_guardian' => $png, 'sign_visitor' => $png])->assertSessionHasNoErrors();
+        $visit->refresh();
+        Storage::disk('local')->assertExists($visit->sign_guardian);
+        $this->get(route('files.show', ['home-visit-sign-guardian', $visit->id]))->assertOk();
+        $this->get(route('care.visits.print', $student))->assertOk()->assertSee('home-visit-sign-visitor');
+        $this->post(route('care.visits.save', $student), $payload + ['sign_guardian' => 'data:image/png;base64,'.base64_encode('<?php evil')])->assertSessionHasErrors('sign_guardian');
+        $this->post(route('care.visits.save', $student), $payload + ['sign_visitor' => 'clear'])->assertSessionHasNoErrors();
+        $this->assertNull($visit->fresh()->sign_visitor);
+        $this->assertNotNull($visit->fresh()->sign_guardian);
         // เปิดกลับมาแก้ ค่าที่กรอกไว้ยังอยู่ และมีหัวข้อครบตามแบบ
         $this->get(route('care.visits.form', $student))->assertOk()->assertSee('สมศรี')->assertSee('จำนวนสมาชิกในครัวเรือน')
             ->assertSee('ความสัมพันธ์ในครอบครัว')->assertSee('พฤติกรรมและความเสี่ยง')->assertSee('การติดเกม')->assertSee('ภาพถ่ายภายในบ้านนักเรียน');

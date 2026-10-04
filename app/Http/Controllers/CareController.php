@@ -175,7 +175,9 @@ class CareController extends Controller
             'photo_inside' => ['nullable', 'image', 'max:6144'],
             'lat' => ['nullable', 'numeric', 'between:-90,90'],
             'lng' => ['nullable', 'numeric', 'between:-180,180'],
-        ], [], ['visited_on' => 'วันที่เยี่ยม', 'photo' => 'รูปที่ 1', 'photo_inside' => 'รูปที่ 2']);
+            'sign_guardian' => ['nullable', 'string', 'max:400000'],
+            'sign_visitor' => ['nullable', 'string', 'max:400000'],
+        ], [], ['visited_on' => 'วันที่เยี่ยม', 'photo' => 'รูปที่ 1', 'photo_inside' => 'รูปที่ 2', 'sign_guardian' => 'ลายเซ็นผู้ปกครอง', 'sign_visitor' => 'ลายเซ็นผู้เยี่ยม']);
 
         // คำตอบตามแบบ 4 หน้า: เก็บเฉพาะช่องที่นิยามไว้ แล้วสรุปเป็นช่องที่หน้ารายห้อง/กรณีช่วยเหลือใช้
         $form = HomeVisitForm::normalize($data['form'] ?? []);
@@ -195,6 +197,22 @@ class CareController extends Controller
         foreach (['photo', 'photo_inside'] as $field) {
             if ($request->hasFile($field)) {
                 $visit->{$field} = $request->file($field)->store('home-visits', 'local');
+            }
+        }
+        // ลายเซ็นที่เซ็นบนหน้าจอ ส่งมาเป็น data URL ของ PNG ("clear" = ลบลายเซ็นเดิม)
+        foreach (['sign_guardian', 'sign_visitor'] as $field) {
+            $value = $data[$field] ?? null;
+            if ($value === 'clear') {
+                $visit->{$field} = null;
+            } elseif ($value) {
+                $png = str_starts_with($value, 'data:image/png;base64,') ? base64_decode(substr($value, 22), true) : false;
+                $size = $png ? @getimagesizefromstring($png) : false;
+                if (! $size || $size[2] !== IMAGETYPE_PNG || $size[0] > 1600 || $size[1] > 800) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([$field => 'ลายเซ็นไม่ถูกต้อง กรุณาเซ็นใหม่']);
+                }
+                $path = 'home-visits/sign-'.\Illuminate\Support\Str::random(40).'.png';
+                \Illuminate\Support\Facades\Storage::disk('local')->put($path, $png);
+                $visit->{$field} = $path;
             }
         }
         $visit->save();

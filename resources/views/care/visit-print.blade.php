@@ -24,6 +24,8 @@
         .line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 1.5mm; }
         .fill { flex: 1; min-width: 12mm; border-bottom: 1px dotted #222; padding: 0 1.5mm; line-height: 1.35; color: #1e3a8a; font-weight: 600; min-height: 1.35em; }
         .fill.fix { flex: none; text-align: center; }
+        .fill.signed { position: relative; text-align: center; }
+        .fill.signed img { position: absolute; left: 50%; bottom: -1mm; transform: translateX(-50%); height: 11mm; max-width: 100%; mix-blend-mode: multiply; }
         .ck { display: inline-flex; align-items: baseline; gap: 1.2mm; }
         .ck::before { content: ''; flex: none; width: 3.2mm; height: 3.2mm; border: 1.1px solid #111; display: inline-block; transform: translateY(.5mm); font-size: 10px; line-height: 2.8mm; text-align: center; color: #1e3a8a; font-weight: 700; }
         .ck.on::before { content: '✓'; }
@@ -231,7 +233,7 @@
 
     <div class="sign">
         <div style="text-align:center">ขอรับรองว่าข้อมูลดังกล่าวเป็นจริง</div>
-        <div class="line" style="margin-top:3mm">ลงชื่อผู้ปกครอง/ผู้แทน<span class="fill"></span></div>
+        <div class="line" style="margin-top:3mm">ลงชื่อผู้ปกครอง/ผู้แทน<span class="fill signed">@if ($visit->sign_guardian)<img src="{{ route('files.show', ['home-visit-sign-guardian', $visit->id]) }}" alt="ลายเซ็นผู้ปกครอง">@endif</span></div>
         <div class="line">(<span class="fill" style="text-align:center">{{ $guardianName }}</span>)</div>
     </div>
 </div>
@@ -254,7 +256,7 @@
     <div class="certify">
         <b class="t">ขอรับรองว่าข้อมูล และภาพถ่ายบ้านของนักเรียนเป็นความจริง</b>
         <div class="inner">
-            <div class="line">(ลงชื่อ)<span class="fill"></span></div>
+            <div class="line">(ลงชื่อ)<span class="fill signed">@if ($visit->sign_visitor)<img src="{{ route('files.show', ['home-visit-sign-visitor', $visit->id]) }}" alt="ลายเซ็นผู้เยี่ยมบ้าน">@endif</span></div>
             <div class="line">(<span class="fill" style="text-align:center">{{ $visit->visitor?->name }}</span>)</div>
             <div class="line">ตำแหน่ง<span class="fill" style="text-align:center">{{ $v('visitor_position') }}</span>(ครูหรือผู้อำนวยการโรงเรียน)</div>
             <div class="line">วันที่<span class="fill fix" style="width:16mm">{{ $on?->day }}</span>เดือน<span class="fill fix" style="width:30mm">{{ $on ? $months[$on->month - 1] : '' }}</span>พ.ศ.<span class="fill fix" style="width:18mm">{{ $on ? $on->year + 543 : '' }}</span></div>

@@ -17,7 +17,7 @@ class HomeVisit extends Model
         'safety' => 'ความปลอดภัย', 'substance' => 'สารเสพติด', 'travel' => 'การเดินทางมาโรงเรียน',
     ];
 
-    protected $fillable = ['student_id', 'term_id', 'visited_on', 'visitor_id', 'guardian_met', 'housing', 'family_status', 'risks', 'note', 'photo', 'photo_inside', 'form', 'lat', 'lng'];
+    protected $fillable = ['student_id', 'term_id', 'visited_on', 'visitor_id', 'guardian_met', 'housing', 'family_status', 'risks', 'note', 'photo', 'photo_inside', 'sign_guardian', 'sign_visitor', 'form', 'lat', 'lng'];
 
     protected function casts(): array
     {

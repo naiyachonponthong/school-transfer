@@ -29,6 +29,8 @@ class FileController extends Controller
         'submission' => [Submission::class, 'file'],
         'home-visit' => [HomeVisit::class, 'photo'],
         'home-visit-inside' => [HomeVisit::class, 'photo_inside'],
+        'home-visit-sign-guardian' => [HomeVisit::class, 'sign_guardian'],
+        'home-visit-sign-visitor' => [HomeVisit::class, 'sign_visitor'],
         'training' => [StaffTraining::class, 'file'],
         'office-doc' => [OfficeDocument::class, 'file'],
     ];
@@ -59,7 +61,7 @@ class FileController extends Controller
             'training' => $user->hasPermission('staff.manage') || $model->user_id === $user->id,
             'office-doc' => $user->isStaff() && $model->canBeViewedBy($user),
             // รูปเยี่ยมบ้าน: เฉพาะครูประจำชั้นและผู้มีสิทธิ์ดูแลช่วยเหลือ ผู้ปกครองเปิดไม่ได้
-            'home-visit', 'home-visit-inside' => $user->hasPermission('care.manage') || $user->myClassrooms()->contains('id', $model->student->classroom_id),
+            'home-visit', 'home-visit-inside', 'home-visit-sign-guardian', 'home-visit-sign-visitor' => $user->hasPermission('care.manage') || $user->myClassrooms()->contains('id', $model->student->classroom_id),
             default => false,
         };
     }
