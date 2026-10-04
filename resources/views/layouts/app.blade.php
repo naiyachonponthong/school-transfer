@@ -35,6 +35,14 @@
 </aside>
 
 <div class="sb-main">
+    @if ($demoRole = \App\Support\Demo::role())
+        {{-- โหมดทดลองใช้: แถบบางติดขอบบน ไม่ดันเนื้อหาของหน้า --}}
+        <div class="sb-demo-bar no-print" role="status">
+            <i class="bi bi-play-circle-fill"></i>
+            <span class="txt"><b>โหมดทดลองใช้</b> · {{ \App\Support\Demo::ROLES[$demoRole][0] }}{{ $demoRole === 'exec' ? ' (ดูได้อย่างเดียว)' : '' }}<span class="more"> · ข้อมูลทั้งหมดเป็นข้อมูลตัวอย่าง{{ \App\Support\Settings::get('demo_reset') === '1' ? ' และถูกคืนค่าทุกคืน' : '' }}</span></span>
+            <form method="POST" action="{{ route('logout') }}">@csrf<button>ออกจากโหมดทดลอง</button></form>
+        </div>
+    @endif
     <header class="sb-topbar">
         <a href="{{ route('home') }}" class="d-lg-none"><span class="sb-brand-logo">@if (school('logo'))<img src="{{ asset('storage/'.school('logo')) }}" alt="">@else<i class="bi bi-mortarboard-fill"></i>@endif</span></a>
         <div class="school text-truncate">
@@ -86,13 +94,6 @@
 
     <main class="sb-content">
         @include('partials.flash')
-        @if ($demoRole = \App\Support\Demo::role())
-            <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2 py-2 small no-print" role="status">
-                <i class="bi bi-play-circle-fill"></i>
-                <span class="flex-grow-1"><b>โหมดทดลองใช้</b> · บทบาท{{ \App\Support\Demo::ROLES[$demoRole][0] }} · ข้อมูลทั้งหมดเป็นข้อมูลตัวอย่าง{{ \App\Support\Settings::get('demo_reset') === '1' ? ' และถูกคืนค่าทุกคืน' : '' }}{{ $demoRole === 'exec' ? ' · บทบาทนี้ดูได้อย่างเดียว' : '' }}</span>
-                <form method="POST" action="{{ route('logout') }}">@csrf<button class="btn btn-sm btn-light border">ออกจากโหมดทดลอง</button></form>
-            </div>
-        @endif
         @yield('content')
     </main>
 </div>

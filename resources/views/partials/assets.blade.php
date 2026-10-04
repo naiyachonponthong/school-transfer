@@ -7,7 +7,8 @@
 <link rel="manifest" href="{{ route('app.manifest') }}">
 <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('assets/icons/icon-192.png') }}?v={{ filemtime(public_path('assets/icons/icon-192.png')) }}">
 <link rel="apple-touch-icon" href="{{ asset('assets/icons/apple-touch-icon.png') }}?v={{ filemtime(public_path('assets/icons/apple-touch-icon.png')) }}">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="{{ school('school_short') ?: school('school_name') }}">
 {{-- สีธีมที่ตั้งค่าไว้ ต้องมาหลัง app.css --}}

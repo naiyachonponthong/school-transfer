@@ -422,14 +422,21 @@ document.querySelectorAll('table.table').forEach((t) => {
 
 /* ---------- ตัวเลือกแบบค้นหาได้ ----------
    <select> ที่มีตัวเลือกตั้งแต่ 10 รายการขึ้นไปจะได้ช่องค้นหาอัตโนมัติ (ใส่ data-no-search เพื่อยกเว้น, data-search เพื่อบังคับ)
-   ตัว <select> เดิมยังอยู่ในฟอร์ม จึงส่งค่า ตรวจ required และยิง change ได้เหมือนเดิม */
+   ตัว <select> เดิมยังอยู่ในฟอร์ม จึงส่งค่า ตรวจ required และยิง change ได้เหมือนเดิม
+   แผงรายการถูกย้ายไปไว้ท้าย <body> ตอนเปิด และวางด้วยพิกัดของหน้าจอ จึงไม่ถูกตัดหรือถูกบังโดยตาราง การ์ด หรือกล่องที่มี overflow
+   (ยกเว้นในหน้าต่างป๊อปอัป ซึ่งแผงอยู่ในเนื้อหาของหน้าต่างเอง เพราะป๊อปอัปไม่ยอมให้โฟกัสออกไปข้างนอก) */
 (function () {
     'use strict';
     const MIN_OPTIONS = 10;
-    let openBox = null;
+    let current = null; // { box, panel, place, close }
 
-    const close = () => { if (openBox) { openBox.classList.remove('open'); openBox = null; } };
-    document.addEventListener('click', (e) => { if (openBox && !openBox.contains(e.target)) close(); });
+    document.addEventListener('click', (e) => {
+        if (current && !current.box.contains(e.target) && !current.panel.contains(e.target)) current.close();
+    });
+    // เลื่อนหน้าหรือเปลี่ยนขนาดจอ (รวมแป้นพิมพ์มือถือเด้งขึ้น) ให้แผงขยับตามปุ่ม
+    const follow = (e) => { if (current && !(e && e.target instanceof Node && current.panel.contains(e.target))) current.place(); };
+    window.addEventListener('scroll', follow, true);
+    window.addEventListener('resize', follow);
 
     function enhance(select) {
         if (select.dataset.ssReady || select.multiple || select.size > 1 || select.hasAttribute('data-no-search')) return;
@@ -448,7 +455,7 @@ document.querySelectorAll('table.table').forEach((t) => {
         select.classList.add('ss-native');
         select.tabIndex = -1;
 
-        const btn = box.querySelector('.ss-btn'), q = box.querySelector('.ss-q'), list = box.querySelector('.ss-list');
+        const btn = box.querySelector('.ss-btn'), panel = box.querySelector('.ss-panel'), q = box.querySelector('.ss-q'), list = box.querySelector('.ss-list');
         const label = () => { btn.textContent = select.selectedOptions[0] ? select.selectedOptions[0].text : ''; btn.disabled = select.disabled; };
         let active = -1;
 
@@ -480,6 +487,28 @@ document.querySelectorAll('table.table').forEach((t) => {
             all.forEach((el, i) => el.classList.toggle('active', i === active));
             all[active].scrollIntoView({ block: 'nearest' });
         };
+        const inModal = () => !!box.closest('.modal');
+        // วางแผงใต้ปุ่ม (หรือเหนือปุ่มถ้าที่ด้านล่างไม่พอ) ด้วยพิกัดของหน้าจอ
+        const place = () => {
+            if (inModal()) return;
+            const r = btn.getBoundingClientRect();
+            const vw = document.documentElement.clientWidth, vh = window.innerHeight;
+            const width = Math.min(Math.max(r.width, 260), vw - 16);
+            const below = vh - r.bottom, up = below < 280 && r.top > below;
+            panel.style.left = Math.max(8, Math.min(r.left, vw - width - 8)) + 'px';
+            panel.style.width = width + 'px';
+            panel.style.top = up ? 'auto' : (r.bottom + 4) + 'px';
+            panel.style.bottom = up ? (vh - r.top + 4) + 'px' : 'auto';
+            list.style.maxHeight = Math.max(110, Math.min(260, (up ? r.top : below) - 76)) + 'px';
+        };
+        const close = () => {
+            panel.classList.remove('show', 'floating');
+            panel.removeAttribute('style');
+            list.style.maxHeight = '';
+            if (panel.parentNode !== box) box.appendChild(panel);
+            box.classList.remove('open');
+            if (current && current.box === box) current = null;
+        };
         const pick = (value) => {
             select.value = value;
             btn.classList.remove('is-invalid');
@@ -487,13 +516,17 @@ document.querySelectorAll('table.table').forEach((t) => {
             label(); close(); btn.focus();
         };
         const open = () => {
-            close();
+            if (current) current.close();
+            label();
+            if (select.disabled) return;
             // ตัวเลือกอาจถูกสคริปต์อื่นเปลี่ยนไปแล้ว จึงสร้างรายการใหม่ทุกครั้งที่เปิด
             q.value = ''; render();
-            box.classList.add('open'); openBox = box;
-            const r = box.getBoundingClientRect();
-            box.classList.toggle('up', r.bottom + 320 > window.innerHeight && r.top > 330);
-            q.focus();
+            if (!inModal()) { document.body.appendChild(panel); panel.classList.add('floating'); }
+            panel.classList.add('show');
+            box.classList.add('open');
+            current = { box, panel, place, close };
+            place();
+            q.focus({ preventScroll: true });
             const sel = list.querySelector('.selected');
             if (sel) sel.scrollIntoView({ block: 'nearest' });
         };
@@ -506,18 +539,25 @@ document.querySelectorAll('table.table').forEach((t) => {
             else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
             else if (e.key === 'Enter') { e.preventDefault(); const all = items(); const el = all[active] || (all.length === 1 ? all[0] : null); if (el) pick(el.dataset.value); }
             else if (e.key === 'Escape') { e.stopPropagation(); close(); btn.focus(); }
+            else if (e.key === 'Tab') { close(); }
         });
         list.addEventListener('click', (e) => { const el = e.target.closest('.ss-item'); if (el) pick(el.dataset.value); });
         select.addEventListener('change', label);
         select.addEventListener('invalid', () => btn.classList.add('is-invalid'));
         if (select.form) select.form.addEventListener('reset', () => setTimeout(label));
+        // สคริปต์ของหน้าอื่นอาจตั้งค่าหรือเปลี่ยนตัวเลือกเองโดยไม่ยิง change: ให้ข้อความบนปุ่มตามให้ทัน
+        ['value', 'selectedIndex'].forEach((prop) => {
+            const d = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, prop);
+            Object.defineProperty(select, prop, { configurable: true, get() { return d.get.call(this); }, set(v) { d.set.call(this, v); label(); } });
+        });
+        new MutationObserver(label).observe(select, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled', 'selected'] });
         label();
     }
 
     document.querySelectorAll('select').forEach(enhance);
     // ฟอร์มที่เพิ่มเข้ามาทีหลัง (เช่น แถวที่เพิ่มด้วยสคริปต์)
     new MutationObserver((muts) => muts.forEach((m) => m.addedNodes.forEach((n) => {
-        if (n.nodeType !== 1) return;
+        if (n.nodeType !== 1 || n.classList.contains('ss-panel')) return;
         if (n.tagName === 'SELECT') enhance(n); else if (n.querySelectorAll) n.querySelectorAll('select').forEach(enhance);
     }))).observe(document.body, { childList: true, subtree: true });
 })();

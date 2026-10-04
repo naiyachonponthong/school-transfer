@@ -167,6 +167,12 @@ a:hover { text-decoration: underline; }
 .icon-btn .dot { position: absolute; top: 0; right: -7px; background: #ef4444; color: #fff; font-size: 9.5px; border-radius: 999px; min-width: 16px; height: 16px; line-height: 16px; padding: 0 3px; font-weight: 600; border: 2px solid #fff; box-sizing: content-box; }
 /* เต็มความกว้างจอเสมอ (เคยจำกัด 1480px ทำให้จอกว้างเหลือแถบว่างทางขวา) */
 .sb-content { padding: 1.4rem 1.6rem; flex: 1; width: 100%; min-width: 0; }
+/* แถบโหมดทดลองใช้ (บรรทัดเดียว ติดขอบบน) */
+.sb-demo-bar { position: sticky; top: 0; z-index: 1035; display: flex; align-items: center; gap: .5rem; height: 32px; padding: 0 1rem; background: #fef3c7; color: #78350f; font-size: .82rem; border-bottom: 1px solid #fde68a; }
+.sb-demo-bar .txt { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-demo-bar button { border: 0; background: #fff; color: #78350f; border-radius: 999px; padding: .05rem .7rem; font-size: .78rem; font-weight: 600; white-space: nowrap; box-shadow: inset 0 0 0 1px #fcd34d; }
+.sb-demo-bar + .sb-topbar { top: 32px; }
+@media (max-width: 575.98px) { .sb-demo-bar { padding: 0 .7rem; } .sb-demo-bar .more { display: none; } }
 
 .sb-avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--sb-primary-100); color: var(--sb-primary-700); display: inline-grid; place-items: center; font-weight: 700; flex-shrink: 0; overflow: hidden; }
 .sb-avatar img { width: 100%; height: 100%; object-fit: cover; }
@@ -404,8 +410,9 @@ a.card:hover { box-shadow: var(--sb-shadow-lg); }
 .hscroll { display: flex; gap: .75rem; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; scrollbar-width: none; }
 .hscroll::-webkit-scrollbar { display: none; }
 .hscroll > * { scroll-snap-align: start; flex: 0 0 88%; }
-/* จอกว้าง: การ์ดเรียงให้เห็นครบทุกใบ (ไม่พอก็ขึ้นแถวใหม่) · จอมือถือยังปัดซ้าย-ขวา โดยเห็นขอบใบถัดไป */
-@media (min-width: 768px) { .hscroll-fit { flex-wrap: wrap; overflow: visible; } .hscroll-fit > * { flex: 1 1 260px; min-width: 0; } }
+/* การ์ดบุตรหลาน: เรียงให้เห็นครบทุกใบทุกขนาดจอ (ไม่พอก็ขึ้นแถวใหม่) แทนการปัดซ้าย-ขวาที่ดูเหมือนแสดงไม่หมด */
+.hscroll-fit { flex-wrap: wrap; overflow: visible; }
+.hscroll-fit > * { flex: 1 1 260px; min-width: 0; }
 
 /* ----- เช็คชื่อ ----- */
 .att-toolbar { position: sticky; top: 62px; z-index: 20; background: var(--sb-bg); padding: .5rem 0 .75rem; }
@@ -836,9 +843,10 @@ a.card:hover { box-shadow: var(--sb-shadow-lg); }
 .ss-btn { width: 100%; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background-color: #fff; }
 .ss-btn.is-invalid { border-color: var(--bs-form-invalid-border-color); }
 .ss-panel { display: none; position: absolute; z-index: 1065; left: 0; top: calc(100% + 4px); width: max(100%, 260px); max-width: 92vw; background: var(--sb-card); border: 1px solid var(--sb-border); border-radius: 14px; box-shadow: var(--sb-shadow-lg); padding: .5rem; }
-.ss.open .ss-panel { display: block; }
-.ss.up .ss-panel { top: auto; bottom: calc(100% + 4px); }
-/* ในหน้าต่างป๊อปอัป: วางต่อจากปุ่มในเนื้อหา ไม่ลอย จะได้ไม่ถูกขอบหน้าต่างตัด */
+.ss-panel.show { display: block; }
+/* ตอนเปิด แผงถูกย้ายไปท้าย <body> และวางด้วยพิกัดหน้าจอ (app.js) จึงอยู่เหนือทุกอย่างและไม่ถูกตัด */
+.ss-panel.floating { position: fixed; z-index: 1090; max-width: none; }
+/* ในหน้าต่างป๊อปอัป: วางต่อจากปุ่มในเนื้อหา */
 .modal .ss-panel { position: static; width: 100%; max-width: none; margin-top: 4px; box-shadow: none; }
 .ss-list { max-height: 260px; overflow-y: auto; margin-top: .4rem; }
 .ss-item { padding: .4rem .6rem; border-radius: 9px; cursor: pointer; font-size: .92rem; overflow-wrap: anywhere; }

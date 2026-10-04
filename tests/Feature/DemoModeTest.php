@@ -75,6 +75,15 @@ class DemoModeTest extends TestCase
         $this->delete("/students/{$student->id}")->assertRedirect();
         $this->assertNotNull(Student::find($student->id));
 
+        // ปิดบัญชีนักเรียน (ซึ่งรวมบัญชีทดลองของบทบาทนักเรียน) ไม่ได้ และการกระทำของผู้ทดลองไม่ส่งข้อความออกไปจริง
+        $this->post(route('student-accounts.toggle', $users['student']->studentProfile))->assertRedirect()->assertSessionHas('warning');
+        $this->assertTrue($users['student']->fresh()->is_active);
+        \Illuminate\Support\Facades\Http::fake();
+        $this->withoutDefer();
+        $users['parent']->forceFill(['line_user_id' => 'Udemo'])->save();
+        \App\Services\Notifier::users([$users['parent']->fresh()], 'ทดสอบจากผู้ทดลอง');
+        \Illuminate\Support\Facades\Http::assertNothingSent();
+
         // ครูทดลองยังลองใช้งานปกติได้ (เปิดหน้าเช็คชื่อ)
         $this->get(route('attendance.index'))->assertOk();
 
@@ -114,6 +123,13 @@ class DemoModeTest extends TestCase
         $this->assertSame($count, Student::count());
         $this->assertNotSame('ชื่อถูกเปลี่ยน', Settings::get('school_name'));
         $this->assertSame('1', Settings::get('demo_mode'));
+
+        // การตั้งค่าโหมดทดลองที่เปลี่ยนหลังบันทึกต้นแบบ ต้องไม่ถูกย้อนกลับ
+        Settings::set(['demo_reset' => '1', 'demo_user_exec' => '']);
+        Demo::reset();
+        $this->assertSame('1', Settings::get('demo_reset'));
+        $this->assertSame('', Settings::get('demo_user_exec'));
+        Settings::set(['demo_reset' => '0']);
 
         // รันตามเวลา: ทำเฉพาะเมื่อเปิดคืนค่าอัตโนมัติ
         $student->update(['first_name' => 'ถูกแก้อีก']);

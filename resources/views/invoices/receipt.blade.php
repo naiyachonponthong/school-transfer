@@ -2,12 +2,21 @@
 <html lang="th">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ใบเสร็จ {{ $payment->receipt_no }}</title>
     @include('partials.assets')
     <style>
         body { background: #fff; }
         .receipt { max-width: 720px; margin: 2rem auto; border: 1px solid #ddd; padding: 2.2rem; border-radius: 8px; }
         @media print { .receipt { border: 0; margin: 0; padding: 0; } .no-print { display: none; } }
+        /* จอมือถือ: ลดขอบ และให้หัวใบเสร็จขึ้นบรรทัดใหม่แทนการล้นจอ */
+        @media screen and (max-width: 767px) {
+            .receipt { margin: .5rem; padding: 1rem; }
+            .receipt > .d-flex:first-child { flex-wrap: wrap; gap: .75rem; }
+            .receipt table { font-size: .88rem; }
+            .receipt .table thead th { white-space: normal; }
+            .receipt .table th[style] { width: auto !important; }
+        }
     </style>
 </head>
 <body>

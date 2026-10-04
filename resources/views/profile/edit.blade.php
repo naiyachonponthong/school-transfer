@@ -24,7 +24,7 @@
             <div class="card-header border-top"><i class="bi bi-key"></i> เปลี่ยนรหัสผ่าน</div>
             <div class="card-body row g-3">
                 <div class="col-md-4"><label class="form-label">รหัสผ่านเดิม</label><input type="password" name="current_password" class="form-control" autocomplete="current-password"></div>
-                <div class="col-md-4"><label class="form-label">รหัสผ่านใหม่</label><input type="password" name="password" class="form-control" autocomplete="new-password" minlength="6"></div>
+                <div class="col-md-4"><label class="form-label">รหัสผ่านใหม่ <span class="text-muted fw-normal small">(อย่างน้อย 8 ตัว มีตัวอักษรและตัวเลข)</span></label><input type="password" name="password" class="form-control" autocomplete="new-password" minlength="8"></div>
                 <div class="col-md-4"><label class="form-label">ยืนยันรหัสผ่านใหม่</label><input type="password" name="password_confirmation" class="form-control" autocomplete="new-password"></div>
             </div>
             <div class="card-footer bg-transparent"><button class="btn btn-primary"><i class="bi bi-save"></i> บันทึก</button></div>

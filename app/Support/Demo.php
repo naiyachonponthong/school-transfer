@@ -74,7 +74,8 @@ class Demo
     /** @return list<string> */
     private static function tables(): array
     {
-        return collect(Schema::getTables())->pluck('name')->reject(fn ($t) => in_array($t, self::SKIP_TABLES, true) || str_starts_with($t, 'sqlite_'))->values()->all();
+        // ระบุฐานข้อมูลปัจจุบันเสมอ: บน MySQL/MariaDB ถ้าไม่ระบุจะได้ตารางของทุกฐานข้อมูลในเซิร์ฟเวอร์
+        return collect(Schema::getTables(Schema::getCurrentSchemaName()))->pluck('name')->reject(fn ($t) => in_array($t, self::SKIP_TABLES, true) || str_starts_with($t, 'sqlite_'))->values()->all();
     }
 
     /** บันทึกข้อมูลปัจจุบันทั้งฐานข้อมูลเป็นต้นแบบ (ไฟล์ละตาราง บรรทัดละแถว) คืนจำนวนแถว */
@@ -156,6 +157,9 @@ class Demo
             throw new RuntimeException('โครงสร้างฐานข้อมูลเปลี่ยนไปหลังบันทึกต้นแบบ กรุณาบันทึกต้นแบบใหม่');
         }
 
+        // การตั้งค่าของโหมดทดลองใช้เองต้องไม่ถูกย้อน (เช่น บันทึกต้นแบบไว้ก่อนเปิดโหมด แล้วคืนค่ากลางคืนจะปิดโหมดเอง)
+        $keys = array_merge(['demo_mode', 'demo_reset'], array_map(fn ($r) => 'demo_user_'.$r, array_keys(self::ROLES)));
+        $demoSettings = DB::table('settings')->whereIn('key', $keys)->pluck('value', 'key')->all();
         $tables = array_values(array_filter(self::tables(), fn ($t) => File::exists(self::dir().'/'.$t.'.jsonl'))); // ตารางที่ไม่มีในต้นแบบ ปล่อยไว้ตามเดิม
         $rows = 0;
         Schema::disableForeignKeyConstraints();
@@ -167,6 +171,9 @@ class Demo
             });
         } finally {
             Schema::enableForeignKeyConstraints();
+        }
+        foreach ($demoSettings as $key => $value) {
+            DB::table('settings')->updateOrInsert(['key' => $key], ['value' => $value]);
         }
         cache()->flush();
         Settings::flush();

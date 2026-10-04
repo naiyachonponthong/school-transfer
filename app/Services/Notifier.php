@@ -59,6 +59,10 @@ class Notifier
 
     private static function dispatch($users, string $text, ?string $url): void
     {
+        // ผู้ที่เข้ามาทดลองใช้ต้องไม่ทำให้มีข้อความจริงส่งออกไป (LINE / แจ้งเตือนบนอุปกรณ์)
+        if (\App\Support\Demo::role()) {
+            return;
+        }
         $prefix = '['.(Settings::get('school_short') ?: Settings::get('school_name')).'] ';
         $message = $prefix.$text.($url ? "\n\n".$url : '');
         // ผู้ที่เปิดรับแจ้งเตือนบนอุปกรณ์ได้ข้อความเดียวกัน (ไม่ต้องเชื่อม LINE)
