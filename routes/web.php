@@ -178,6 +178,9 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
         Route::post('/consents/{form}', [ConsentController::class, 'respond'])->name('consents.respond');
         Route::get('/homework', [HomeworkController::class, 'parentIndex'])->name('homework');
         Route::post('/homework/{assignment}', [HomeworkController::class, 'submit'])->name('homework.submit');
+        Route::get('/wallet/{student?}', [\App\Http\Controllers\WalletController::class, 'parent'])->name('wallet');
+        Route::post('/wallet/{student}/topup', [\App\Http\Controllers\WalletController::class, 'topup'])->name('wallet.topup')->middleware('throttle:20,1');
+        Route::put('/wallet/{student}/settings', [\App\Http\Controllers\WalletController::class, 'settings'])->name('wallet.settings');
     });
 
     /* ---------------- นักเรียน ---------------- */
@@ -185,6 +188,7 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
         Route::get('/', [StudentPortalController::class, 'home'])->name('home');
         Route::get('/info', [StudentPortalController::class, 'info'])->name('info');
         Route::get('/clubs', [\App\Http\Controllers\ClubController::class, 'studentIndex'])->name('clubs');
+        Route::get('/wallet', [\App\Http\Controllers\WalletController::class, 'student'])->name('wallet');
         Route::post('/clubs/{club}', [\App\Http\Controllers\ClubController::class, 'join'])->name('clubs.join')->middleware('throttle:30,1');
         Route::delete('/clubs', [\App\Http\Controllers\ClubController::class, 'leave'])->name('clubs.leave');
         Route::get('/consents', [ConsentController::class, 'studentIndex'])->name('consents');
@@ -392,6 +396,28 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
         Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
 
         Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index')->middleware('permission:finance.view');
+
+        // หน้าจอขาย (POS) และกระเป๋าเงินนักเรียน — สิทธิ์ขายของแต่ละร้านตรวจใน controller
+        Route::get('/pos', [\App\Http\Controllers\PosController::class, 'index'])->name('pos.index');
+        Route::get('/pos/{shop}', [\App\Http\Controllers\PosController::class, 'show'])->name('pos.show');
+        Route::post('/pos/{shop}/lookup', [\App\Http\Controllers\PosController::class, 'lookup'])->name('pos.lookup')->middleware('throttle:240,1');
+        Route::post('/pos/{shop}/charge', [\App\Http\Controllers\PosController::class, 'charge'])->name('pos.charge')->middleware('throttle:240,1');
+        Route::post('/pos-sales/{sale}/void', [\App\Http\Controllers\PosController::class, 'void'])->name('pos.void');
+        Route::middleware('permission:wallet.manage')->group(function () {
+            Route::get('/wallets', [\App\Http\Controllers\WalletAdminController::class, 'index'])->name('wallets.index');
+            Route::get('/wallets/report', [\App\Http\Controllers\WalletAdminController::class, 'report'])->name('wallets.report');
+            Route::post('/wallets/topup', [\App\Http\Controllers\WalletAdminController::class, 'topupCash'])->name('wallets.topup');
+            Route::post('/wallets/topups/{topup}/approve', [\App\Http\Controllers\WalletAdminController::class, 'approve'])->name('wallets.topups.approve');
+            Route::post('/wallets/topups/{topup}/reject', [\App\Http\Controllers\WalletAdminController::class, 'reject'])->name('wallets.topups.reject');
+            Route::get('/wallets/students/{student}', [\App\Http\Controllers\WalletAdminController::class, 'student'])->name('wallets.student');
+            Route::post('/wallets/students/{student}/adjust', [\App\Http\Controllers\WalletAdminController::class, 'adjust'])->name('wallets.adjust');
+            Route::post('/wallets/shops', [\App\Http\Controllers\WalletAdminController::class, 'storeShop'])->name('wallets.shops.store');
+            Route::get('/wallets/shops/{shop}', [\App\Http\Controllers\WalletAdminController::class, 'shop'])->name('wallets.shop');
+            Route::put('/wallets/shops/{shop}', [\App\Http\Controllers\WalletAdminController::class, 'updateShop'])->name('wallets.shops.update');
+            Route::post('/wallets/shops/{shop}/products', [\App\Http\Controllers\WalletAdminController::class, 'storeProduct'])->name('wallets.products.store');
+            Route::put('/wallets/products/{product}', [\App\Http\Controllers\WalletAdminController::class, 'updateProduct'])->name('wallets.products.update');
+            Route::delete('/wallets/products/{product}', [\App\Http\Controllers\WalletAdminController::class, 'destroyProduct'])->name('wallets.products.destroy');
+        });
 
         // ประตูโรงเรียน / บัตรนักเรียน
         Route::get('/gate', [GateController::class, 'index'])->name('gate')->middleware('permission:gate.use');

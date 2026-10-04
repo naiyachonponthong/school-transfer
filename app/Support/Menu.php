@@ -87,6 +87,9 @@ class Menu
                 self::item('feed', 'ฟีดข่าว', 'bi-newspaper', route('feed.index'), 'blue', 0, ['feed.*']),
                 self::item('announcements', 'ประกาศ', 'bi-megaphone', route('announcements.index'), 'primary', 0, ['announcements.*']),
                 self::item('invoices', 'ค่าธรรมเนียม', 'bi-wallet2', route('invoices.index'), 'teal', 0, ['invoices.*', 'payments.*']),
+                self::item('pos', 'หน้าจอขาย', 'bi-shop', route('pos.index'), 'teal', 0, ['pos.*']),
+                self::item('wallets', 'กระเป๋าเงิน', 'bi-wallet', route('wallets.index'), 'teal',
+                    $can('wallet.manage') ? \App\Models\WalletTopup::where('status', 'pending')->count() : 0, ['wallets.*']),
             ],
         ];
 
@@ -120,7 +123,7 @@ class Menu
         // เมนูที่ต้องมีสิทธิ์ตามตำแหน่งงาน (ที่ไม่อยู่ในรายการนี้ บุคลากรทุกคนเห็น)
         $needs = [
             'gate' => 'gate.use', 'cards' => 'gate.use', 'health' => 'health.manage', 'library' => 'library.manage', 'report' => 'reports.view',
-            'invoices' => 'finance.view', 'slips' => 'finance.manage', 'fees' => 'finance.manage', 'closing' => 'finance.manage', 'finreports' => 'finance.view', 'admissions' => 'admissions.manage', 'admissionexams' => 'admissions.manage',
+            'invoices' => 'finance.view', 'pos' => 'pos.use', 'wallets' => 'wallet.manage', 'slips' => 'finance.manage', 'fees' => 'finance.manage', 'closing' => 'finance.manage', 'finreports' => 'finance.view', 'admissions' => 'admissions.manage', 'admissionexams' => 'admissions.manage',
             'line' => 'settings.manage', 'backups' => 'settings.manage', 'gatedevices' => 'settings.manage', 'settings' => 'settings.manage', 'users' => 'users.manage', 'roles' => 'users.manage',
             'classrooms' => 'academics.manage', 'approvals' => 'academics.manage', 'substitutions' => 'academics.manage', 'subjects' => 'academics.manage', 'terms' => 'academics.manage', 'staff' => 'staff.manage', 'stafflist' => 'staff.manage', 'audit' => 'audit.view', 'executive' => 'executive.view',
         ];
@@ -175,7 +178,7 @@ class Menu
     {
         $all = collect(self::groups($user, $pendingLeaves))->flatten(1)->keyBy('key');
         $keys = match (true) {
-            $user->isParent() => ['leave', 'homework', 'grades', 'attendance', 'chat', 'fees', 'portfolio', 'calendar'],
+            $user->isParent() => ['leave', 'homework', 'grades', 'attendance', 'chat', 'fees', 'wallet', 'portfolio', 'calendar'],
             $user->isStudent() => ['homework', 'grades', 'timetable', 'attendance', 'behavior', 'portfolio', 'transcript', 'calendar'],
             default => ['attendance', 'period', 'gate', 'leaves', 'homework', 'courses', 'exams', 'chat', 'students', 'behavior', 'mytimetable', 'health', 'calendar', 'staffleave', 'repairs', 'surveys', 'library', 'report'],
         };
@@ -207,6 +210,7 @@ class Menu
                 self::item('leaves', 'ใบลา', 'bi-envelope-paper', $tab('leaves'), 'primary'),
                 self::item('survey', 'แบบประเมินตนเอง', 'bi-clipboard-heart', $tab('survey'), 'primary'),
                 self::item('fees', 'ค่าเทอม', 'bi-wallet2', $tab('fees'), 'teal'),
+                self::item('wallet', 'กระเป๋าเงิน', 'bi-wallet', route('student.wallet'), 'teal', 0, ['student.wallet']),
                 self::item('portfolio', 'แฟ้มผลงาน', 'bi-folder2-open', $me ? route('portfolio.show', $me) : route('student.home'), 'primary', 0, ['portfolio.*']),
                 self::item('transcript', 'ปพ.1', 'bi-file-earmark-text', $me ? route('transcript', $me) : route('student.home'), 'teal'),
             ],
@@ -238,6 +242,7 @@ class Menu
                 self::item('timetable', 'ตารางเรียน', 'bi-calendar3-week', $tab('timetable'), 'primary'),
                 self::item('behavior', 'ความประพฤติ', 'bi-award', $tab('behavior'), 'primary'),
                 self::item('fees', 'ค่าเทอม', 'bi-wallet2', $tab('fees'), 'teal'),
+                self::item('wallet', 'กระเป๋าเงิน', 'bi-wallet', route('parent.wallet'), 'teal', 0, ['parent.wallet*']),
                 self::item('health', 'สุขภาพ', 'bi-heart-pulse', $tab('health'), 'primary'),
                 self::item('transcript', 'ปพ.1', 'bi-file-earmark-text', $child ? route('transcript', $child) : route('parent.home'), 'teal'),
             ],
