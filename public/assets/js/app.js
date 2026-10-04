@@ -419,3 +419,105 @@ document.querySelectorAll('table.table').forEach((t) => {
         wrap.appendChild(t);
     }
 });
+
+/* ---------- ตัวเลือกแบบค้นหาได้ ----------
+   <select> ที่มีตัวเลือกตั้งแต่ 10 รายการขึ้นไปจะได้ช่องค้นหาอัตโนมัติ (ใส่ data-no-search เพื่อยกเว้น, data-search เพื่อบังคับ)
+   ตัว <select> เดิมยังอยู่ในฟอร์ม จึงส่งค่า ตรวจ required และยิง change ได้เหมือนเดิม */
+(function () {
+    'use strict';
+    const MIN_OPTIONS = 10;
+    let openBox = null;
+
+    const close = () => { if (openBox) { openBox.classList.remove('open'); openBox = null; } };
+    document.addEventListener('click', (e) => { if (openBox && !openBox.contains(e.target)) close(); });
+
+    function enhance(select) {
+        if (select.dataset.ssReady || select.multiple || select.size > 1 || select.hasAttribute('data-no-search')) return;
+        if (select.options.length < MIN_OPTIONS && !select.hasAttribute('data-search')) return;
+        select.dataset.ssReady = '1';
+
+        const small = select.classList.contains('form-select-sm');
+        const box = document.createElement('div');
+        box.className = 'ss';
+        if (select.style.cssText) box.style.cssText = select.style.cssText;
+        box.innerHTML = '<button type="button" class="ss-btn form-select' + (small ? ' form-select-sm' : '') + '" aria-haspopup="listbox"></button>'
+            + '<div class="ss-panel"><input type="search" class="form-control form-control-sm ss-q" placeholder="พิมพ์เพื่อค้นหา…" autocomplete="off" aria-label="ค้นหาตัวเลือก">'
+            + '<div class="ss-list" role="listbox"></div></div>';
+        select.parentNode.insertBefore(box, select);
+        box.appendChild(select);
+        select.classList.add('ss-native');
+        select.tabIndex = -1;
+
+        const btn = box.querySelector('.ss-btn'), q = box.querySelector('.ss-q'), list = box.querySelector('.ss-list');
+        const label = () => { btn.textContent = select.selectedOptions[0] ? select.selectedOptions[0].text : ''; btn.disabled = select.disabled; };
+        let active = -1;
+
+        const render = () => {
+            const words = q.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+            list.innerHTML = '';
+            let group = null;
+            Array.from(select.options).forEach((o) => {
+                const text = o.text.toLowerCase();
+                if (o.disabled || !words.every((w) => text.includes(w))) return;
+                const og = o.parentElement.tagName === 'OPTGROUP' ? o.parentElement.label : null;
+                if (og && og !== group) { const h = document.createElement('div'); h.className = 'ss-group'; h.textContent = og; list.appendChild(h); }
+                group = og;
+                const item = document.createElement('div');
+                item.className = 'ss-item' + (o.selected ? ' selected' : '');
+                item.setAttribute('role', 'option');
+                item.dataset.value = o.value;
+                item.textContent = o.text;
+                list.appendChild(item);
+            });
+            if (!list.querySelector('.ss-item')) list.innerHTML = '<div class="ss-empty">ไม่พบรายการ</div>';
+            active = -1;
+        };
+        const items = () => Array.from(list.querySelectorAll('.ss-item'));
+        const move = (step) => {
+            const all = items();
+            if (!all.length) return;
+            active = (active + step + all.length) % all.length;
+            all.forEach((el, i) => el.classList.toggle('active', i === active));
+            all[active].scrollIntoView({ block: 'nearest' });
+        };
+        const pick = (value) => {
+            select.value = value;
+            btn.classList.remove('is-invalid');
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            label(); close(); btn.focus();
+        };
+        const open = () => {
+            close();
+            // ตัวเลือกอาจถูกสคริปต์อื่นเปลี่ยนไปแล้ว จึงสร้างรายการใหม่ทุกครั้งที่เปิด
+            q.value = ''; render();
+            box.classList.add('open'); openBox = box;
+            const r = box.getBoundingClientRect();
+            box.classList.toggle('up', r.bottom + 320 > window.innerHeight && r.top > 330);
+            q.focus();
+            const sel = list.querySelector('.selected');
+            if (sel) sel.scrollIntoView({ block: 'nearest' });
+        };
+
+        btn.addEventListener('click', () => (box.classList.contains('open') ? close() : open()));
+        btn.addEventListener('keydown', (e) => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); open(); } });
+        q.addEventListener('input', render);
+        q.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown') { e.preventDefault(); move(1); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
+            else if (e.key === 'Enter') { e.preventDefault(); const all = items(); const el = all[active] || (all.length === 1 ? all[0] : null); if (el) pick(el.dataset.value); }
+            else if (e.key === 'Escape') { e.stopPropagation(); close(); btn.focus(); }
+        });
+        list.addEventListener('click', (e) => { const el = e.target.closest('.ss-item'); if (el) pick(el.dataset.value); });
+        select.addEventListener('change', label);
+        select.addEventListener('invalid', () => btn.classList.add('is-invalid'));
+        if (select.form) select.form.addEventListener('reset', () => setTimeout(label));
+        label();
+    }
+
+    document.querySelectorAll('select').forEach(enhance);
+    // ฟอร์มที่เพิ่มเข้ามาทีหลัง (เช่น แถวที่เพิ่มด้วยสคริปต์)
+    new MutationObserver((muts) => muts.forEach((m) => m.addedNodes.forEach((n) => {
+        if (n.nodeType !== 1) return;
+        if (n.tagName === 'SELECT') enhance(n); else if (n.querySelectorAll) n.querySelectorAll('select').forEach(enhance);
+    }))).observe(document.body, { childList: true, subtree: true });
+})();

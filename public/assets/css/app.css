@@ -826,3 +826,22 @@ a.card:hover { box-shadow: var(--sb-shadow-lg); }
     .manual-topic-print { break-before: page; }
     .manual-steps > li::before { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* ---------------- ตัวเลือกแบบค้นหาได้ (app.js) ---------------- */
+.ss { position: relative; display: block; min-width: 0; }
+.input-group > .ss { flex: 1 1 auto; width: 1%; }
+.ss-native { position: absolute !important; inset: 0; width: 100% !important; max-width: none !important; height: 100%; opacity: 0; pointer-events: none; }
+.ss-btn { width: 100%; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background-color: #fff; }
+.ss-btn.is-invalid { border-color: var(--bs-form-invalid-border-color); }
+.ss-panel { display: none; position: absolute; z-index: 1065; left: 0; top: calc(100% + 4px); width: max(100%, 260px); max-width: 92vw; background: var(--sb-card); border: 1px solid var(--sb-border); border-radius: 14px; box-shadow: var(--sb-shadow-lg); padding: .5rem; }
+.ss.open .ss-panel { display: block; }
+.ss.up .ss-panel { top: auto; bottom: calc(100% + 4px); }
+/* ในหน้าต่างป๊อปอัป: วางต่อจากปุ่มในเนื้อหา ไม่ลอย จะได้ไม่ถูกขอบหน้าต่างตัด */
+.modal .ss-panel { position: static; width: 100%; max-width: none; margin-top: 4px; box-shadow: none; }
+.ss-list { max-height: 260px; overflow-y: auto; margin-top: .4rem; }
+.ss-item { padding: .4rem .6rem; border-radius: 9px; cursor: pointer; font-size: .92rem; overflow-wrap: anywhere; }
+.ss-item:hover, .ss-item.active { background: var(--sb-primary-50); }
+.ss-item.selected { font-weight: 600; color: var(--sb-primary-700); }
+.ss-group { padding: .35rem .6rem .15rem; font-size: .75rem; font-weight: 700; color: var(--sb-muted); }
+.ss-empty { padding: .6rem; text-align: center; color: var(--sb-muted); font-size: .88rem; }
+@media print { .ss-panel { display: none !important; } }
