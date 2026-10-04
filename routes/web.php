@@ -113,6 +113,10 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth', 'privacy.accepted'])->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
     Route::get('/files/{type}/{id}', [FileController::class, 'show'])->name('files.show')->whereNumber('id');
+    // สแกนจ่ายจากกระเป๋าเงิน (นักเรียน ครู และผู้ปกครอง)
+    Route::get('/wallet/scan', [\App\Http\Controllers\WalletPayController::class, 'scan'])->name('wallet.scan');
+    Route::get('/pay/{token}', [\App\Http\Controllers\WalletPayController::class, 'show'])->name('wallet.pay')->where('token', '[A-Za-z0-9]+');
+    Route::post('/pay/{token}', [\App\Http\Controllers\WalletPayController::class, 'confirm'])->name('wallet.pay.confirm')->where('token', '[A-Za-z0-9]+')->middleware('throttle:30,1');
     Route::get('/privacy', [PrivacyController::class, 'show'])->name('privacy.show');
     Route::post('/privacy', [PrivacyController::class, 'accept'])->name('privacy.accept');
     Route::get('/password/change', [PasswordController::class, 'showChange'])->name('password.change');
@@ -408,6 +412,8 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
         Route::post('/pos/{shop}/charge', [\App\Http\Controllers\PosController::class, 'charge'])->name('pos.charge')->middleware('throttle:240,1');
         Route::post('/pos/{shop}/qr', [\App\Http\Controllers\PosController::class, 'qr'])->name('pos.qr')->middleware('throttle:240,1');
         Route::post('/pos/{shop}/qr-paid', [\App\Http\Controllers\PosController::class, 'qrPaid'])->name('pos.qr.paid')->middleware('throttle:240,1');
+        Route::post('/pos/{shop}/pay-request', [\App\Http\Controllers\PosController::class, 'payRequest'])->name('pos.pay.request')->middleware('throttle:240,1');
+        Route::get('/pos/{shop}/pay-request/{token}', [\App\Http\Controllers\PosController::class, 'payStatus'])->name('pos.pay.status')->where('token', '[A-Za-z0-9]+');
         Route::get('/pos/{shop}/display', [\App\Http\Controllers\PosController::class, 'display'])->name('pos.display');
         Route::get('/pos/{shop}/display/state', [\App\Http\Controllers\PosController::class, 'displayState'])->name('pos.display.state');
         Route::post('/pos/{shop}/display', [\App\Http\Controllers\PosController::class, 'displayPush'])->name('pos.display.push');

@@ -57,7 +57,7 @@
             cart: (s) => items(s.items) + totalRow(s.total || 0)
                 + who(s.customer, s.customer && has(s.customer.balance) ? `<div>คงเหลือ <b>${money(s.customer.balance)}</b> บาท${has(s.balance_after) && s.balance_after >= 0 ? ` · หลังซื้อเหลือ <b>${money(s.balance_after)}</b>` : ''}</div>` : '')
                 + (s.message ? `<div class="cd-warn">${esc(s.message)}</div>` : (s.customer ? '' : `<div class="text-center text-muted fs-4 mt-3"><i class="bi bi-credit-card-2-front"></i> กรุณาแตะบัตร</div>`)),
-            qr: (s) => `<div class="cd-qr"><div class="fs-2 fw-bold mb-2">สแกนจ่าย ${money(s.total || 0)} บาท</div><div class="box" id="qrBox"></div><div class="text-muted fs-4 mt-2">เปิดแอปธนาคารแล้วสแกน QR นี้</div></div>`,
+            qr: (s) => `<div class="cd-qr"><div class="fs-2 fw-bold mb-2">สแกนจ่าย ${money(s.total || 0)} บาท</div><div class="box" id="qrBox"></div><div class="text-muted fs-4 mt-2">${s.qr_kind === 'promptpay' ? 'เปิดแอปธนาคารแล้วสแกน QR นี้' : 'เปิดกระเป๋าเงินในระบบ กด "สแกนจ่าย" แล้วสแกน QR นี้'}</div></div>`,
             paid: (s) => `<div class="cd-paid"><i class="bi bi-check-circle-fill"></i><div class="t">ชำระแล้ว ${money(s.total || 0)} บาท</div>${has(s.balance_after) ? `<div class="fs-2">คงเหลือ <b>${money(s.balance_after)}</b> บาท</div>` : ''}${s.customer ? `<div class="fs-3 text-muted mt-1">${esc(s.customer.name)}</div>` : ''}<div class="fs-3 mt-2">ขอบคุณครับ/ค่ะ</div></div>`,
             error: (s) => `<div class="cd-idle"><i class="bi bi-x-circle-fill" style="color:#dc2626"></i><div>${esc(s.message || 'ทำรายการไม่สำเร็จ')}</div></div>`,
         };

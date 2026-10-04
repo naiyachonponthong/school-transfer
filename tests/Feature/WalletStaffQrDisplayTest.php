@@ -101,13 +101,13 @@ class WalletStaffQrDisplayTest extends TestCase
 
         // ยังไม่ได้ตั้งพร้อมเพย์: ไม่มีปุ่ม และสร้าง QR ไม่ได้
         Settings::set(['promptpay_id' => '']);
-        $this->actingAs($this->admin())->get("/pos/{$shop->id}")->assertOk()->assertDontSee('ให้ลูกค้าสแกนจ่าย');
+        $this->actingAs($this->admin())->get("/pos/{$shop->id}")->assertOk()->assertSee('ให้ลูกค้าสแกนจ่าย')->assertDontSee('แอปธนาคาร (พร้อมเพย์)');
         $this->actingAs($this->admin())->postJson("/pos/{$shop->id}/qr", ['amount' => 55])->assertStatus(422);
         $this->actingAs($this->admin())->postJson("/pos/{$shop->id}/qr-paid", ['client_key' => 'qr-key-0000', 'items' => $items])->assertStatus(422);
 
         // ใช้พร้อมเพย์ของโรงเรียน หรือของร้านเองถ้าตั้งไว้
         Settings::set(['promptpay_id' => '0812345678']);
-        $this->actingAs($this->admin())->get("/pos/{$shop->id}")->assertOk()->assertSee('ให้ลูกค้าสแกนจ่าย');
+        $this->actingAs($this->admin())->get("/pos/{$shop->id}")->assertOk()->assertSee('แอปธนาคาร (พร้อมเพย์)');
         $this->actingAs($this->admin())->postJson("/pos/{$shop->id}/qr", ['amount' => 55])->assertOk()->assertJsonPath('promptpay', '0812345678');
         $this->actingAs($this->admin())->put("/wallets/shops/{$shop->id}", ['name' => $shop->name, 'is_active' => 1, 'promptpay_id' => '12345'])->assertSessionHasErrors('promptpay_id');
         $this->actingAs($this->admin())->put("/wallets/shops/{$shop->id}", ['name' => $shop->name, 'is_active' => 1, 'show_balance' => 1, 'promptpay_id' => '0899999999'])->assertRedirect();

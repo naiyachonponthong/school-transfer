@@ -163,6 +163,34 @@ class PosController extends Controller
         return response()->json(['ok' => true, 'sale_id' => $sale->id, 'total' => (float) $sale->total]);
     }
 
+    /** เปิดรายการให้ลูกค้าสแกนจ่ายจากกระเป๋าเงินของตัวเอง: ได้ที่อยู่ที่ใส่ใน QR (ใช้ได้ครั้งเดียว อยู่ได้ไม่กี่นาที) */
+    public function payRequest(Request $request, Shop $shop)
+    {
+        $this->authorizeShop($request, $shop);
+        [$items, $key] = $this->items($request, $shop);
+        $total = round(collect($items)->sum(fn ($i) => $i['price'] * $i['qty']), 2);
+        // รายการเดิม (กดเปิดซ้ำก่อนลูกค้าจ่าย) ใช้ QR เดิมต่อได้
+        $token = Cache::get('pos-pay-key:'.$key) ?? bin2hex(random_bytes(16));
+        $ttl = now()->addMinutes(WalletPayController::TTL_MINUTES);
+        if ((Cache::get(WalletPayController::key($token))['status'] ?? 'pending') === 'pending') {
+            Cache::put(WalletPayController::key($token), ['status' => 'pending', 'shop_id' => $shop->id, 'cashier_id' => $request->user()->id,
+                'items' => $items, 'total' => $total, 'client_key' => $key], $ttl);
+        }
+        Cache::put('pos-pay-key:'.$key, $token, $ttl);
+
+        return response()->json(['ok' => true, 'token' => $token, 'url' => route('wallet.pay', $token), 'total' => $total]);
+    }
+
+    /** หน้าจอขายถามว่าลูกค้ายืนยันจ่ายแล้วหรือยัง */
+    public function payStatus(Request $request, Shop $shop, string $token)
+    {
+        $this->authorizeShop($request, $shop);
+        $order = Cache::get(WalletPayController::key($token));
+        abort_unless($order && $order['shop_id'] === $shop->id, 404);
+
+        return response()->json(collect($order)->only(['status', 'total', 'sale_id', 'balance', 'customer']));
+    }
+
     /* ---------------- หน้าจอลูกค้า ---------------- */
 
     /** สถานะของหน้าจอลูกค้าแยกตามร้านและบัญชีคนขาย (เครื่องขายหนึ่งเครื่อง = หน้าจอลูกค้าหนึ่งจอ) */
@@ -205,6 +233,7 @@ class PosController extends Controller
             'customer.balance' => ['nullable', 'numeric'],
             'balance_after' => ['nullable', 'numeric'],
             'qr' => ['nullable', 'string', 'max:600'],
+            'qr_kind' => ['nullable', 'in:wallet,promptpay'],
             'message' => ['nullable', 'string', 'max:255'],
         ]);
         // ร้านที่ตั้งไม่ให้แสดงยอดคงเหลือ: ไม่ส่งยอดไปที่หน้าจอลูกค้าเลย

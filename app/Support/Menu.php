@@ -180,7 +180,7 @@ class Menu
         $all = collect(self::groups($user, $pendingLeaves))->flatten(1)->keyBy('key');
         $keys = match (true) {
             $user->isParent() => ['leave', 'homework', 'grades', 'attendance', 'chat', 'fees', 'wallet', 'portfolio', 'calendar'],
-            $user->isStudent() => ['homework', 'grades', 'timetable', 'attendance', 'behavior', 'portfolio', 'transcript', 'calendar'],
+            $user->isStudent() => ['homework', 'grades', 'timetable', 'attendance', 'wallet', 'scanpay', 'behavior', 'portfolio', 'transcript', 'calendar'],
             default => ['attendance', 'period', 'gate', 'leaves', 'homework', 'courses', 'exams', 'chat', 'students', 'behavior', 'mytimetable', 'health', 'calendar', 'staffleave', 'repairs', 'surveys', 'library', 'report'],
         };
 
@@ -212,6 +212,7 @@ class Menu
                 self::item('survey', 'แบบประเมินตนเอง', 'bi-clipboard-heart', $tab('survey'), 'primary'),
                 self::item('fees', 'ค่าเทอม', 'bi-wallet2', $tab('fees'), 'teal'),
                 self::item('wallet', 'กระเป๋าเงิน', 'bi-wallet', route('student.wallet'), 'teal', 0, ['student.wallet']),
+                self::item('scanpay', 'สแกนจ่าย', 'bi-qr-code-scan', route('wallet.scan'), 'teal', 0, ['wallet.scan', 'wallet.pay*']),
                 self::item('portfolio', 'แฟ้มผลงาน', 'bi-folder2-open', $me ? route('portfolio.show', $me) : route('student.home'), 'primary', 0, ['portfolio.*']),
                 self::item('transcript', 'ปพ.1', 'bi-file-earmark-text', $me ? route('transcript', $me) : route('student.home'), 'teal'),
             ],

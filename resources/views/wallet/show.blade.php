@@ -21,6 +21,8 @@
             <div class="fw-bold" style="font-size:2.6rem;line-height:1.2">{{ baht($wallet->balance) }}</div>
             <div class="small text-muted">บาท · ใช้ไปวันนี้ {{ baht($spentToday) }}{{ $wallet->daily_limit !== null ? ' จากวงเงิน '.baht($wallet->daily_limit) : '' }}</div>
             @if ($wallet->is_frozen)<div class="badge bg-danger mt-2"><i class="bi bi-lock"></i> ระงับการใช้จ่ายอยู่</div>@endif
+            <div class="mt-3"><a href="{{ route('wallet.scan') }}" class="btn btn-primary btn-lg"><i class="bi bi-qr-code-scan"></i> สแกนจ่าย</a></div>
+            <div class="small text-muted mt-1">เปิดกล้องสแกน QR ที่ร้านแสดง แล้วยืนยันตัดเงินจากกระเป๋านี้</div>
         </div></div>
 
         @if ($canManage)
