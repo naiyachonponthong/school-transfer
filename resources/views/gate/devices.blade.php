@@ -98,6 +98,10 @@
         @endif
         <form method="POST" action="{{ route('gate.devices.staff-consent') }}">
             @csrf
+            <div class="d-flex gap-2 mb-2">
+                <button type="button" class="btn btn-sm btn-light border" onclick="this.form.querySelectorAll('[name=&quot;staff[]&quot;]').forEach(c => c.checked = true)"><i class="bi bi-check2-all"></i> เลือกทั้งหมด</button>
+                <button type="button" class="btn btn-sm btn-light border" onclick="this.form.querySelectorAll('[name=&quot;staff[]&quot;]').forEach(c => c.checked = false)"><i class="bi bi-x-lg"></i> ไม่เลือกเลย</button>
+            </div>
             <div class="row g-1 mb-2">
                 @foreach ($staff['all'] as $u)
                     <div class="col-sm-6 col-lg-4">
