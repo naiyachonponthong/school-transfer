@@ -8,6 +8,7 @@ use App\Models\Score;
 use App\Models\Student;
 use App\Models\StudentEvaluation;
 use App\Models\Subject;
+use App\Models\User;
 use Illuminate\Support\Collection;
 
 /**
@@ -19,7 +20,8 @@ class AcademicRecord
     /** @var Collection<int, array{course: Course, grade: ?string, credit: float, hours: int, weight: float}> */
     public Collection $rows;
 
-    public function __construct(public Student $student, public string $stage)
+    /** $viewer = ผู้ที่กำลังดู: ถ้าเป็นผู้ปกครอง/นักเรียน จะไม่รวมภาคเรียนที่ยังไม่ถึงวันประกาศผล */
+    public function __construct(public Student $student, public string $stage, ?User $viewer = null)
     {
         $levels = Curriculum::STAGES[$stage]['levels'];
         $courseIds = Score::where('student_id', $student->id)
@@ -29,6 +31,7 @@ class AcademicRecord
         $byCredit = Curriculum::STAGES[$stage]['credits'];
         $this->rows = Course::with(['subject', 'term', 'assessments', 'classroom'])->whereIn('id', $courseIds)
             ->whereHas('classroom', fn ($q) => $q->whereIn('level', $levels))->get()
+            ->filter(fn (Course $c) => $viewer === null || $c->term->resultsVisibleTo($viewer))
             ->sortBy(fn ($c) => [$c->term->year, $c->term->term, $c->subject->typeOrder(), $c->subject->code])
             ->map(fn (Course $c) => [
                 'course' => $c,

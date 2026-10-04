@@ -7,6 +7,8 @@ use App\Models\Announcement;
 use App\Models\Assignment;
 use App\Models\Attendance;
 use App\Models\BehaviorRecord;
+use App\Models\ConsentForm;
+use App\Models\ConsentResponse;
 use App\Models\HealthVisit;
 use App\Models\Invoice;
 use App\Models\LeaveRequest;
@@ -64,15 +66,20 @@ class Notifications
 
         $items = $items->concat(self::announcements($user));
 
-        if ($user->isAdmin() || $user->hasPermission('finance.manage') || $user->hasPermission('staff.manage') || $user->hasPermission('admissions.manage')) {
+        // แต่ละเรื่องแจ้งเฉพาะผู้ที่มีสิทธิ์จัดการเรื่องนั้น (ผู้ดูแลระบบมีทุกสิทธิ์)
+        if ($user->hasPermission('finance.manage')) {
             foreach (PaymentSlip::with('invoice.student')->where('status', 'pending')->latest()->limit(10)->get() as $s) {
                 $items->push(['icon' => 'bi-receipt-cutoff', 'color' => 'teal', 'title' => 'สลิปรอตรวจ '.baht($s->amount).' บาท',
                     'sub' => $s->invoice->student->fullName().' · '.$s->invoice->title, 'url' => route('slips.index'), 'at' => $s->created_at]);
             }
+        }
+        if ($user->hasPermission('staff.manage')) {
             foreach (StaffLeave::with('user')->where('status', 'pending')->latest()->limit(10)->get() as $l) {
                 $items->push(['icon' => 'bi-briefcase', 'color' => 'warning', 'title' => "{$l->user->name} ยื่น{$l->typeLabel()} {$l->days()} วัน",
                     'sub' => thai_date($l->start_date).' · รออนุมัติ', 'url' => route('staff-leaves.index'), 'at' => $l->created_at]);
             }
+        }
+        if ($user->hasPermission('admissions.manage')) {
             $newApps = Admission::where('status', 'submitted')->count();
             if ($newApps) {
                 $items->push(['icon' => 'bi-person-plus', 'color' => 'info', 'title' => "ใบสมัครใหม่ {$newApps} ใบ", 'sub' => 'รับสมัครนักเรียน',
@@ -180,7 +187,7 @@ class Notifications
                 'title' => 'สลิป '.baht($s->amount).' บาท '.$s->statusLabel(), 'sub' => $s->invoice->title.($s->review_note ? ' · '.$s->review_note : ''),
                 'url' => route('invoices.show', $s->invoice), 'at' => $s->reviewed_at]);
         }
-        $items = $items->concat(self::eventsTomorrow($user));
+        $items = $items->concat(self::eventsTomorrow($user))->concat(self::consents($children, 'parent.consents', true));
 
         foreach (Invoice::with('student')->whereIn('student_id', $ids)->whereIn('status', ['unpaid', 'partial'])->get() as $inv) {
             $items->push([
@@ -220,10 +227,30 @@ class Notifications
                 'url' => route('student.homework'), 'at' => $s->graded_at]);
         }
 
+        $items = $items->concat(self::consents(collect([$me]), 'student.consents', false));
+
         foreach (BehaviorRecord::where('student_id', $me->id)->where('created_at', '>=', now()->subDays(14))->get() as $b) {
             $items->push(['icon' => $b->points > 0 ? 'bi-star' : 'bi-exclamation-diamond', 'color' => $b->points > 0 ? 'success' : 'danger',
                 'title' => ($b->points > 0 ? 'ได้รับคำชม ' : 'ถูกหักคะแนนความประพฤติ ').'('.($b->points > 0 ? '+' : '').$b->points.')', 'sub' => $b->title,
                 'url' => route('student.info', ['tab' => 'behavior']), 'at' => $b->created_at]);
+        }
+
+        return $items;
+    }
+
+    /** หนังสือขออนุญาตที่ยังเปิดรับคำตอบและยังไม่มีคำตอบของนักเรียนคนนั้น */
+    private static function consents(Collection $students, string $route, bool $named): Collection
+    {
+        $forms = ConsentForm::latest()->limit(30)->get()->filter(fn ($f) => $f->acceptsResponses());
+        $answered = ConsentResponse::whereIn('consent_form_id', $forms->pluck('id'))->whereIn('student_id', $students->pluck('id'))->get()
+            ->mapWithKeys(fn ($r) => [$r->consent_form_id.'-'.$r->student_id => true]);
+        $items = collect();
+        foreach ($forms as $f) {
+            foreach ($students->filter(fn ($s) => $f->includes($s) && ! isset($answered[$f->id.'-'.$s->id])) as $s) {
+                $items->push(['icon' => 'bi-envelope-check', 'color' => 'warning', 'title' => 'หนังสือขออนุญาต: '.$f->title,
+                    'sub' => ($named ? 'น้อง'.($s->nickname ?: $s->first_name).' · ' : '').($named ? 'ยังไม่ได้ตอบ' : 'รอผู้ปกครองตอบ').($f->due_date ? ' · ภายใน '.thai_date($f->due_date) : ''),
+                    'url' => route($route), 'at' => $f->created_at]);
+            }
         }
 
         return $items;

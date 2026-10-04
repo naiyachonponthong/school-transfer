@@ -82,7 +82,7 @@ class ParentController extends Controller
         $grades = $resultsHidden ? collect() : StudentController::gradesFor($student, $term);
 
         $slots = ($term && $student->classroom_id) ? TimetableSlot::with('course.subject', 'course.teacher')
-            ->where('term_id', $term->id)->where('classroom_id', $student->classroom_id)->get()
+            ->where('term_id', $term->id)->whereHas('course', fn ($q) => $q->forStudent($student, $student->classroom_id))->get()
             ->keyBy(fn ($s) => $s->day.'-'.$s->period) : collect();
 
         // แบบประเมินตอบได้เฉพาะผู้ปกครอง นักเรียนไม่เห็นแท็บนี้

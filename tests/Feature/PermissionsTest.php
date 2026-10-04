@@ -116,6 +116,21 @@ class PermissionsTest extends TestCase
         $this->assertTrue($other->fresh()->canManageFacilities());
     }
 
+    public function test_bell_notifications_follow_each_position(): void
+    {
+        $staffer = User::where('role', 'teacher')->where('id', '!=', $this->teacher()->id)->first();
+        \App\Models\StaffLeave::create(['user_id' => $staffer->id, 'type' => 'personal', 'start_date' => today(), 'end_date' => today(), 'reason' => 'ธุระ', 'status' => 'pending']);
+        $titles = fn (User $u) => \App\Support\Notifications::for($u)->pluck('title')->implode(' | ');
+
+        // ฝ่ายการเงินไม่เห็นใบลาบุคลากร · ฝ่ายบุคคลเห็น · ผู้ดูแลระบบเห็นทุกเรื่อง
+        $this->assertStringNotContainsString('ยื่นลากิจส่วนตัว', $titles($this->give($this->teacher(), 'finance')));
+        $this->assertStringContainsString('ยื่นลากิจส่วนตัว', $titles($this->admin()));
+        $hr = Role::all()->first(fn ($r) => in_array('staff.manage', $r->permissions ?? [], true) && ! in_array('finance.manage', $r->permissions ?? [], true));
+        if ($hr) {
+            $this->assertStringContainsString('ยื่นลากิจส่วนตัว', $titles($this->give($this->teacher(), $hr->key)));
+        }
+    }
+
     public function test_admin_assigns_positions_on_the_user_form_and_custom_roles_can_be_managed(): void
     {
         $t = $this->teacher();

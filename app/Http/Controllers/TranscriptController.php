@@ -20,7 +20,7 @@ class TranscriptController extends Controller
         abort_unless($student->canBeViewedBy($request->user()), 403);
         $student->load('classroom');
         $stage = array_key_exists((string) $request->query('stage'), Curriculum::STAGES) ? $request->query('stage') : AcademicRecord::defaultStage($student);
-        $record = new AcademicRecord($student, $stage);
+        $record = new AcademicRecord($student, $stage, $request->user());
         $totals = $record->totals();
 
         return view('reports.transcript', [

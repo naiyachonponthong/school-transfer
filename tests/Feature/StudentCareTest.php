@@ -175,10 +175,14 @@ class StudentCareTest extends TestCase
 
         // ผู้ปกครองตอบ แก้คำตอบได้ และตอบแทนเด็กคนอื่นไม่ได้
         $this->actingAs($parent)->get(route('parent.consents'))->assertOk()->assertSee('ไปสวนสัตว์ วันศุกร์');
+        // ขึ้นกระดิ่งของผู้ปกครองจนกว่าจะตอบ
+        $bell = fn (User $u) => \App\Support\Notifications::for($u)->pluck('title')->implode(' | ');
+        $this->assertStringContainsString('หนังสือขออนุญาต: ทัศนศึกษา', $bell($parent));
         $this->post(route('parent.consents.respond', $form), ['student_id' => $child->id, 'agreed' => 1])->assertSessionHasNoErrors();
         $this->post(route('parent.consents.respond', $form), ['student_id' => $child->id, 'agreed' => 0, 'note' => 'ติดธุระ'])->assertSessionHasNoErrors();
         $this->assertSame(1, ConsentResponse::where('student_id', $child->id)->count());
         $this->assertFalse(ConsentResponse::first()->agreed);
+        $this->assertStringNotContainsString('หนังสือขออนุญาต: ทัศนศึกษา', $bell($parent));
 
         // นักเรียน: อ่านหนังสือและเห็นคำตอบของผู้ปกครองได้ แต่ตอบเองไม่ได้
         $studentUser = $child->user ?? User::create(['name' => $child->fullName(), 'username' => 'stu-consent', 'password' => 'secret123', 'role' => 'student', 'is_active' => true]);

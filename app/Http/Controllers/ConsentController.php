@@ -51,9 +51,12 @@ class ConsentController extends Controller
 
         $form = ConsentForm::create(['classroom_ids' => array_map('intval', $data['classroom_ids']), 'created_by' => $request->user()->id] + $data);
 
-        foreach ($form->students()->with('guardians')->get() as $student) {
+        foreach ($form->students()->with('guardians', 'user')->get() as $student) {
             Notifier::parents($student, "📝 ขออนุญาตผู้ปกครอง: {$form->title} (น้อง".($student->nickname ?: $student->first_name).')'
                 .($form->due_date ? ' กรุณาตอบภายใน '.thai_date($form->due_date) : ''), route('parent.consents'));
+            if ($student->user?->line_user_id) {
+                Notifier::users([$student->user], "📝 หนังสือขออนุญาตผู้ปกครอง: {$form->title} · ช่วยแจ้งผู้ปกครองให้ตอบด้วย", route('student.consents'));
+            }
         }
 
         return redirect()->route('consents.show', $form)->with('success', 'ส่งหนังสือขออนุญาตแล้ว');

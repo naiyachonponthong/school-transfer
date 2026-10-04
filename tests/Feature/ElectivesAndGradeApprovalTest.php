@@ -173,6 +173,12 @@ class ElectivesAndGradeApprovalTest extends TestCase
 
         $this->actingAs($parent)->get(route('parent.child', ['student' => $child, 'tab' => 'grades']))->assertOk()->assertSee('โรงเรียนจะประกาศผลการเรียน');
         $this->get(route('report-card', $child))->assertForbidden();
+        // ปพ.1 ก็ยังไม่รวมภาคเรียนนี้สำหรับผู้ปกครอง (บุคลากรเห็นครบ)
+        $stage = \App\Support\AcademicRecord::defaultStage($child);
+        $staffTerms = (new \App\Support\AcademicRecord($child, $stage))->rows->map(fn ($r) => $r['course']->term_id)->unique();
+        $this->assertTrue($staffTerms->contains($term->id), 'ข้อมูลตัวอย่าง: นักเรียนต้องมีคะแนนในภาคเรียนปัจจุบัน');
+        $this->assertFalse((new \App\Support\AcademicRecord($child, $stage, $parent))->rows->map(fn ($r) => $r['course']->term_id)->contains($term->id));
+        $this->get(route('transcript', $child))->assertOk();
 
         // บุคลากรเห็นได้ตลอด และถึงวันประกาศแล้วผู้ปกครองเห็น
         $this->actingAs($this->teacher())->get(route('report-card', $child))->assertOk();

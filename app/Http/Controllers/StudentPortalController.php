@@ -32,7 +32,7 @@ class StudentPortalController extends Controller
 
         $slots = ($term && $student->classroom_id && isset(TimetableSlot::days()[today()->dayOfWeekIso]))
             ? TimetableSlot::with('course.subject', 'course.teacher')->where('term_id', $term->id)
-                ->where('classroom_id', $student->classroom_id)->where('day', today()->dayOfWeekIso)->orderBy('period')->get()
+                ->whereHas('course', fn ($q) => $q->forStudent($student, $student->classroom_id))->where('day', today()->dayOfWeekIso)->orderBy('period')->get()
             : collect();
         $periodStatus = PeriodAttendance::where('student_id', $student->id)->where('date', $today)->get()
             ->keyBy(fn ($p) => $p->course_id.'-'.$p->period);
