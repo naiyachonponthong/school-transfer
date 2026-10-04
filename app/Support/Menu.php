@@ -138,9 +138,11 @@ class Menu
             $items[] = self::item('leave', 'ส่งใบลา', 'bi-envelope-paper', route('parent.leave'), 'primary', 0, ['parent.leave']);
             $items[] = self::item('homework', 'การบ้าน', 'bi-journal-text', route('parent.homework'), 'primary', 0, ['parent.homework']);
             $items[] = self::item('chat', 'ข้อความ', 'bi-chat-dots', route('chat.index'), 'primary', Conversation::unreadTotal($user), ['chat.*']);
+            $items[] = self::item('consents', 'ขออนุญาต', 'bi-envelope-check', route('parent.consents'), 'primary', 0, ['parent.consents']);
             $items[] = self::item('feed', 'ฟีดข่าว', 'bi-newspaper', route('feed.index'), 'primary', 0, ['feed.*']);
             $items[] = self::item('announcements', 'ประกาศ', 'bi-megaphone', route('announcements.index'), 'primary', 0, ['announcements.*']);
             $items[] = self::manualItem();
+            $items[] = self::item('menu', 'ทั้งหมด', 'bi-grid-3x3-gap', route('menu'), 'primary', 0, ['menu']);
 
             return $items;
         }
@@ -149,7 +151,8 @@ class Menu
 
             return array_merge(
                 [self::item('home', 'หน้าหลัก', 'bi-house', route('student.home'), 'primary', 0, ['student.home'])],
-                collect(['homework', 'grades', 'timetable', 'attendance', 'portfolio', 'calendar', 'feed', 'announcements', 'manual'])->map(fn ($k) => $all[$k])->all(),
+                collect(['homework', 'grades', 'timetable', 'attendance', 'consents', 'portfolio', 'calendar', 'feed', 'announcements', 'manual'])->map(fn ($k) => $all[$k])->all(),
+                [self::item('menu', 'ทั้งหมด', 'bi-grid-3x3-gap', route('menu'), 'primary', 0, ['menu'])],
             );
         }
 
