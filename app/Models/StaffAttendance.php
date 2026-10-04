@@ -15,7 +15,7 @@ class StaffAttendance extends Model
         'duty' => ['ไปราชการ', 'purple'],
     ];
 
-    protected $fillable = ['user_id', 'date', 'check_in', 'check_out', 'status', 'note', 'lat', 'lng', 'distance_m'];
+    protected $fillable = ['user_id', 'date', 'check_in', 'check_out', 'status', 'note', 'source', 'lat', 'lng', 'distance_m'];
 
     protected function casts(): array
     {

@@ -392,6 +392,7 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
             Route::post('/gate/devices', [\App\Http\Controllers\GateDeviceController::class, 'store'])->name('gate.devices.store');
             Route::post('/gate/devices-consent', [\App\Http\Controllers\GateDeviceController::class, 'consent'])->name('gate.devices.consent');
             Route::get('/gate/devices-faces', [\App\Http\Controllers\GateDeviceController::class, 'faces'])->name('gate.devices.faces');
+            Route::post('/gate/devices-staff-consent', [\App\Http\Controllers\GateDeviceController::class, 'staffConsent'])->name('gate.devices.staff-consent');
             Route::put('/gate/devices/{device}', [\App\Http\Controllers\GateDeviceController::class, 'update'])->name('gate.devices.update');
             Route::delete('/gate/devices/{device}', [\App\Http\Controllers\GateDeviceController::class, 'destroy'])->name('gate.devices.destroy');
             Route::post('/gate/devices/{device}/rotate', [\App\Http\Controllers\GateDeviceController::class, 'rotate'])->name('gate.devices.rotate');

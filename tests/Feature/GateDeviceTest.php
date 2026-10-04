@@ -7,8 +7,10 @@ use App\Models\ConsentForm;
 use App\Models\ConsentResponse;
 use App\Models\GateDevice;
 use App\Models\GateEvent;
+use App\Models\StaffAttendance;
 use App\Models\Student;
 use App\Models\User;
+use App\Support\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -199,5 +201,125 @@ class GateDeviceTest extends TestCase
         $zip->close();
 
         $this->actingAs(User::where('role', 'teacher')->first())->get('/gate/devices-faces')->assertForbidden();
+    }
+
+    private function teacher(): User
+    {
+        $t = User::where('username', 'teacher')->first();
+        StaffAttendance::where('user_id', $t->id)->delete();
+
+        return $t;
+    }
+
+    private function staffRecord(User $u): ?StaffAttendance
+    {
+        return StaffAttendance::where('user_id', $u->id)->where('date', today()->toDateString())->first();
+    }
+
+    public function test_teacher_scans_first_in_then_out_on_an_auto_device(): void
+    {
+        $d = $this->device('ประตูเดียว');
+        $t = $this->teacher();
+
+        $this->travelTo(today()->setTime(7, 35));
+        $this->postJson("/gate/hook/{$d->token}", ['code' => $t->username])->assertOk()->assertJsonPath('result', 'present');
+        // เครื่องอ่านหน้าเดิมซ้ำภายใน 5 นาที ไม่นับ
+        $this->travelTo(today()->setTime(7, 37));
+        $this->postJson("/gate/hook/{$d->token}", ['code' => $t->username])->assertJsonPath('result', 'repeat');
+        $this->assertNull($this->staffRecord($t)->check_out);
+
+        // ออกไปตอนเที่ยงแล้วกลับ ออกอีกครั้งตอนเย็น: ครั้งล่าสุดเป็นเวลาออก
+        $this->travelTo(today()->setTime(12, 5));
+        $this->postJson("/gate/hook/{$d->token}", ['code' => $t->username])->assertJsonPath('result', 'out');
+        $this->travelTo(today()->setTime(16, 40));
+        $this->postJson("/gate/hook/{$d->token}", ['code' => $t->username])->assertJsonPath('result', 'out');
+
+        $rec = $this->staffRecord($t);
+        $this->assertSame(['07:35:00', '16:40:00', 'present', 'gate'], [$rec->check_in, $rec->check_out, $rec->status, $rec->source]);
+        $this->assertSame(4, GateEvent::where('user_id', $t->id)->count());
+        $this->assertSame(0, Attendance::where('source', 'gate')->where('date', today()->toDateString())->count());
+
+        $this->actingAs($this->admin())->get('/gate/devices')->assertOk()->assertSee($t->name)->assertSee('ครู/บุคลากร');
+        $this->actingAs($this->admin())->get('/staff-attendance')->assertOk()->assertSee('สแกนที่ประตู');
+    }
+
+    public function test_teacher_late_uses_the_staff_late_time_and_fixed_direction_devices(): void
+    {
+        Settings::set(['staff_late_time' => '07:45', 'late_time' => '08:30']);
+        $in = $this->device('ขาเข้า', 'in');
+        $out = $this->device('ขาออก', 'out');
+        $t = $this->teacher();
+
+        $this->travelTo(today()->setTime(8, 0));
+        $this->postJson("/gate/hook/{$in->token}", ['code' => $t->username])->assertJsonPath('result', 'late');
+        $this->travelTo(today()->setTime(10, 0));
+        $this->postJson("/gate/hook/{$in->token}", ['code' => $t->username])->assertJsonPath('result', 'repeat');
+        $this->postJson("/gate/hook/{$out->token}", ['code' => $t->username])->assertJsonPath('result', 'out');
+
+        $rec = $this->staffRecord($t);
+        $this->assertSame(['08:00:00', '10:00:00', 'late'], [$rec->check_in, $rec->check_out, $rec->status]);
+    }
+
+    public function test_gate_scan_keeps_a_mobile_check_in_and_a_leave_status(): void
+    {
+        $d = $this->device('ประตู');
+        $t = $this->teacher();
+        $this->travelTo(today()->setTime(7, 20));
+        $this->actingAs($t)->post('/checkin', ['action' => 'in'])->assertRedirect();
+        auth()->logout();
+
+        // ลงเวลาจากมือถือไปแล้ว: สแกนที่ประตูไม่ทับเวลาเข้า (นับเป็นขาออกเมื่อเลย 5 นาที)
+        $this->travelTo(today()->setTime(7, 22));
+        $this->postJson("/gate/hook/{$d->token}", ['code' => $t->username])->assertJsonPath('result', 'repeat');
+        $this->assertSame('07:20:00', $this->staffRecord($t)->check_in);
+        $this->assertNull($this->staffRecord($t)->source);
+
+        // วันที่บันทึกลาไว้: เก็บเวลาแต่ไม่เปลี่ยนสถานะ
+        $other = User::where('role', 'teacher')->where('id', '!=', $t->id)->where('is_active', true)->first();
+        StaffAttendance::where('user_id', $other->id)->delete();
+        StaffAttendance::create(['user_id' => $other->id, 'date' => today()->toDateString(), 'status' => 'leave']);
+        $this->postJson("/gate/hook/{$d->token}", ['code' => $other->username])->assertOk();
+        $rec = $this->staffRecord($other);
+        $this->assertSame(['leave', '07:22:00'], [$rec->status, $rec->check_in]);
+    }
+
+    public function test_parent_and_inactive_accounts_are_not_treated_as_staff(): void
+    {
+        $d = $this->device('ประตู');
+        $parent = User::where('role', 'parent')->first();
+        $this->postJson("/gate/hook/{$d->token}", ['code' => $parent->username])->assertJsonPath('result', 'unknown');
+
+        $t = $this->teacher();
+        $t->update(['is_active' => false]);
+        $this->postJson("/gate/hook/{$d->token}", ['code' => $t->username])->assertJsonPath('result', 'unknown');
+        $this->assertSame(0, StaffAttendance::where('date', today()->toDateString())->whereIn('user_id', [$parent->id, $t->id])->count());
+    }
+
+    public function test_staff_face_photos_are_exported_only_after_consent_is_recorded(): void
+    {
+        Storage::fake('public');
+        $t = $this->teacher();
+        $other = User::where('role', 'teacher')->where('id', '!=', $t->id)->where('is_active', true)->first();
+        foreach ([$t, $other] as $u) {
+            Storage::disk('public')->put("avatars/{$u->id}.png", UploadedFile::fake()->image('a.png', 400, 500)->getContent());
+            $u->update(['avatar' => "avatars/{$u->id}.png"]);
+        }
+
+        $this->actingAs($this->admin())->get('/gate/devices-faces')->assertRedirect()->assertSessionHas('warning');
+        $this->actingAs($this->admin())->post('/gate/devices-staff-consent', ['staff' => [$t->id]])->assertRedirect();
+        $this->assertNotNull($t->fresh()->face_consent_at);
+        $this->assertNull($other->fresh()->face_consent_at);
+
+        $response = $this->actingAs($this->admin())->get('/gate/devices-faces')->assertOk();
+        $zip = new \ZipArchive;
+        $this->assertTrue($zip->open($response->baseResponse->getFile()->getPathname()));
+        $this->assertNotFalse($zip->locateName("staff/{$t->username}.jpg"));
+        $this->assertFalse($zip->locateName("staff/{$other->username}.jpg"));
+        $this->assertStringContainsString($t->username, $zip->getFromName('staff.csv'));
+        $zip->close();
+
+        // เอาติ๊กออก = ถอนความยินยอม
+        $this->actingAs($this->admin())->post('/gate/devices-staff-consent', [])->assertRedirect();
+        $this->assertNull($t->fresh()->face_consent_at);
     }
 }

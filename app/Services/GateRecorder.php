@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\Attendance;
+use App\Models\StaffAttendance;
 use App\Models\Student;
+use App\Models\User;
 use App\Support\Settings;
 use Illuminate\Support\Carbon;
 
@@ -66,5 +68,56 @@ class GateRecorder
         }
 
         return $done('out', 'เดินทางกลับบ้านปลอดภัย');
+    }
+
+    /** สแกนซ้ำภายในกี่นาทีไม่นับ (เครื่องอ่านหน้าเดิมสองรอบ) */
+    public const STAFF_REPEAT_MINUTES = 5;
+
+    /**
+     * ลงเวลาทำงานของครู/บุคลากรจากการสแกนที่ประตู ลงตารางเดียวกับที่ครูกดลงเวลาเองจากมือถือ
+     * ครั้งแรกของวัน = เข้า · ครั้งถัดไป = ออก (ครั้งล่าสุดเป็นเวลาออก) เว้นแต่ช่องทางนั้นกำหนดทิศทางไว้ตายตัว
+     *
+     * @param  string|null  $mode  in | out | null (ตามลำดับการสแกน)
+     * @return array{kind: string, attendance: StaffAttendance}  kind: present | late | out | repeat
+     */
+    public static function recordStaff(User $user, ?string $mode = null, ?Carbon $at = null): array
+    {
+        $at ??= now();
+        $time = $at->format('H:i:s');
+        $rec = StaffAttendance::firstOrNew(['user_id' => $user->id, 'date' => $at->toDateString()]);
+        $done = fn (string $kind) => ['kind' => $kind, 'attendance' => $rec];
+        $recent = fn (?string $prev) => $prev !== null
+            && abs($at->diffInSeconds($at->copy()->setTimeFromTimeString($prev))) < self::STAFF_REPEAT_MINUTES * 60;
+        $mode = in_array($mode, ['in', 'out'], true) ? $mode : ($rec->check_in ? 'out' : 'in');
+
+        if ($mode === 'in') {
+            if ($rec->check_in) {
+                return $done('repeat');
+            }
+            $late = $at->format('H:i') > Settings::get('staff_late_time', '08:00');
+            $rec->check_in = $time;
+            $rec->source = 'gate';
+            // วันที่บันทึกลา/ไปราชการไว้แล้ว เก็บเวลาที่สแกนแต่ไม่เปลี่ยนสถานะ
+            if (! in_array($rec->status, ['leave', 'duty'], true)) {
+                $rec->status = $late ? 'late' : 'present';
+            }
+            $rec->save();
+
+            return $done($late ? 'late' : 'present');
+        }
+
+        // ขาออก: ครั้งล่าสุดเป็นเวลาออก
+        if ($recent($rec->check_out) || ($rec->check_out === null && $recent($rec->check_in))) {
+            return $done('repeat');
+        }
+        if (! $rec->exists) {
+            $rec->status = 'present';
+            $rec->source = 'gate';
+        }
+        $rec->check_in ??= $time; // เหมือนการลงเวลากลับจากมือถือเมื่อไม่ได้ลงเวลาเข้า
+        $rec->check_out = $time;
+        $rec->save();
+
+        return $done('out');
     }
 }

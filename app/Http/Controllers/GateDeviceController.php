@@ -7,6 +7,7 @@ use App\Models\ConsentResponse;
 use App\Models\GateDevice;
 use App\Models\GateEvent;
 use App\Models\Student;
+use App\Models\User;
 use App\Services\GateRecorder;
 use App\Support\Audit;
 use App\Support\Settings;
@@ -20,6 +21,7 @@ use Illuminate\Validation\Rule;
  * เครื่องสแกนใบหน้า/บัตรที่ประตู: จัดการเครื่อง (ได้หลายเครื่อง) และรับเหตุการณ์ที่เครื่องส่งเข้ามา
  *
  * เครื่องระบุตัวนักเรียนเองแล้วส่ง "รหัสนักเรียน" มาให้ ระบบบันทึกเข้า-ออกผ่าน GateRecorder เหมือนการสแกน QR
+ * ถ้ารหัสเป็นชื่อผู้ใช้ของครู/บุคลากร จะลงเป็นเวลาทำงานครูแทน
  * รูปแบบที่รับ: JSON ทั่วไป {code, time?, mode?} หรือเหตุการณ์ AccessControllerEvent ของ Hikvision (ISAPI HTTP listening)
  */
 class GateDeviceController extends Controller
@@ -31,8 +33,9 @@ class GateDeviceController extends Controller
         return view('gate.devices', [
             'devices' => GateDevice::withCount(['events as today_count' => fn ($q) => $q->where('occurred_at', '>=', $today)->whereIn('result', ['present', 'late', 'out'])])
                 ->orderBy('name')->get(),
-            'events' => GateEvent::with(['device', 'student.classroom'])->latest('occurred_at')->limit(40)->get(),
+            'events' => GateEvent::with(['device', 'student.classroom', 'user'])->latest('occurred_at')->limit(40)->get(),
             'faces' => $this->faceStatus(),
+            'staff' => $this->staffStatus(),
             'consentForms' => ConsentForm::latest()->get(['id', 'title']),
             'unknownToday' => GateEvent::where('result', 'unknown')->where('occurred_at', '>=', $today)->count(),
         ]);
@@ -85,12 +88,12 @@ class GateDeviceController extends Controller
     /** ส่งเหตุการณ์จำลอง (ทดสอบโดยไม่ต้องมีเครื่องจริง) ผ่านเส้นทางเดียวกับเครื่องจริง */
     public function simulate(Request $request, GateDevice $device)
     {
-        $data = $request->validate(['code' => ['required', 'string', 'max:60']], [], ['code' => 'รหัสนักเรียน']);
+        $data = $request->validate(['code' => ['required', 'string', 'max:60']], [], ['code' => 'รหัส']);
         $event = $this->handle($device, ['code' => $data['code']]);
         [$label] = GateEvent::RESULTS[$event->result];
 
         return back()->with($event->result === 'unknown' ? 'warning' : 'success',
-            "ทดสอบ {$device->name}: {$label}".($event->student ? ' · '.$event->student->fullName() : " · รหัส {$data['code']}"));
+            "ทดสอบ {$device->name}: {$label}".' · '.($event->student?->fullName() ?? ($event->user ? $event->user->name.' (ครู/บุคลากร)' : "รหัส {$data['code']}")));
     }
 
     /* ---------------- รูปใบหน้าสำหรับลงทะเบียนในเครื่อง ---------------- */
@@ -119,15 +122,43 @@ class GateDeviceController extends Controller
         return ['form' => $form, 'ready' => $ready->values(), 'noPhoto' => $noPhoto->values(), 'total' => Student::active()->count()];
     }
 
+    /** ผู้ดูแลบันทึกว่าบุคลากรคนใดยินยอมให้ใช้ใบหน้าแล้ว (โรงเรียนเก็บเอกสารยินยอมเอง) */
+    public function staffConsent(Request $request)
+    {
+        $ids = collect($request->input('staff', []))->map(fn ($v) => (int) $v)->all();
+        $staff = User::whereIn('role', ['admin', 'teacher'])->where('is_active', true);
+        (clone $staff)->whereIn('id', $ids)->whereNull('face_consent_at')->update(['face_consent_at' => now()]);
+        (clone $staff)->whereNotIn('id', $ids)->whereNotNull('face_consent_at')->update(['face_consent_at' => null]);
+        Audit::log('setting.update', null, 'บันทึกความยินยอมใช้ใบหน้าของบุคลากร '.count($ids).' คน');
+
+        return back()->with('success', 'บันทึกความยินยอมของบุคลากรแล้ว');
+    }
+
+    /**
+     * บุคลากร: ทั้งหมด (สำหรับติ๊กความยินยอม) · ยินยอมและมีรูป · ยินยอมแต่ไม่มีรูป · ชื่อผู้ใช้ที่ซ้ำกับรหัสนักเรียน
+     *
+     * @return array{all: \Illuminate\Support\Collection, ready: \Illuminate\Support\Collection, noPhoto: \Illuminate\Support\Collection, clashes: \Illuminate\Support\Collection}
+     */
+    private function staffStatus(): array
+    {
+        $all = User::whereIn('role', ['admin', 'teacher'])->where('is_active', true)->orderBy('name')->get();
+        [$ready, $noPhoto] = $all->whereNotNull('face_consent_at')
+            ->partition(fn (User $u) => $u->avatar && Storage::disk('public')->exists($u->avatar));
+        $clashes = $all->whereIn('username', Student::whereIn('student_code', $all->pluck('username'))->pluck('student_code'));
+
+        return ['all' => $all, 'ready' => $ready->values(), 'noPhoto' => $noPhoto->values(), 'clashes' => $clashes->values()];
+    }
+
     /** ไฟล์ zip รูปนักเรียน (ตั้งชื่อตามรหัสนักเรียน) + รายชื่อ สำหรับนำเข้าเครื่องสแกนผ่านโปรแกรมของผู้ผลิต */
     public function faces()
     {
         $status = $this->faceStatus();
-        if (! $status['form']) {
+        $staff = $this->staffStatus()['ready'];
+        if (! $status['form'] && $staff->isEmpty()) {
             return back()->with('warning', 'เลือกหนังสือยินยอมสำหรับการสแกนใบหน้าก่อน จึงจะส่งออกรูปได้');
         }
-        if ($status['ready']->isEmpty()) {
-            return back()->with('warning', 'ยังไม่มีนักเรียนที่ผู้ปกครองยินยอมและมีรูปในระบบ');
+        if ($status['ready']->isEmpty() && $staff->isEmpty()) {
+            return back()->with('warning', 'ยังไม่มีนักเรียนหรือบุคลากรที่ยินยอมและมีรูปในระบบ');
         }
         if (! class_exists(\ZipArchive::class)) {
             return back()->with('warning', 'เซิร์ฟเวอร์ไม่มีส่วนเสริม zip ของ PHP จึงสร้างไฟล์ไม่ได้');
@@ -149,18 +180,29 @@ class GateDeviceController extends Controller
         }
         $csv = "\u{FEFF}".implode("\r\n", array_map(fn (array $r) => implode(',', array_map(fn ($v) => '"'.str_replace('"', '""', (string) $v).'"', $r)), $rows))."\r\n";
         $zip->addFromString('students.csv', $csv);
+        if ($staff->isNotEmpty()) {
+            $rows = [['employee_no', 'name', 'position', 'photo']];
+            foreach ($staff as $u) {
+                [$bytes, $ext] = self::facePhoto(Storage::disk('public')->get($u->avatar), pathinfo($u->avatar, PATHINFO_EXTENSION));
+                $name = $u->username.'.'.$ext;
+                $zip->addFromString('staff/'.$name, $bytes);
+                $rows[] = [$u->username, $u->name, $u->position, $name];
+            }
+            $zip->addFromString('staff.csv', "\u{FEFF}".implode("\r\n", array_map(fn (array $r) => implode(',', array_map(fn ($v) => '"'.str_replace('"', '""', (string) $v).'"', $r)), $rows))."\r\n");
+        }
         $zip->addFromString('README.txt', implode("\r\n", [
-            'รูปใบหน้านักเรียนสำหรับลงทะเบียนในเครื่องสแกน',
-            'ส่งออกเมื่อ '.now()->format('Y-m-d H:i').' จำนวน '.$status['ready']->count().' คน (เฉพาะนักเรียนที่ผู้ปกครองยินยอมและมีรูปในระบบ)',
+            'รูปใบหน้าสำหรับลงทะเบียนในเครื่องสแกน',
+            'ส่งออกเมื่อ '.now()->format('Y-m-d H:i').' นักเรียน '.$status['ready']->count().' คน บุคลากร '.$staff->count().' คน (เฉพาะผู้ที่ยินยอมและมีรูปในระบบ)',
             '',
             '- photos/  รูปของนักเรียนแต่ละคน ชื่อไฟล์ = รหัสนักเรียน',
             '- students.csv  รายชื่อ: employee_no (รหัสนักเรียน), ชื่อ, ห้อง, เลขที่, ชื่อไฟล์รูป',
+            '- staff/ และ staff.csv  ครูและบุคลากร (ถ้ามี) ชื่อไฟล์และ employee_no = ชื่อผู้ใช้',
             '',
             'ตอนเพิ่มบุคคลในเครื่อง/โปรแกรมของผู้ผลิต ให้ใช้รหัสบุคคล (Employee No.) = employee_no เสมอ',
             'ไฟล์นี้เป็นข้อมูลส่วนบุคคล ลบทิ้งเมื่อนำเข้าเครื่องเสร็จแล้ว',
         ])."\r\n");
         $zip->close();
-        Audit::log('setting.update', null, 'ส่งออกรูปใบหน้านักเรียนสำหรับเครื่องสแกน '.$status['ready']->count().' คน');
+        Audit::log('setting.update', null, 'ส่งออกรูปใบหน้าสำหรับเครื่องสแกน นักเรียน '.$status['ready']->count().' คน บุคลากร '.$staff->count().' คน');
 
         return response()->download($file, 'gate-faces-'.now()->format('Ymd-Hi').'.zip')->deleteFileAfterSend();
     }
@@ -236,14 +278,22 @@ class GateDeviceController extends Controller
         $student = Student::with('classroom')->active()
             ->where(fn ($q) => $q->where('student_code', $code)->orWhere('qr_token', $code))->first();
 
-        if (! $student) {
-            return $device->events()->create(['code' => $code, 'result' => 'unknown', 'occurred_at' => $at, 'payload' => self::trim($payload)]);
+        $mode = $device->mode === 'auto' ? (in_array($payload['mode'] ?? null, ['in', 'out'], true) ? $payload['mode'] : null) : $device->mode;
+        if ($student) {
+            $result = GateRecorder::record($student, $mode, $device->created_by, $at);
+
+            return $device->events()->create(['student_id' => $student->id, 'code' => $code, 'result' => $result['kind'], 'occurred_at' => $at]);
         }
 
-        $mode = $device->mode === 'auto' ? (in_array($payload['mode'] ?? null, ['in', 'out'], true) ? $payload['mode'] : null) : $device->mode;
-        $result = GateRecorder::record($student, $mode, $device->created_by, $at);
+        // ไม่ใช่นักเรียน: ชื่อผู้ใช้ของครู/บุคลากร = ลงเวลาทำงาน
+        $staff = User::whereIn('role', ['admin', 'teacher'])->where('is_active', true)->where('username', $code)->first();
+        if ($staff) {
+            $result = GateRecorder::recordStaff($staff, $mode, $at);
 
-        return $device->events()->create(['student_id' => $student->id, 'code' => $code, 'result' => $result['kind'], 'occurred_at' => $at]);
+            return $device->events()->create(['user_id' => $staff->id, 'code' => $code, 'result' => $result['kind'], 'occurred_at' => $at]);
+        }
+
+        return $device->events()->create(['code' => $code, 'result' => 'unknown', 'occurred_at' => $at, 'payload' => self::trim($payload)]);
     }
 
     /** เวลาจากเครื่อง: ใช้เมื่ออ่านได้และห่างจากเวลาของระบบไม่เกิน 1 ชั่วโมง (นาฬิกาเครื่องเพี้ยนบ่อย) */

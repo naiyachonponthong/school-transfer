@@ -10,13 +10,13 @@ class GateEvent extends Model
 {
     public const RESULTS = [
         'present' => ['เข้า', 'success'], 'late' => ['เข้า (สาย)', 'warning'], 'out' => ['ออก', 'info'],
-        'repeat' => ['สแกนซ้ำ', 'secondary'], 'unknown' => ['ไม่พบนักเรียน', 'danger'],
+        'repeat' => ['สแกนซ้ำ', 'secondary'], 'unknown' => ['ไม่พบรหัสนี้', 'danger'],
     ];
 
     /** เก็บประวัติเหตุการณ์ไว้กี่วัน (ข้อมูลการมาเรียนอยู่ในตารางการมาเรียน ไม่ถูกลบ) */
     public const KEEP_DAYS = 90;
 
-    protected $fillable = ['gate_device_id', 'student_id', 'code', 'result', 'occurred_at', 'payload'];
+    protected $fillable = ['gate_device_id', 'student_id', 'user_id', 'code', 'result', 'occurred_at', 'payload'];
 
     protected function casts(): array
     {
@@ -31,5 +31,11 @@ class GateEvent extends Model
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class);
+    }
+
+    /** ครู/บุคลากร เมื่อรหัสที่สแกนเป็นของบุคลากร */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }

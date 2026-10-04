@@ -27,7 +27,7 @@
                 <tr>
                     <td class="fw-semibold">{{ $s->name }}</td>
                     <td class="small text-muted">{{ $s->position ?: $s->roleLabel() }}</td>
-                    <td>{{ $r?->check_in ? substr($r->check_in, 0, 5) : '-' }}</td>
+                    <td>{{ $r?->check_in ? substr($r->check_in, 0, 5) : '-' }}@if ($r?->source === 'gate') <i class="bi bi-person-bounding-box text-muted" title="สแกนที่ประตู"></i>@endif</td>
                     <td>{{ $r?->check_out ? substr($r->check_out, 0, 5) : '-' }}</td>
                     <td>
                         @if ($r)
