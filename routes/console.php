@@ -26,6 +26,8 @@ Schedule::command('attendance:remind-unchecked')->weekdays()->at('09:00');
 Schedule::command('fees:remind')->dailyAt('10:00');
 Schedule::command('library:remind-overdue')->mondays()->at('10:30');
 Schedule::command('staff:license-remind')->dailyAt('08:30');
+// โหมดทดลองใช้: คืนข้อมูลเป็นต้นแบบทุกคืน (ทำเฉพาะเมื่อเปิดไว้ในหน้าตั้งค่า)
+Schedule::command('demo:reset --scheduled')->dailyAt('03:30')->withoutOverlapping();
 
 // ส่งข้อความ LINE ที่ค้างในคิว (งานจำนวนมาก/การส่งซ้ำ) — ถ้ารัน `queue:work` ค้างไว้อยู่แล้ว บรรทัดนี้ไม่มีผลเสีย
 Schedule::command('queue:work --stop-when-empty --tries=3 --max-time=50')->everyMinute()->withoutOverlapping(5);

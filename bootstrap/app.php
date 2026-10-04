@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'privacy.accepted' => \App\Http\Middleware\EnsurePrivacyAccepted::class,
         ]);
         $middleware->appendToGroup('web', \App\Http\Middleware\EnsurePasswordChanged::class);
+        $middleware->appendToGroup('web', \App\Http\Middleware\DemoRestrictions::class);
         $middleware->validateCsrfTokens(except: ['line/webhook']);
         $middleware->redirectGuestsTo(fn () => route('login'));
         $middleware->redirectUsersTo(fn () => route('home'));

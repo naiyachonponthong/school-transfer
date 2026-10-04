@@ -90,6 +90,8 @@ Route::post('/apply/slip', [ApplyController::class, 'slip'])->name('apply.slip')
 Route::get('/apply/print/{doc}', [ApplyController::class, 'print'])->name('apply.print');
 Route::get('/apply/files/{question}', [ApplyController::class, 'file'])->name('apply.file');
 Route::post('/line/webhook', [LineController::class, 'webhook'])->name('line.webhook');
+// โหมดทดลองใช้: เข้าระบบตามบทบาทโดยไม่ใช้รหัสผ่าน (เปิด/ปิดที่หน้าตั้งค่า)
+Route::post('/demo/{role}', [\App\Http\Controllers\DemoController::class, 'login'])->name('demo.login')->middleware(['guest', 'throttle:30,1']);
 // เข้าสู่ระบบด้วย LINE (และเชื่อมบัญชีเมื่อเข้าสู่ระบบอยู่แล้ว)
 Route::get('/auth/line', [\App\Http\Controllers\Auth\LineLoginController::class, 'redirect'])->name('line.login')->middleware('throttle:20,1');
 Route::get('/auth/line/callback', [\App\Http\Controllers\Auth\LineLoginController::class, 'callback'])->name('line.callback')->middleware('throttle:20,1');
@@ -476,6 +478,9 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
 
         Route::get('/settings', [SettingController::class, 'edit'])->name('settings')->middleware('permission:settings.manage');
         Route::post('/settings', [SettingController::class, 'update'])->name('settings.update')->middleware('permission:settings.manage');
+        Route::post('/settings/demo', [\App\Http\Controllers\DemoController::class, 'settings'])->name('demo.settings')->middleware('permission:settings.manage');
+        Route::post('/settings/demo/snapshot', [\App\Http\Controllers\DemoController::class, 'snapshot'])->name('demo.snapshot')->middleware('permission:settings.manage');
+        Route::post('/settings/demo/reset', [\App\Http\Controllers\DemoController::class, 'reset'])->name('demo.reset')->middleware('permission:settings.manage');
         Route::post('/settings/rules', [SettingController::class, 'storeRule'])->name('settings.rules.store')->middleware('permission:settings.manage');
         Route::put('/settings/rules/{rule}', [SettingController::class, 'updateRule'])->name('settings.rules.update')->middleware('permission:settings.manage');
         Route::delete('/settings/rules/{rule}', [SettingController::class, 'destroyRule'])->name('settings.rules.destroy')->middleware('permission:settings.manage');

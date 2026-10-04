@@ -13,7 +13,7 @@ class EnsurePasswordChanged
     public function handle(Request $request, Closure $next)
     {
         $user = $request->user();
-        if ($user?->must_change_password && ! in_array($request->route()?->getName(), self::ALLOWED, true)) {
+        if ($user?->must_change_password && ! session('demo_role') && ! in_array($request->route()?->getName(), self::ALLOWED, true)) {
             return $request->expectsJson()
                 ? response()->json(['message' => 'กรุณาเปลี่ยนรหัสผ่านก่อนใช้งาน'], 423)
                 : redirect()->route('password.change');

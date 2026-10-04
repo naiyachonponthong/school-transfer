@@ -86,6 +86,13 @@
 
     <main class="sb-content">
         @include('partials.flash')
+        @if ($demoRole = \App\Support\Demo::role())
+            <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2 py-2 small no-print" role="status">
+                <i class="bi bi-play-circle-fill"></i>
+                <span class="flex-grow-1"><b>โหมดทดลองใช้</b> · บทบาท{{ \App\Support\Demo::ROLES[$demoRole][0] }} · ข้อมูลทั้งหมดเป็นข้อมูลตัวอย่าง{{ \App\Support\Settings::get('demo_reset') === '1' ? ' และถูกคืนค่าทุกคืน' : '' }}{{ $demoRole === 'exec' ? ' · บทบาทนี้ดูได้อย่างเดียว' : '' }}</span>
+                <form method="POST" action="{{ route('logout') }}">@csrf<button class="btn btn-sm btn-light border">ออกจากโหมดทดลอง</button></form>
+            </div>
+        @endif
         @yield('content')
     </main>
 </div>

@@ -44,6 +44,9 @@ class Settings
         'line_login_channel_secret' => '',
         'webpush_public_key' => '',        // กุญแจ VAPID ของแจ้งเตือนบนอุปกรณ์ (สร้างอัตโนมัติ)
         'webpush_private_key' => '',
+        'demo_mode' => '0',                // โหมดทดลองใช้ (App\Support\Demo)
+        'demo_reset' => '0',
+        'demo_user_exec' => '', 'demo_user_teacher' => '', 'demo_user_parent' => '', 'demo_user_student' => '',
         'line_oa_id' => '',          // เช่น @school
         'line_notify_gate' => '1',   // แจ้งผู้ปกครองเมื่อสแกนเข้า/ออก
         'line_notify_absent' => '1', // แจ้งเมื่อขาด/สาย

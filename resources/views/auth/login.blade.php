@@ -71,6 +71,21 @@
             @if (\App\Http\Controllers\Auth\LineLoginController::configured())
                 <a href="{{ route('line.login') }}" class="btn btn-lg w-100 mt-3 text-white" style="background:#06c755"><i class="bi bi-chat-dots-fill"></i> เข้าสู่ระบบด้วย LINE</a>
             @endif
+            @if ($demoRoles = \App\Support\Demo::available())
+                <div class="border rounded-4 p-3 mt-3">
+                    <div class="fw-semibold mb-1"><i class="bi bi-play-circle text-primary"></i> ทดลองใช้งาน</div>
+                    <div class="small text-muted mb-2">กดเข้าได้เลย ไม่ต้องใช้รหัสผ่าน · ข้อมูลทั้งหมดเป็นข้อมูลตัวอย่าง</div>
+                    <div class="row g-2">
+                        @foreach ($demoRoles as $role => [$label, $icon, $hint])
+                            <div class="col-6">
+                                <form method="POST" action="{{ route('demo.login', $role) }}">@csrf
+                                    <button class="btn btn-light border w-100 text-start py-2"><i class="bi {{ $icon }} text-primary"></i> <span class="fw-semibold">{{ $label }}</span><span class="d-block small text-muted">{{ $hint }}</span></button>
+                                </form>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
             <button type="button" class="btn btn-soft w-100 mt-3 d-none" data-install-app><i class="bi bi-download"></i> ติดตั้งแอป</button>
             @if (\App\Support\AdmissionForm::isOpen())
                 <a href="{{ route('apply') }}" class="btn btn-soft w-100 mt-3"><i class="bi bi-person-plus"></i> สมัครเรียนออนไลน์</a>
