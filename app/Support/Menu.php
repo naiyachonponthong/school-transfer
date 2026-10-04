@@ -107,6 +107,7 @@ class Menu
                 self::item('subjects', 'รายวิชา', 'bi-book', route('subjects.index'), 'slate', 0, ['subjects.*']),
                 self::item('terms', 'ปีการศึกษา', 'bi-calendar-range', route('terms.index'), 'slate', 0, ['terms.*']),
                 self::item('staff', 'เวลาทำงานครู', 'bi-person-check', route('staff-attendance.report'), 'slate', 0, ['staff-attendance.*']),
+                self::item('gatedevices', 'เครื่องสแกนที่ประตู', 'bi-person-bounding-box', route('gate.devices'), 'slate', 0, ['gate.devices*']),
                 self::item('backups', 'สำรองข้อมูล', 'bi-archive', route('backups.index'), 'slate', 0, ['backups.*']),
                 self::item('audit', 'ประวัติการแก้ไข', 'bi-clock-history', route('audit.index'), 'slate', 0, ['audit.*']),
                 self::item('settings', 'ตั้งค่า', 'bi-gear', route('settings'), 'slate', 0, ['settings*']),
@@ -118,7 +119,7 @@ class Menu
         $needs = [
             'gate' => 'gate.use', 'cards' => 'gate.use', 'health' => 'health.manage', 'library' => 'library.manage', 'report' => 'reports.view',
             'invoices' => 'finance.view', 'slips' => 'finance.manage', 'fees' => 'finance.manage', 'closing' => 'finance.manage', 'finreports' => 'finance.view', 'admissions' => 'admissions.manage', 'admissionexams' => 'admissions.manage',
-            'line' => 'settings.manage', 'backups' => 'settings.manage', 'settings' => 'settings.manage', 'users' => 'users.manage', 'roles' => 'users.manage',
+            'line' => 'settings.manage', 'backups' => 'settings.manage', 'gatedevices' => 'settings.manage', 'settings' => 'settings.manage', 'users' => 'users.manage', 'roles' => 'users.manage',
             'classrooms' => 'academics.manage', 'approvals' => 'academics.manage', 'substitutions' => 'academics.manage', 'subjects' => 'academics.manage', 'terms' => 'academics.manage', 'staff' => 'staff.manage', 'stafflist' => 'staff.manage', 'audit' => 'audit.view', 'executive' => 'executive.view',
         ];
 

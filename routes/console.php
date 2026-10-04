@@ -29,5 +29,9 @@ Schedule::command('staff:license-remind')->dailyAt('08:30');
 // โหมดทดลองใช้: คืนข้อมูลเป็นต้นแบบทุกคืน (ทำเฉพาะเมื่อเปิดไว้ในหน้าตั้งค่า)
 Schedule::command('demo:reset --scheduled')->dailyAt('03:30')->withoutOverlapping();
 
+// ลบประวัติเหตุการณ์จากเครื่องสแกนที่ประตูที่เก่าเกินกำหนด (ข้อมูลการมาเรียนไม่ถูกลบ)
+Schedule::call(fn () => \App\Models\GateEvent::where('occurred_at', '<', now()->subDays(\App\Models\GateEvent::KEEP_DAYS))->delete())
+    ->dailyAt('03:10')->name('gate-events:prune');
+
 // ส่งข้อความ LINE ที่ค้างในคิว (งานจำนวนมาก/การส่งซ้ำ) — ถ้ารัน `queue:work` ค้างไว้อยู่แล้ว บรรทัดนี้ไม่มีผลเสีย
 Schedule::command('queue:work --stop-when-empty --tries=3 --max-time=50')->everyMinute()->withoutOverlapping(5);

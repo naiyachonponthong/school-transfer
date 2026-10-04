@@ -15,7 +15,7 @@ use Illuminate\Support\Str;
 class DemoRestrictions
 {
     /** route ที่ห้ามทุกแบบ (รวมการเปิดดู) เพราะมีข้อมูลอ่อนไหวหรือเป็นงานของผู้ดูแลระบบ */
-    private const BLOCK_ALWAYS = ['settings', 'settings.*', 'users.*', 'roles.*', 'backups.*', 'audit*', 'students.data-export', 'students.import*', 'demo.settings', 'demo.snapshot', 'demo.reset', 'line.login', 'line.callback'];
+    private const BLOCK_ALWAYS = ['settings', 'settings.*', 'users.*', 'roles.*', 'backups.*', 'gate.devices*', 'audit*', 'students.data-export', 'students.import*', 'demo.settings', 'demo.snapshot', 'demo.reset', 'line.login', 'line.callback'];
 
     /** route ที่ห้ามเมื่อเป็นการบันทึก/แก้ไข */
     private const BLOCK_WRITES = ['profile.*', 'password.*', 'push.*', '*.destroy', '*.undo', 'classrooms.promote*', 'terms.*', 'classrooms.*', 'subjects.*', 'privacy.purge',

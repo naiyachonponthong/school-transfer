@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Attendance;
 use App\Models\Classroom;
 use App\Models\Student;
-use App\Services\Notifier;
+use App\Services\GateRecorder;
 use App\Support\Settings;
 use Illuminate\Http\Request;
 
@@ -42,46 +42,10 @@ class GateController extends Controller
             return response()->json(['ok' => false, 'message' => 'ไม่พบข้อมูลนักเรียน'], 404);
         }
 
-        $today = today()->toDateString();
-        $time = now()->format('H:i:s');
-        $mode = $request->input('mode') ?: (now()->format('H:i') >= Settings::get('gate_checkout_after', '14:00') ? 'out' : 'in');
-        $att = Attendance::firstOrNew(['student_id' => $student->id, 'date' => $today]);
-        $nick = 'น้อง'.($student->nickname ?: $student->first_name);
+        $mode = in_array($request->input('mode'), ['in', 'out'], true) ? $request->input('mode') : null;
+        $result = GateRecorder::record($student, $mode, $request->user()->id);
 
-        if ($mode === 'in') {
-            if ($att->exists && $att->checked_at && in_array($att->status, ['present', 'late'], true)) {
-                return $this->result($student, $att, 'repeat', 'สแกนเข้าไปแล้วเวลา '.substr($att->checked_at, 0, 5).' น.');
-            }
-            $late = now()->format('H:i') > Settings::get('late_time', '08:00');
-            $att->fill([
-                'classroom_id' => $student->classroom_id,
-                'status' => $late ? 'late' : 'present',
-                'checked_at' => $time,
-                'source' => 'gate',
-                'recorded_by' => $request->user()->id,
-            ])->save();
-            if (Settings::get('line_notify_gate')) {
-                Notifier::parents($student, "✅ {$nick} ถึงโรงเรียนแล้ว เวลา ".now()->format('H:i').' น.'.($late ? ' (มาสาย)' : ''));
-            }
-
-            return $this->result($student, $att, $late ? 'late' : 'present', $late ? 'มาสาย' : 'ยินดีต้อนรับ');
-        }
-
-        // ขาออก
-        if (! $att->exists) {
-            // ไม่ได้สแกนเข้า (เช่น ครูเช็คชื่อด้วยมือ) แต่มาเรียน
-            $att->fill(['classroom_id' => $student->classroom_id, 'status' => 'present', 'source' => 'gate', 'recorded_by' => $request->user()->id]);
-        }
-        if ($att->checkout_at) {
-            return $this->result($student, $att, 'repeat', 'สแกนออกไปแล้วเวลา '.substr($att->checkout_at, 0, 5).' น.');
-        }
-        $att->checkout_at = $time;
-        $att->save();
-        if (Settings::get('line_notify_gate')) {
-            Notifier::parents($student, "🏠 {$nick} ออกจากโรงเรียนแล้ว เวลา ".now()->format('H:i').' น.');
-        }
-
-        return $this->result($student, $att, 'out', 'เดินทางกลับบ้านปลอดภัย');
+        return $this->result($student, $result['attendance'], $result['kind'], $result['message']);
     }
 
     private function result(Student $s, Attendance $att, string $kind, string $message)

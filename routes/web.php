@@ -90,6 +90,8 @@ Route::post('/apply/slip', [ApplyController::class, 'slip'])->name('apply.slip')
 Route::get('/apply/print/{doc}', [ApplyController::class, 'print'])->name('apply.print');
 Route::get('/apply/files/{question}', [ApplyController::class, 'file'])->name('apply.file');
 Route::post('/line/webhook', [LineController::class, 'webhook'])->name('line.webhook');
+// เครื่องสแกนใบหน้า/บัตรที่ประตูส่งผลการสแกนเข้ามา (ยืนยันด้วย token ของเครื่องในที่อยู่)
+Route::post('/gate/hook/{token}', [\App\Http\Controllers\GateDeviceController::class, 'hook'])->name('gate.hook')->middleware('throttle:600,1');
 // โหมดทดลองใช้: เข้าระบบตามบทบาทโดยไม่ใช้รหัสผ่าน (เปิด/ปิดที่หน้าตั้งค่า)
 Route::post('/demo/{role}', [\App\Http\Controllers\DemoController::class, 'login'])->name('demo.login')->middleware(['guest', 'throttle:30,1']);
 // เข้าสู่ระบบด้วย LINE (และเชื่อมบัญชีเมื่อเข้าสู่ระบบอยู่แล้ว)
@@ -385,6 +387,14 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
         Route::get('/gate', [GateController::class, 'index'])->name('gate')->middleware('permission:gate.use');
         Route::post('/gate/scan', [GateController::class, 'scan'])->name('gate.scan')->middleware('throttle:240,1')->middleware('permission:gate.use');
         Route::get('/student-cards', [GateController::class, 'cards'])->name('students.cards')->middleware('permission:gate.use');
+        Route::middleware('permission:settings.manage')->group(function () {
+            Route::get('/gate/devices', [\App\Http\Controllers\GateDeviceController::class, 'index'])->name('gate.devices');
+            Route::post('/gate/devices', [\App\Http\Controllers\GateDeviceController::class, 'store'])->name('gate.devices.store');
+            Route::put('/gate/devices/{device}', [\App\Http\Controllers\GateDeviceController::class, 'update'])->name('gate.devices.update');
+            Route::delete('/gate/devices/{device}', [\App\Http\Controllers\GateDeviceController::class, 'destroy'])->name('gate.devices.destroy');
+            Route::post('/gate/devices/{device}/rotate', [\App\Http\Controllers\GateDeviceController::class, 'rotate'])->name('gate.devices.rotate');
+            Route::post('/gate/devices/{device}/simulate', [\App\Http\Controllers\GateDeviceController::class, 'simulate'])->name('gate.devices.simulate');
+        });
 
         // ห้องพยาบาล
         Route::get('/health', [HealthController::class, 'index'])->name('health.index')->middleware('permission:health.manage');
