@@ -10,7 +10,7 @@
 @endphp
 <div class="page-head">
     <div>
-        <h1>สรุปเวลาเรียน · {{ $course->subject->name }}</h1>
+        <h1>สรุปเวลาเรียน · {{ $course->label() }}</h1>
         <div class="sub">{{ $course->subject->code }} · ห้อง {{ $course->classroom->name() }} · {{ $course->term?->label() }} · ครู{{ $course->teacher?->name ?? '-' }}</div>
     </div>
     <div class="actions no-print">

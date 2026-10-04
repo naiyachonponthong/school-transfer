@@ -44,6 +44,8 @@ class Settings
         'line_login_channel_secret' => '',
         'webpush_public_key' => '',        // กุญแจ VAPID ของแจ้งเตือนบนอุปกรณ์ (สร้างอัตโนมัติ)
         'webpush_private_key' => '',
+        'club_signup_from' => '',          // ช่วงที่นักเรียนเลือกชุมนุมเองได้ (App\Models\Club)
+        'club_signup_until' => '',
         'demo_mode' => '0',                // โหมดทดลองใช้ (App\Support\Demo)
         'demo_reset' => '0',
         'demo_user_exec' => '', 'demo_user_teacher' => '', 'demo_user_parent' => '', 'demo_user_student' => '',

@@ -182,6 +182,9 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
     Route::middleware('role:student')->prefix('me')->name('student.')->group(function () {
         Route::get('/', [StudentPortalController::class, 'home'])->name('home');
         Route::get('/info', [StudentPortalController::class, 'info'])->name('info');
+        Route::get('/clubs', [\App\Http\Controllers\ClubController::class, 'studentIndex'])->name('clubs');
+        Route::post('/clubs/{club}', [\App\Http\Controllers\ClubController::class, 'join'])->name('clubs.join')->middleware('throttle:30,1');
+        Route::delete('/clubs', [\App\Http\Controllers\ClubController::class, 'leave'])->name('clubs.leave');
         Route::get('/consents', [ConsentController::class, 'studentIndex'])->name('consents');
         Route::get('/homework', [HomeworkController::class, 'parentIndex'])->name('homework');
         Route::post('/homework/{assignment}', [HomeworkController::class, 'submit'])->name('homework.submit');
@@ -190,6 +193,19 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
     /* ---------------- ครู + ผู้ดูแล ---------------- */
     Route::middleware('role:admin,teacher')->group(function () {
         Route::get('/search', SearchController::class)->name('search');
+
+        // ชุมนุม: ทุกคนดูได้ · ครูที่ปรึกษาจัดการสมาชิกของชุมนุมตัวเอง · ฝ่ายวิชาการตั้งชุมนุมและช่วงเปิดรับ
+        Route::get('/clubs', [\App\Http\Controllers\ClubController::class, 'index'])->name('clubs.index');
+        Route::get('/clubs/{club}', [\App\Http\Controllers\ClubController::class, 'show'])->name('clubs.show');
+        Route::post('/clubs/{club}/members', [\App\Http\Controllers\ClubController::class, 'addMember'])->name('clubs.members.add');
+        Route::delete('/clubs/{club}/members/{student}', [\App\Http\Controllers\ClubController::class, 'removeMember'])->name('clubs.members.remove');
+        Route::middleware('permission:academics.manage')->group(function () {
+            Route::post('/clubs', [\App\Http\Controllers\ClubController::class, 'store'])->name('clubs.store');
+            Route::post('/clubs-window', [\App\Http\Controllers\ClubController::class, 'window'])->name('clubs.window');
+            Route::put('/clubs/{club}', [\App\Http\Controllers\ClubController::class, 'update'])->name('clubs.update');
+            Route::delete('/clubs/{club}', [\App\Http\Controllers\ClubController::class, 'destroy'])->name('clubs.destroy');
+            Route::post('/clubs/{club}/course', [\App\Http\Controllers\ClubController::class, 'createCourse'])->name('clubs.course');
+        });
 
         // เช็คชื่อรายคาบ
         Route::get('/period-attendance', [PeriodAttendanceController::class, 'index'])->name('period-attendance.index');

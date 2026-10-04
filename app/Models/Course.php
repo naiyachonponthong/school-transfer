@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Course extends Model
 {
-    protected $fillable = ['term_id', 'classroom_id', 'subject_id', 'teacher_id', 'locked', 'submitted_at', 'submitted_by', 'approved_at', 'approved_by', 'return_note', 'grade_scale'];
+    protected $fillable = ['term_id', 'classroom_id', 'subject_id', 'teacher_id', 'locked', 'submitted_at', 'submitted_by', 'approved_at', 'approved_by', 'return_note', 'grade_scale', 'variant', 'title'];
 
     protected static function booted(): void
     {
@@ -26,6 +26,12 @@ class Course extends Model
     protected function casts(): array
     {
         return ['locked' => 'boolean', 'submitted_at' => 'datetime', 'approved_at' => 'datetime'];
+    }
+
+    /** ชื่อที่ใช้แสดง: รายวิชาของชุมนุมใช้ชื่อชุมนุม นอกนั้นใช้ชื่อวิชา */
+    public function label(): string
+    {
+        return $this->title ?: $this->subject->name;
     }
 
     public function term(): BelongsTo

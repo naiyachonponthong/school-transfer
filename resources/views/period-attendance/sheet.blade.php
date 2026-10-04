@@ -1,10 +1,10 @@
 @extends('layouts.app')
-@section('title', 'เช็คชื่อ '.$course->subject->name)
+@section('title', 'เช็คชื่อ '.$course->label())
 
 @section('content')
 <div class="page-head">
     <div>
-        <h1>{{ $course->subject->name }} · {{ $course->classroom->name() }}</h1>
+        <h1>{{ $course->label() }} · {{ $course->classroom->name() }}</h1>
         <div class="sub">คาบที่ {{ $period }}{{ $time ? ' ('.$time.')' : '' }} · {{ \App\Support\Thai::fullDate($date) }}</div>
     </div>
     <div class="actions">

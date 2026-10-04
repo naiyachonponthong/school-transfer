@@ -42,7 +42,7 @@
                     <div class="d-flex align-items-start gap-2 mb-2">
                         <div class="stat-icon tint-{{ ['basic' => 'primary', 'extra' => 'info', 'activity' => 'warning'][$c->subject->type] ?? 'primary' }}"><i class="bi bi-book"></i></div>
                         <div class="flex-grow-1 min-w-0">
-                            <div class="fw-bold text-truncate">{{ $c->subject->name }}</div>
+                            <div class="fw-bold text-truncate">{{ $c->label() }}</div>
                             <div class="small text-muted">{{ $c->subject->code }} · {{ $c->subject->credit }} หน่วยกิต</div>
                         </div>
                         <span class="badge bg-dark fs-6">{{ $c->classroom->name() }}</span>

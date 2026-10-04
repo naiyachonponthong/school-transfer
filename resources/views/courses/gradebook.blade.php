@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'คะแนน '.$course->subject->name.' '.$course->classroom->name())
+@section('title', 'คะแนน '.$course->label().' '.$course->classroom->name())
 
 @section('content')
 @php
@@ -10,7 +10,7 @@
 @endphp
 <div class="page-head">
     <div>
-        <h1>{{ $course->subject->name }} <span class="badge bg-dark align-middle">{{ $course->classroom->name() }}</span></h1>
+        <h1>{{ $course->label() }} <span class="badge bg-dark align-middle">{{ $course->classroom->name() }}</span></h1>
         <div class="sub">{{ $course->subject->code }} · {{ $course->term->label() }} · ครู {{ $course->teacher?->name ?? '-' }}</div>
     </div>
     <div class="actions">

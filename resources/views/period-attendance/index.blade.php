@@ -54,7 +54,7 @@
                             <div class="text-muted" style="font-size:.7rem">{{ $times[$slot->period - 1] ?? '' }}</div>
                         </div>
                         <div class="flex-grow-1 min-w-0">
-                            <div class="fw-semibold text-truncate">{{ $slot->course->subject->name }}</div>
+                            <div class="fw-semibold text-truncate">{{ $slot->course->label() }}</div>
                             <div class="small text-muted">{{ $slot->course->subject->code }} · ห้อง {{ $slot->classroom?->name() }}{{ $slot->room_name ? ' · '.$slot->room_name : '' }}</div>
                         </div>
                         @if (isset($done[$key]))
@@ -97,7 +97,7 @@
             @forelse ($courses as $c)
                 <a href="{{ route('period-attendance.report', $c) }}" class="d-flex align-items-center gap-2 px-3 py-2 border-bottom text-decoration-none text-body list-link">
                     <span class="badge bg-dark">{{ $c->classroom->name() }}</span>
-                    <span class="flex-grow-1 text-truncate small">{{ $c->subject->name }}</span>
+                    <span class="flex-grow-1 text-truncate small">{{ $c->label() }}</span>
                     <i class="bi bi-chevron-right text-muted"></i>
                 </a>
             @empty

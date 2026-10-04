@@ -56,7 +56,7 @@ class CourseController extends Controller
         $data = $request->validate([
             'term_id' => ['required', 'exists:terms,id'],
             'classroom_id' => ['required', 'exists:classrooms,id'],
-            'subject_id' => ['required', 'exists:subjects,id', Rule::unique('courses')->where(fn ($q) => $q->where('term_id', $request->term_id)->where('classroom_id', $request->classroom_id))],
+            'subject_id' => ['required', 'exists:subjects,id', Rule::unique('courses')->where(fn ($q) => $q->where('term_id', $request->term_id)->where('classroom_id', $request->classroom_id)->where('variant', ''))],
             'teacher_id' => ['nullable', 'exists:users,id'],
         ], ['subject_id.unique' => 'ห้องนี้มีวิชานี้อยู่แล้วในภาคเรียนนี้']);
 
@@ -82,7 +82,7 @@ class CourseController extends Controller
         foreach ($data['classroom_ids'] as $cid) {
             foreach ($data['subject_ids'] as $sid) {
                 $course = Course::firstOrCreate(
-                    ['term_id' => $data['term_id'], 'classroom_id' => $cid, 'subject_id' => $sid],
+                    ['term_id' => $data['term_id'], 'classroom_id' => $cid, 'subject_id' => $sid, 'variant' => ''],
                     ['teacher_id' => $data['teacher_id'] ?? null]
                 );
                 if ($course->wasRecentlyCreated) {
