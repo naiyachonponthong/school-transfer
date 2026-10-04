@@ -869,3 +869,15 @@ a.card:hover { box-shadow: var(--sb-shadow-lg); }
 .org-box details > summary { cursor: pointer; list-style: none; }
 .org-box details > summary::-webkit-details-marker { display: none; }
 @media print { .org-box { box-shadow: none; break-inside: avoid; } .org-box details > div { display: block; } }
+
+/* ---------- หน้าจอขาย (POS) ---------- */
+.pos-cart { position: sticky; top: 84px; }
+.pos-item img { background: #fff; }
+/* โหมดเต็มจอ: ซ่อนเมนูของระบบทั้งหมด เหลือแต่หน้าจอขาย ปุ่มใหญ่ขึ้นสำหรับจอสัมผัส */
+html.pos-kiosk .sb-rail, html.pos-kiosk .sb-topbar, html.pos-kiosk .sb-demo-bar, html.pos-kiosk .sb-bottom-nav { display: none !important; }
+html.pos-kiosk .sb-main { margin-left: 0; }
+html.pos-kiosk .sb-content { padding: .9rem 1rem; }
+html.pos-kiosk .pos-cart { top: 12px; }
+html.pos-kiosk .pos-item { min-height: 84px; font-size: 1.05rem; }
+html.pos-kiosk .pos-item img { height: 110px !important; }
+html.pos-kiosk #pay { padding-top: 1rem; padding-bottom: 1rem; font-size: 1.35rem; }

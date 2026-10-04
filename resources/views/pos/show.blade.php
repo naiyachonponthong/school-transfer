@@ -1,11 +1,17 @@
 @extends('layouts.app')
 @section('title', 'ขาย · '.$shop->name)
 
+@push('head')
+{{-- โหมดเต็มจอ: ใส่ class ก่อนวาดหน้า เพื่อไม่ให้เมนูกะพริบขึ้นมาก่อน --}}
+<script>try { if (localStorage.getItem('posKiosk') === '1') document.documentElement.classList.add('pos-kiosk'); } catch (e) {}</script>
+@endpush
+
 @section('content')
 <div class="page-head">
     <div><h1>{{ $shop->name }}</h1><div class="sub">วันนี้ขายแล้ว <b id="todayCount">{{ $todayCount }}</b> รายการ · <b id="todayTotal">{{ baht($todayTotal) }}</b> บาท</div></div>
     <div class="actions">
         <button type="button" class="btn btn-light border" id="camBtn"><i class="bi bi-camera"></i> สแกนด้วยกล้อง</button>
+        <button type="button" class="btn btn-light border" id="kioskBtn" aria-pressed="false"><i class="bi bi-arrows-fullscreen"></i> <span>เต็มจอ</span></button>
     </div>
 </div>
 
@@ -66,7 +72,7 @@
     </div>
 
     <div class="col-lg-5">
-        <div class="card" style="position:sticky;top:84px">
+        <div class="card pos-cart">
             <div class="card-header"><i class="bi bi-basket"></i> รายการที่จะขาย</div>
             <div class="card-body">
                 <div id="cart" class="mb-2"><div class="small text-muted">กดสินค้าทางซ้าย หรือใส่จำนวนเงิน</div></div>
@@ -249,6 +255,26 @@
             last = text; lastAt = Date.now(); lookup(text);
         }).catch(() => { say('เปิดกล้องไม่ได้ (ต้องเป็น https และอนุญาตให้ใช้กล้อง)', false); $('cam').classList.add('d-none'); cam = null; });
     });
+
+    // โหมดเต็มจอสำหรับเครื่อง POS/แท็บเล็ต: ซ่อนเมนูของระบบ เหลือแต่หน้าจอขาย (จำค่าไว้ในเครื่องนี้)
+    const kiosk = $('kioskBtn');
+    const paintKiosk = () => {
+        const on = document.documentElement.classList.contains('pos-kiosk');
+        kiosk.setAttribute('aria-pressed', on ? 'true' : 'false');
+        kiosk.querySelector('span').textContent = on ? 'ออกจากเต็มจอ' : 'เต็มจอ';
+        kiosk.querySelector('i').className = on ? 'bi bi-fullscreen-exit' : 'bi bi-arrows-fullscreen';
+    };
+    kiosk.addEventListener('click', () => {
+        const on = document.documentElement.classList.toggle('pos-kiosk');
+        try { localStorage.setItem('posKiosk', on ? '1' : '0'); } catch (e) {}
+        // ขอให้เบราว์เซอร์ซ่อนแถบที่อยู่ด้วย (ต้องมาจากการกดของผู้ใช้ และบางเครื่องไม่รองรับ)
+        try {
+            if (on && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+            if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        } catch (e) {}
+        paintKiosk(); $('scan').focus();
+    });
+    paintKiosk();
 
     render();
 })();
