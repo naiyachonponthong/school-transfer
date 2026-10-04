@@ -12,7 +12,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Survey extends Model
 {
-    public const RESPONDENTS = ['teacher' => 'ครูประเมิน', 'parent' => 'ผู้ปกครองประเมิน', 'both' => 'ครูและผู้ปกครอง'];
+    public const RESPONDENTS = ['teacher' => 'ครูประเมิน', 'parent' => 'ผู้ปกครองประเมิน', 'both' => 'ครูและผู้ปกครอง',
+        'student' => 'นักเรียนประเมินตนเอง', 'all' => 'ครู ผู้ปกครอง และนักเรียน'];
 
     protected $fillable = ['title', 'description', 'respondent', 'scale', 'subscales', 'total_bands', 'is_active'];
 
@@ -33,7 +34,11 @@ class Survey extends Model
 
     public function allows(string $role): bool
     {
-        return $this->respondent === 'both' || $this->respondent === $role;
+        return match ($this->respondent) {
+            'all' => true,
+            'both' => in_array($role, ['teacher', 'parent'], true),
+            default => $this->respondent === $role,
+        };
     }
 
     public function maxValue(): int

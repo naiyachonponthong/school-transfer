@@ -34,13 +34,14 @@
             <thead>
                 <tr><th>เลขที่ · ชื่อ</th>
                     @foreach ($survey->subscales as $sub)<th class="text-center small">{{ $sub['name'] }}</th>@endforeach
-                    <th class="text-center">รวม</th><th>ผู้ปกครอง</th><th></th></tr>
+                    <th class="text-center">รวม</th><th>ผู้ปกครอง</th><th>นักเรียน</th><th></th></tr>
             </thead>
             <tbody>
             @foreach ($students as $s)
                 @php
                     $mine = ($responses[$s->id] ?? collect())->firstWhere('respondent_role', 'teacher');
                     $par = ($responses[$s->id] ?? collect())->firstWhere('respondent_role', 'parent');
+                    $self = ($responses[$s->id] ?? collect())->firstWhere('respondent_role', 'student');
                     $sc = $mine?->scores;
                 @endphp
                 <tr>
@@ -51,6 +52,7 @@
                     @endforeach
                     <td class="text-center">@if($sc && $sc['total'] !== null)<span class="badge bg-{{ $sc['total_band']['color'] ?? 'secondary' }}">{{ $sc['total'] }} {{ $sc['total_band']['label'] ?? '' }}</span>@else - @endif</td>
                     <td class="small">@if($par)<span class="badge bg-{{ $par->scores['total_band']['color'] ?? 'secondary' }}-subtle text-{{ $par->scores['total_band']['color'] ?? 'secondary' }}-emphasis">{{ $par->scores['total'] }} {{ $par->scores['total_band']['label'] ?? '' }}</span>@else<span class="text-muted">-</span>@endif</td>
+                    <td class="small">@if($self)<span class="badge bg-{{ $self->scores['total_band']['color'] ?? 'secondary' }}-subtle text-{{ $self->scores['total_band']['color'] ?? 'secondary' }}-emphasis">{{ $self->scores['total'] }} {{ $self->scores['total_band']['label'] ?? '' }}</span>@else<span class="text-muted">-</span>@endif</td>
                     <td class="text-end">
                         @if ($survey->allows('teacher'))
                             <a href="{{ route('surveys.fill', [$survey, $s]) }}" class="btn btn-sm {{ $mine ? 'btn-light border' : 'btn-primary' }}">{{ $mine ? 'แก้ไข' : 'ประเมิน' }}</a>

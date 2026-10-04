@@ -128,6 +128,21 @@ class EngagementModulesTest extends TestCase
         $child = $this->parent()->children()->first();
         $this->actingAs($this->parent())->post("/surveys/{$survey->id}/students/{$child->id}", ['a' => $answers])->assertRedirect();
         $this->actingAs($this->parent())->get("/surveys/{$survey->id}/students/{$student->id}")->assertForbidden();
+
+        // นักเรียน: ตอบไม่ได้จนกว่าแบบประเมินจะเปิดให้นักเรียนประเมินตนเอง และตอบได้เฉพาะของตัวเอง
+        $me = \App\Models\User::create(['name' => $child->fullName(), 'username' => 'stu-survey', 'password' => 'secret123', 'role' => 'student', 'is_active' => true]);
+        $child->update(['user_id' => $me->id]);
+        $this->actingAs($me)->get("/surveys/{$survey->id}/students/{$child->id}")->assertForbidden();
+        $this->get('/me/info?tab=survey')->assertOk()->assertDontSee('id="p-survey"', false);
+
+        $survey->update(['respondent' => 'all']);
+        $this->get('/me/info?tab=survey')->assertOk()->assertSee('แบบประเมินตนเอง')->assertSee($survey->title);
+        $this->get("/surveys/{$survey->id}/students/{$child->id}")->assertOk()->assertSee('ประเมินตนเอง');
+        $this->post("/surveys/{$survey->id}/students/{$child->id}", ['a' => $answers])->assertRedirect(route('student.info', ['tab' => 'survey']));
+        $this->post("/surveys/{$survey->id}/students/{$student->id}", ['a' => $answers])->assertForbidden();
+        $this->assertTrue(SurveyResponse::where(['survey_id' => $survey->id, 'student_id' => $child->id, 'respondent_role' => 'student', 'user_id' => $me->id])->exists());
+        // ครูเห็นผลที่นักเรียนประเมินตนเองในตารางรายห้อง
+        $this->actingAs(User::where('username', 'admin')->first())->get(route('surveys.classroom', ['survey' => $survey, 'classroom' => $child->classroom_id]))->assertOk()->assertSee('นักเรียน');
     }
 
     public function test_survey_editor_parses_definition_and_rejects_bad_input(): void

@@ -96,6 +96,10 @@ class SurveyController extends Controller
             ['user_id' => $request->user()->id, 'answers' => $answers, 'scores' => $survey->score($answers)]
         );
 
+        if ($request->user()->isStudent()) {
+            return redirect()->route('student.info', ['tab' => 'survey'])->with('success', 'ส่งแบบประเมินแล้ว ขอบคุณครับ');
+        }
+
         return $request->user()->isParent()
             ? redirect()->route('parent.child', ['student' => $student, 'tab' => 'survey'])->with('success', 'ส่งแบบประเมินแล้ว ขอบคุณครับ')
             : redirect()->route('surveys.classroom', ['survey' => $survey, 'classroom' => $student->classroom_id])->with('success', "บันทึกผลของ {$student->fullName()} แล้ว");
@@ -105,7 +109,12 @@ class SurveyController extends Controller
     {
         $user = $request->user();
         abort_unless($survey->is_active, 404);
-        abort_if($user->isStudent(), 403, 'แบบประเมินนี้สำหรับครูและผู้ปกครอง');
+        if ($user->isStudent()) {
+            // นักเรียนประเมินได้เฉพาะตนเอง และเฉพาะแบบที่เปิดให้นักเรียนตอบ
+            abort_unless($survey->allows('student') && $student->user_id === $user->id, 403, 'แบบประเมินนี้สำหรับครูและผู้ปกครอง');
+
+            return 'student';
+        }
         if ($user->isParent()) {
             abort_unless($survey->allows('parent') && $student->isGuardedBy($user), 403);
 

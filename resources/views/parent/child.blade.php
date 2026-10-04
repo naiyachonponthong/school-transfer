@@ -10,8 +10,8 @@
     $prevMonth = $month->copy()->subMonth()->format('Y-m');
     $nextMonth = $month->copy()->addMonth()->format('Y-m');
     $tabs = ['overview' => 'การมาเรียน', 'grades' => 'ผลการเรียน', 'behavior' => 'ความประพฤติ', 'timetable' => 'ตารางเรียน', 'fees' => 'ค่าธรรมเนียม', 'health' => 'สุขภาพ', 'survey' => 'แบบประเมิน'];
-    // นักเรียนดูของตัวเอง: ค่าธรรมเนียมดูได้อย่างเดียว (ผู้ปกครองเป็นผู้ชำระ) แบบประเมินเป็นเรื่องของผู้ปกครอง
-    if ($isStudent ?? false) {
+    // นักเรียนดูของตัวเอง: ค่าธรรมเนียมดูได้อย่างเดียว (ผู้ปกครองเป็นผู้ชำระ) · แบบประเมิน = ฉบับที่นักเรียนประเมินตนเอง
+    if (($isStudent ?? false) && $surveys->isEmpty()) {
         unset($tabs['survey']);
     }
     $tabs['leaves'] = 'ใบลา';
@@ -246,11 +246,11 @@
         </div>
     </div>
 
-    @unless ($isStudent ?? false)
+    @unless (($isStudent ?? false) && $surveys->isEmpty())
 
     <div class="tab-pane fade {{ $tab === 'survey' ? 'show active' : '' }}" id="p-survey">
         <div class="card">
-            <div class="card-header"><i class="bi bi-clipboard-heart"></i> แบบประเมินที่ผู้ปกครองตอบได้</div>
+            <div class="card-header"><i class="bi bi-clipboard-heart"></i> {{ ($isStudent ?? false) ? 'แบบประเมินตนเอง' : 'แบบประเมินที่ผู้ปกครองตอบได้' }}</div>
             @forelse ($surveys as $sv)
                 @php($resp = $surveyResponses[$sv->id] ?? null)
                 <div class="d-flex align-items-center gap-2 px-3 py-3 border-bottom">

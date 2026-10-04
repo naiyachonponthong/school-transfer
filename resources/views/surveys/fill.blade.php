@@ -20,7 +20,7 @@
 <div class="row justify-content-center">
     <div class="col-lg-8">
         <div class="page-head">
-            <div><h1>{{ $survey->title }}</h1><div class="sub">{{ $student->fullName() }} · ห้อง {{ $student->classroom?->name() }} · {{ $term?->label() }} · ผู้ตอบ: {{ $role === 'parent' ? 'ผู้ปกครอง' : 'ครู' }}</div></div>
+            <div><h1>{{ $survey->title }}</h1><div class="sub">{{ $student->fullName() }} · ห้อง {{ $student->classroom?->name() }} · {{ $term?->label() }} · ผู้ตอบ: {{ ['parent' => 'ผู้ปกครอง', 'student' => 'นักเรียน (ประเมินตนเอง)'][$role] ?? 'ครู' }}</div></div>
         </div>
         @if ($survey->description)<div class="alert alert-light border small">{{ $survey->description }}</div>@endif
         @if ($existing)

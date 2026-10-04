@@ -85,8 +85,9 @@ class ParentController extends Controller
             ->where('term_id', $term->id)->whereHas('course', fn ($q) => $q->forStudent($student, $student->classroom_id))->get()
             ->keyBy(fn ($s) => $s->day.'-'.$s->period) : collect();
 
-        // แบบประเมินตอบได้เฉพาะผู้ปกครอง นักเรียนไม่เห็นแท็บนี้
-        $surveys = $isStudent ? collect() : \App\Models\Survey::where('is_active', true)->whereIn('respondent', ['parent', 'both'])->get();
+        // แบบประเมินที่ผู้ดูตอบได้: ผู้ปกครองตอบแทนบุตรหลาน · นักเรียนประเมินตนเอง
+        $surveyRole = $isStudent ? 'student' : 'parent';
+        $surveys = \App\Models\Survey::where('is_active', true)->get()->filter(fn ($s) => $s->allows($surveyRole))->values();
 
         return [
             'student' => $student,
@@ -103,7 +104,7 @@ class ParentController extends Controller
             'tab' => $request->query('tab', 'overview'),
             'surveys' => $surveys,
             'leaves' => LeaveRequest::where('student_id', $student->id)->latest()->limit(30)->get(),
-            'surveyResponses' => \App\Models\SurveyResponse::where('student_id', $student->id)->where('respondent_role', 'parent')
+            'surveyResponses' => \App\Models\SurveyResponse::where('student_id', $student->id)->where('respondent_role', $surveyRole)
                 ->where('term_id', $term?->id)->whereIn('survey_id', $surveys->pluck('id'))->get()->keyBy('survey_id'),
             // เวลาเรียนรายวิชา (เช็คชื่อรายคาบ) ภาคนี้ — เห็นล่วงหน้าว่าวิชาไหนเสี่ยง มส.
             'periodSummary' => $grades->mapWithKeys(fn ($g) => [$g['course']->id => \App\Models\PeriodAttendance::summaryFor($g['course'])[$student->id] ?? null]),
