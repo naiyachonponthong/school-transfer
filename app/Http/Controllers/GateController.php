@@ -35,7 +35,7 @@ class GateController extends Controller
     {
         $code = trim((string) $request->input('code'));
         $student = Student::with('classroom')->active()
-            ->where(fn ($q) => $q->where('qr_token', $code)->orWhere('student_code', $code))
+            ->scannedBy($code)
             ->first();
 
         if (! $student) {

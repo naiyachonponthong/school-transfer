@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Shop;
+use App\Models\ShopProduct;
 use App\Models\Student;
 use App\Models\User;
 use App\Models\Wallet;
@@ -10,6 +11,7 @@ use App\Models\WalletSale;
 use App\Models\WalletTopup;
 use App\Models\WalletTransaction;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * การเคลื่อนไหวของเงินในกระเป๋านักเรียนทั้งหมดผ่านที่นี่
@@ -45,9 +47,9 @@ class WalletService
     }
 
     /**
-     * ตัดเงินค่าสินค้า
+     * ตัดเงินค่าสินค้า (และตัดสต็อกของสินค้าที่นับสต็อก)
      *
-     * @param  list<array{name: string, price: float, qty: int}>  $items
+     * @param  list<array{name: string, price: float, qty: int, product_id?: int|null}>  $items
      * @param  string  $clientKey  รหัสของการกดขายครั้งนี้จากหน้าจอ (ส่งซ้ำได้ผลเดิม ไม่ตัดเงินซ้ำ)
      */
     public static function charge(Student $student, Shop $shop, array $items, User $cashier, string $clientKey): WalletSale
@@ -67,6 +69,18 @@ class WalletService
             }
             if ($wallet->daily_limit !== null && $wallet->spentToday() + $total > (float) $wallet->daily_limit) {
                 throw new WalletException('เกินวงเงินต่อวันที่ผู้ปกครองตั้งไว้ (ใช้ได้อีก '.baht(max(0, (float) $wallet->daily_limit - $wallet->spentToday())).' บาท)');
+            }
+            foreach ($items as $item) {
+                if (empty($item['product_id'])) {
+                    continue;
+                }
+                $product = ShopProduct::whereKey($item['product_id'])->lockForUpdate()->first();
+                if ($product && $product->stock !== null) {
+                    if ($product->stock < $item['qty']) {
+                        throw new WalletException("{$product->name} เหลือ {$product->stock} ".($product->unit ?: 'ชิ้น').' ไม่พอขาย');
+                    }
+                    $product->decrement('stock', $item['qty']);
+                }
             }
             $sale = WalletSale::create(['shop_id' => $shop->id, 'wallet_id' => $wallet->id, 'total' => $total, 'items' => $items,
                 'cashier_id' => $cashier->id, 'client_key' => $clientKey]);
@@ -93,7 +107,7 @@ class WalletService
         }
     }
 
-    /** ยกเลิกการขาย: เงินคืนเข้ากระเป๋าเป็นรายการใหม่ (ไม่ลบรายการเดิม) */
+    /** ยกเลิกการขาย: เงินคืนเข้ากระเป๋าเป็นรายการใหม่ (ไม่ลบรายการเดิม) และคืนสต็อก */
     public static function void(WalletSale $sale, User $by, string $reason): void
     {
         DB::transaction(function () use ($sale, $by, $reason) {
@@ -102,6 +116,11 @@ class WalletService
                 throw new WalletException('รายการนี้ถูกยกเลิกไปแล้ว');
             }
             $sale->update(['voided_at' => now(), 'voided_by' => $by->id, 'void_reason' => $reason]);
+            foreach ($sale->items as $item) {
+                if (! empty($item['product_id'])) {
+                    ShopProduct::whereKey($item['product_id'])->whereNotNull('stock')->increment('stock', (int) $item['qty']);
+                }
+            }
             self::post(self::locked($sale->wallet), 'void', (float) $sale->total, ['sale_id' => $sale->id, 'note' => 'ยกเลิก: '.$reason, 'created_by' => $by->id]);
         });
     }
@@ -119,17 +138,29 @@ class WalletService
         });
     }
 
-    /** อนุมัติสลิปโอนเงิน เงินจึงเข้ากระเป๋า */
-    public static function approve(WalletTopup $topup, User $by): void
+    /** อนุมัติรายการเติมเงินที่รออยู่ เงินจึงเข้ากระเป๋า ($by ว่าง = ธนาคารแจ้งเข้ามาเอง) */
+    public static function approve(WalletTopup $topup, ?User $by = null, ?string $gatewayTxn = null): void
     {
-        DB::transaction(function () use ($topup, $by) {
+        DB::transaction(function () use ($topup, $by, $gatewayTxn) {
             $topup = WalletTopup::whereKey($topup->id)->lockForUpdate()->firstOrFail();
             if ($topup->status !== 'pending') {
                 throw new WalletException('รายการนี้ตรวจไปแล้ว');
             }
-            $topup->update(['status' => 'approved', 'reviewed_by' => $by->id, 'reviewed_at' => now()]);
-            self::post(self::locked($topup->wallet), 'topup', (float) $topup->amount, ['topup_id' => $topup->id, 'note' => 'โอน/พร้อมเพย์', 'created_by' => $by->id]);
+            $topup->update(['status' => 'approved', 'reviewed_by' => $by?->id, 'reviewed_at' => now(), 'gateway_txn' => $gatewayTxn]);
+            self::post(self::locked($topup->wallet), 'topup', (float) $topup->amount,
+                ['topup_id' => $topup->id, 'note' => WalletTopup::METHODS[$topup->method] ?? $topup->method, 'created_by' => $by?->id]);
         });
+    }
+
+    /** เปิดรายการเติมเงินอัตโนมัติ: ได้เลขอ้างอิงสำหรับใส่ใน QR ชำระบิล */
+    public static function openAutoTopup(Student $student, float $amount, User $by): WalletTopup
+    {
+        do {
+            $reference = 'W'.strtoupper(Str::random(11));
+        } while (WalletTopup::where('reference', $reference)->exists());
+
+        return self::for($student)->topups()->create(['amount' => $amount, 'method' => 'auto', 'status' => 'pending',
+            'reference' => $reference, 'requested_by' => $by->id]);
     }
 
     /** ปรับยอด (บวกหรือลบ) หรือถอนเงินคืนผู้ปกครอง ต้องมีเหตุผลเสมอ */

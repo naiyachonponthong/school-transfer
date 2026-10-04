@@ -18,7 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->appendToGroup('web', \App\Http\Middleware\EnsurePasswordChanged::class);
         $middleware->appendToGroup('web', \App\Http\Middleware\DemoRestrictions::class);
-        $middleware->validateCsrfTokens(except: ['line/webhook', 'gate/hook/*']);
+        $middleware->validateCsrfTokens(except: ['line/webhook', 'gate/hook/*', 'wallet/hook']);
         $middleware->redirectGuestsTo(fn () => route('login'));
         $middleware->redirectUsersTo(fn () => route('home'));
     })

@@ -51,7 +51,7 @@ class PosController extends Controller
         $this->authorizeShop($request, $shop);
         $code = trim((string) $request->input('code'));
         $student = Student::with('classroom')->active()
-            ->where(fn ($q) => $q->where('qr_token', $code)->orWhere('student_code', $code))->first();
+            ->scannedBy($code)->first();
         if (! $student || $code === '') {
             return response()->json(['ok' => false, 'message' => 'ไม่พบนักเรียนจากรหัสนี้'], 404);
         }
@@ -88,7 +88,8 @@ class PosController extends Controller
             if (! empty($row['product_id'])) {
                 $product = $products->get((int) $row['product_id']);
                 abort_unless($product, 422, 'มีสินค้าที่ไม่ได้ขายในร้านนี้แล้ว กรุณารีเฟรชหน้าจอ');
-                $items[] = ['name' => $product->name, 'price' => (float) $product->price, 'qty' => (int) $row['qty']];
+                $items[] = ['product_id' => $product->id, 'name' => $product->name, 'price' => (float) $product->price, 'qty' => (int) $row['qty'],
+                    'cost' => $product->cost !== null ? (float) $product->cost : null];
             } else {
                 abort_unless(isset($row['price']), 422, 'ไม่ได้ระบุจำนวนเงิน');
                 $items[] = ['name' => 'รายการอื่น', 'price' => round((float) $row['price'], 2), 'qty' => (int) $row['qty']];
@@ -102,6 +103,15 @@ class PosController extends Controller
         }
 
         return response()->json(['ok' => true, 'sale_id' => $sale->id, 'total' => (float) $sale->total, 'balance' => (float) $sale->wallet->fresh()->balance]);
+    }
+
+    /** ใบเสร็จขนาดกระดาษ 58 มม. สำหรับเครื่องพิมพ์ใบเสร็จ (สั่งพิมพ์จากเบราว์เซอร์) */
+    public function receipt(Request $request, WalletSale $sale)
+    {
+        abort_unless($sale->shop->canBeUsedBy($request->user()), 403);
+
+        return view('pos.receipt', ['sale' => $sale->load(['shop', 'wallet.student.classroom', 'cashier']),
+            'balance' => (float) $sale->wallet->transactions()->where('sale_id', $sale->id)->where('type', 'purchase')->value('balance_after')]);
     }
 
     /** ยกเลิกการขาย: คนขายยกเลิกได้เฉพาะรายการของวันนี้ ผู้จัดการกระเป๋าเงินยกเลิกย้อนหลังได้ */

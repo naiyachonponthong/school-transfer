@@ -27,8 +27,39 @@
             <div class="card mb-3">
                 <div class="card-header"><i class="bi bi-plus-circle"></i> เติมเงิน</div>
                 <div class="card-body">
+                    @if ($biller)
+                        @if ($autoQr)
+                            <div class="text-center" id="autoBox" data-status="{{ route('parent.wallet.status', [$student, $auto]) }}">
+                                <div class="fw-semibold mb-1">สแกนจ่าย {{ baht($auto->amount) }} บาท ด้วยแอปธนาคาร</div>
+                                <div class="mx-auto bg-white p-2 rounded-3 border" style="width:220px" data-qr="{{ $autoQr }}" data-cell="4"></div>
+                                <div class="small mt-2">อ้างอิง {{ $auto->reference }} · QR นี้ใช้ได้ครั้งเดียว</div>
+                                <div class="small text-muted" id="autoMsg" role="status" aria-live="polite"><span class="spinner-border spinner-border-sm"></span> รอการชำระ เงินจะเข้ากระเป๋าเองภายในไม่กี่วินาทีหลังจ่าย</div>
+                                <a href="{{ route('parent.wallet', $student) }}" class="btn btn-light border btn-sm mt-2">เปลี่ยนจำนวน</a>
+                            </div>
+                        @elseif ($auto)
+                            <div class="text-center text-success py-2"><i class="bi bi-check-circle fs-3"></i><div class="fw-semibold">เติมเงิน {{ baht($auto->amount) }} บาท เข้ากระเป๋าแล้ว</div>
+                                <a href="{{ route('parent.wallet', $student) }}" class="btn btn-light border btn-sm mt-2">เติมอีกครั้ง</a></div>
+                        @else
+                            <div class="small text-muted mb-2">สแกนจ่ายด้วยแอปธนาคาร เงินเข้ากระเป๋าทันที เลือกจำนวนเงิน</div>
+                            <form method="POST" action="{{ route('parent.wallet.auto', $student) }}">
+                                @csrf
+                                <div class="d-flex flex-wrap gap-2 mb-3">
+                                    @foreach ([50, 100, 200, 300, 500, 1000] as $a)
+                                        <button name="amount" value="{{ $a }}" class="btn btn-light border">{{ $a }} บาท</button>
+                                    @endforeach
+                                </div>
+                            </form>
+                            <form method="POST" action="{{ route('parent.wallet.auto', $student) }}" class="input-group">
+                                @csrf
+                                <input type="number" name="amount" class="form-control @error('amount') is-invalid @enderror" min="1" max="20000" step="1" inputmode="numeric" placeholder="จำนวนเงินอื่น" aria-label="จำนวนเงินอื่น" required>
+                                <button class="btn btn-primary">สร้าง QR</button>
+                            </form>
+                        @endif
+                        <hr>
+                        <div class="small text-muted mb-2">หรือโอนเองแล้วแนบสลิป (รอฝ่ายการเงินตรวจ)</div>
+                    @endif
                     @if (! $promptpay)
-                        <div class="small text-muted"><i class="bi bi-info-circle"></i> โรงเรียนยังไม่ได้ตั้งพร้อมเพย์สำหรับรับโอน เติมเงินสดได้ที่ห้องการเงิน</div>
+                        <div class="small text-muted"><i class="bi bi-info-circle"></i> {{ $biller ? 'เติมเงินสดได้ที่ห้องการเงินเช่นกัน' : 'โรงเรียนยังไม่ได้ตั้งพร้อมเพย์สำหรับรับโอน เติมเงินสดได้ที่ห้องการเงิน' }}</div>
                     @elseif (! $qr)
                         <div class="small text-muted mb-2">เลือกจำนวนเงินที่ต้องการเติม</div>
                         <div class="d-flex flex-wrap gap-2 mb-3">
@@ -122,4 +153,17 @@
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script>
+// หน้า QR สแกนจ่ายอัตโนมัติ: ถามสถานะทุก 4 วินาที เงินเข้าแล้วโหลดหน้าใหม่
+(function () {
+    const box = document.getElementById('autoBox');
+    if (!box) return;
+    const timer = setInterval(async () => {
+        try {
+            const data = await (await fetch(box.dataset.status, { headers: { Accept: 'application/json' } })).json();
+            if (data.status !== 'pending') { clearInterval(timer); location.reload(); }
+        } catch (e) {}
+    }, 4000);
+})();
+</script>
 @endpush

@@ -278,7 +278,7 @@ class GateDeviceController extends Controller
         $code = self::code($payload);
         $at = $this->time($payload['time'] ?? $payload['dateTime'] ?? null);
         $student = Student::with('classroom')->active()
-            ->where(fn ($q) => $q->where('student_code', $code)->orWhere('qr_token', $code))->first();
+            ->scannedBy((string) $code)->first();
 
         $mode = $device->mode === 'auto' ? (in_array($payload['mode'] ?? null, ['in', 'out'], true) ? $payload['mode'] : null) : $device->mode;
         if ($student) {

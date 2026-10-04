@@ -37,6 +37,8 @@ class Settings
         'theme_color' => Theme::DEFAULT,
         'promptpay_id' => '',
         'bank_info' => '',
+        'wallet_biller_id' => '',       // Biller ID 15 หลักของบัญชีรับชำระ (เติมเงินกระเป๋าอัตโนมัติ)
+        'wallet_gateway_secret' => '',  // รหัสลับที่ธนาคาร/ตัวกลางใช้เซ็นข้อความแจ้งผลการชำระ
         // LINE Official Account (Messaging API)
         'line_channel_token' => '',
         'line_channel_secret' => '',
@@ -69,7 +71,7 @@ class Settings
     ];
 
     /** เก็บแบบเข้ารหัสในฐานข้อมูล (ไฟล์สำรองหลุดไปก็อ่านไม่ได้ถ้าไม่มี APP_KEY) */
-    public const ENCRYPTED = ['line_channel_token', 'line_channel_secret', 'line_login_channel_secret', 'webpush_private_key'];
+    public const ENCRYPTED = ['line_channel_token', 'line_channel_secret', 'line_login_channel_secret', 'webpush_private_key', 'wallet_gateway_secret'];
 
     private static ?array $cache = null;
 

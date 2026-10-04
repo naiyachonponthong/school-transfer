@@ -47,17 +47,27 @@
         <div class="card">
             <div class="card-header"><i class="bi bi-grid"></i> สินค้า</div>
             <div class="table-responsive"><table class="table align-middle mb-0">
-                <thead><tr><th>สินค้า</th><th>หมวด</th><th class="text-end">ราคา</th><th></th></tr></thead>
+                <thead><tr><th>สินค้า</th><th>หมวด</th><th class="text-end">ราคา</th><th class="text-end">ต้นทุน</th><th class="text-end">สต็อก</th><th></th></tr></thead>
                 <tbody>
                 @forelse ($shop->products as $p)
                     <tr class="{{ $p->is_active ? '' : 'text-muted' }}">
-                        <td>{{ $p->name }}@if (! $p->is_active) <span class="badge bg-secondary">งดขาย</span>@endif</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                @if ($p->imageUrl())<img src="{{ $p->imageUrl() }}" alt="" class="rounded-2 border flex-shrink-0" style="width:44px;height:44px;object-fit:cover">
+                                @else<div class="rounded-2 border flex-shrink-0 d-flex align-items-center justify-content-center text-muted" style="width:44px;height:44px" aria-hidden="true"><i class="bi bi-image"></i></div>@endif
+                                <div>{{ $p->name }}@if (! $p->is_active) <span class="badge bg-secondary">งดขาย</span>@endif
+                                    <div class="small text-muted">{{ collect([$p->barcode ? 'บาร์โค้ด '.$p->barcode : null, $p->description ? \Illuminate\Support\Str::limit($p->description, 60) : null])->filter()->implode(' · ') }}</div>
+                                </div>
+                            </div>
+                        </td>
                         <td class="small">{{ $p->category ?: '-' }}</td>
-                        <td class="text-end">{{ baht($p->price) }}</td>
+                        <td class="text-end">{{ baht($p->price) }}{{ $p->unit ? ' /'.$p->unit : '' }}</td>
+                        <td class="text-end small">{{ $p->cost !== null ? baht($p->cost) : '-' }}</td>
+                        <td class="text-end">@if ($p->stock === null)<span class="small text-muted">ไม่นับ</span>@elseif ($p->soldOut())<span class="badge bg-danger">หมด</span>@else{{ $p->stock }}@endif</td>
                         <td class="text-end"><button class="btn btn-sm btn-light border" data-bs-toggle="modal" data-bs-target="#editProduct{{ $p->id }}" aria-label="แก้ไข {{ $p->name }}"><i class="bi bi-pencil"></i></button></td>
                     </tr>
                 @empty
-                    <tr><td colspan="4"><div class="empty py-4"><i class="bi bi-grid"></i>ยังไม่มีสินค้า ร้านนี้ยังขายได้โดยกดจำนวนเงินเอง</div></td></tr>
+                    <tr><td colspan="6"><div class="empty py-4"><i class="bi bi-grid"></i>ยังไม่มีสินค้า ร้านนี้ยังขายได้โดยกดจำนวนเงินเอง</div></td></tr>
                 @endforelse
                 </tbody>
             </table></div>
@@ -69,7 +79,7 @@
     $fields = fn ($p = null) => view('wallets._product-fields', ['product' => $p])->render();
 @endphp
 <div class="modal fade" id="addProduct" tabindex="-1">
-    <div class="modal-dialog"><form method="POST" action="{{ route('wallets.products.store', $shop) }}" class="modal-content">
+    <div class="modal-dialog modal-lg"><form method="POST" action="{{ route('wallets.products.store', $shop) }}" enctype="multipart/form-data" class="modal-content">
         @csrf
         <div class="modal-header"><h5 class="modal-title">เพิ่มสินค้า</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button></div>
         <div class="modal-body row g-3">{!! $fields() !!}</div>
@@ -78,8 +88,8 @@
 </div>
 @foreach ($shop->products as $p)
     <div class="modal fade" id="editProduct{{ $p->id }}" tabindex="-1">
-        <div class="modal-dialog"><div class="modal-content">
-            <form method="POST" action="{{ route('wallets.products.update', $p) }}" id="productForm{{ $p->id }}">
+        <div class="modal-dialog modal-lg"><div class="modal-content">
+            <form method="POST" action="{{ route('wallets.products.update', $p) }}" enctype="multipart/form-data" id="productForm{{ $p->id }}">
                 @csrf @method('PUT')
                 <div class="modal-header"><h5 class="modal-title">แก้ไข {{ $p->name }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button></div>
                 <div class="modal-body row g-3">{!! $fields($p) !!}</div>

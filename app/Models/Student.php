@@ -22,7 +22,7 @@ class Student extends Model
 
     protected $fillable = [
         'student_code', 'citizen_id', 'prefix', 'first_name', 'last_name', 'nickname', 'gender', 'birthdate',
-        'classroom_id', 'number', 'status', 'photo', 'blood_type', 'medical_note', 'address', 'phone', 'qr_token', 'user_id',
+        'classroom_id', 'number', 'status', 'photo', 'blood_type', 'medical_note', 'address', 'phone', 'qr_token', 'card_uid', 'user_id',
         // ข้อมูลหัวกระดาษ ปพ.1
         'nationality', 'ethnicity', 'religion', 'father_name', 'mother_name', 'admitted_on',
         'previous_school', 'previous_school_province', 'previous_level', 'left_on', 'leave_reason',
@@ -128,6 +128,12 @@ class Student extends Model
     protected function casts(): array
     {
         return ['birthdate' => DateOnly::class, 'admitted_on' => DateOnly::class, 'left_on' => DateOnly::class];
+    }
+
+    /** หานักเรียนจากรหัสที่สแกนได้: QR บนบัตร หมายเลขบัตรแตะ หรือรหัสนักเรียน */
+    public function scopeScannedBy(Builder $q, string $code): Builder
+    {
+        return $q->where(fn (Builder $w) => $w->where('qr_token', $code)->orWhere('card_uid', $code)->orWhere('student_code', $code));
     }
 
     public function scopeActive(Builder $q): Builder

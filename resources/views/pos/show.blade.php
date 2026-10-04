@@ -18,8 +18,13 @@
                     <div class="small text-muted fw-semibold mb-1">{{ $category }}</div>
                     <div class="row g-2 mb-3">
                         @foreach ($list as $p)
-                            <div class="col-6 col-md-4"><button type="button" class="btn btn-light border w-100 h-100 text-start pos-item" data-id="{{ $p->id }}" data-name="{{ $p->name }}" data-price="{{ (float) $p->price }}">
-                                <div class="fw-semibold">{{ $p->name }}</div><div class="text-primary">{{ baht($p->price) }} ฿</div>
+                            <div class="col-6 col-md-4"><button type="button" class="btn btn-light border w-100 h-100 text-start p-2 pos-item" data-id="{{ $p->id }}" data-name="{{ $p->name }}" data-price="{{ (float) $p->price }}"
+                                data-barcode="{{ $p->barcode }}" data-stock="{{ $p->stock }}" title="{{ $p->description }}" @disabled($p->soldOut())>
+                                @if ($p->imageUrl())<img src="{{ $p->imageUrl() }}" alt="" class="rounded-2 mb-1 w-100" style="height:84px;object-fit:cover" loading="lazy">@endif
+                                <div class="fw-semibold">{{ $p->name }}</div>
+                                <div class="d-flex align-items-center gap-1"><span class="text-primary">{{ baht($p->price) }} ฿{{ $p->unit ? '/'.$p->unit : '' }}</span>
+                                    @if ($p->stock !== null)<span class="ms-auto badge {{ $p->soldOut() ? 'bg-danger' : 'bg-light text-body border' }}">{{ $p->soldOut() ? 'หมด' : 'เหลือ '.$p->stock }}</span>@endif
+                                </div>
                             </button></div>
                         @endforeach
                     </div>
@@ -43,7 +48,8 @@
                         <td class="small text-nowrap">{{ $s->created_at->format('H:i') }}</td>
                         <td>{{ $s->wallet->student->fullName() }}<div class="small text-muted">{{ $s->itemsLabel() }}</div></td>
                         <td class="text-end fw-semibold text-nowrap">{{ baht($s->total) }}</td>
-                        <td class="text-end">
+                        <td class="text-end text-nowrap">
+                            <a href="{{ route('pos.receipt', $s) }}" target="receipt" class="btn btn-sm btn-light border" title="ใบเสร็จ" aria-label="พิมพ์ใบเสร็จ"><i class="bi bi-printer"></i></a>
                             @if (! $s->voided_at)
                                 <button class="btn btn-sm btn-light border text-danger" data-bs-toggle="modal" data-bs-target="#void{{ $s->id }}">ยกเลิก</button>
                             @else
@@ -66,7 +72,7 @@
                 <div id="cart" class="mb-2"><div class="small text-muted">กดสินค้าทางซ้าย หรือใส่จำนวนเงิน</div></div>
                 <div class="d-flex align-items-center border-top pt-2 mb-3"><span class="fw-semibold">รวม</span><span class="ms-auto fs-3 fw-bold" id="total">0.00</span><span class="ms-1">บาท</span></div>
 
-                <label class="form-label small" for="scan">สแกนบัตรนักเรียน (หรือพิมพ์รหัสนักเรียนแล้วกด Enter)</label>
+                <label class="form-label small" for="scan">สแกนหรือแตะบัตรนักเรียน · สแกนบาร์โค้ดสินค้า · หรือพิมพ์รหัสนักเรียนแล้วกด Enter</label>
                 <input id="scan" class="form-control form-control-lg mb-2" autocomplete="off" placeholder="สแกนบัตร…" autofocus>
                 <div id="cam" class="mb-2 d-none" style="max-width:320px"></div>
 
@@ -84,6 +90,10 @@
                 </div>
                 <div id="msg" class="small mb-2" role="status" aria-live="polite"></div>
                 <button type="button" class="btn btn-primary btn-lg w-100" id="pay" disabled><i class="bi bi-check2-circle"></i> ตัดเงิน</button>
+                <div class="d-flex align-items-center gap-3 mt-2 small">
+                    <label class="form-check mb-0"><input type="checkbox" class="form-check-input" id="autoPrint"> พิมพ์ใบเสร็จทุกครั้ง</label>
+                    <a href="#" target="receipt" class="ms-auto d-none" id="receiptLink"><i class="bi bi-printer"></i> พิมพ์ใบเสร็จล่าสุด</a>
+                </div>
             </div>
         </div>
     </div>
@@ -109,7 +119,7 @@
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 (function () {
-    const lookupUrl = @json(route('pos.lookup', $shop)), chargeUrl = @json(route('pos.charge', $shop));
+    const lookupUrl = @json(route('pos.lookup', $shop)), chargeUrl = @json(route('pos.charge', $shop)), receiptUrl = @json(route('pos.receipt', '__ID__'));
     const token = document.querySelector('meta[name="csrf-token"]').content;
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -148,20 +158,28 @@
 
     function add(item) {
         const found = item.product_id ? cart.find((i) => i.product_id === item.product_id) : null;
+        // สินค้าที่นับสต็อก: ใส่ตะกร้าได้ไม่เกินที่เหลือ
+        if (item.stock !== null && (found ? found.qty : 0) >= item.stock) { beep(false); say(item.name + ' เหลือ ' + item.stock + ' ไม่พอ', false); return; }
         if (found) found.qty++; else cart.push({ ...item, qty: 1 });
         render();
     }
 
-    document.querySelectorAll('.pos-item').forEach((b) => b.addEventListener('click', () => add({ product_id: Number(b.dataset.id), name: b.dataset.name, price: Number(b.dataset.price) })));
+    const tiles = Array.from(document.querySelectorAll('.pos-item'));
+    const tileItem = (b) => ({ product_id: Number(b.dataset.id), name: b.dataset.name, price: Number(b.dataset.price), stock: b.dataset.stock === '' ? null : Number(b.dataset.stock) });
+    tiles.forEach((b) => b.addEventListener('click', () => add(tileItem(b))));
+
+    // พิมพ์ใบเสร็จอัตโนมัติ (จำค่าที่เลือกไว้ในเครื่องนี้)
+    try { $('autoPrint').checked = localStorage.getItem('posAutoPrint') === '1'; } catch (e) {}
+    $('autoPrint').addEventListener('change', () => { try { localStorage.setItem('posAutoPrint', $('autoPrint').checked ? '1' : '0'); } catch (e) {} });
     $('customAdd').addEventListener('click', () => {
         const v = Math.round(Number($('customAmount').value) * 100) / 100;
-        if (v > 0) { add({ product_id: null, name: 'รายการอื่น', price: v }); $('customAmount').value = ''; }
+        if (v > 0) { add({ product_id: null, name: 'รายการอื่น', price: v, stock: null }); $('customAmount').value = ''; }
         $('scan').focus();
     });
     $('customAmount').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('customAdd').click(); } });
     $('cart').addEventListener('click', (e) => {
         const inc = e.target.dataset.inc, dec = e.target.dataset.dec;
-        if (inc !== undefined) cart[inc].qty++;
+        if (inc !== undefined) { if (cart[inc].stock !== null && cart[inc].qty >= cart[inc].stock) { beep(false); say(cart[inc].name + ' เหลือ ' + cart[inc].stock + ' ไม่พอ', false); return; } cart[inc].qty++; }
         if (dec !== undefined && --cart[dec].qty <= 0) cart.splice(dec, 1);
         if (inc !== undefined || dec !== undefined) render();
     });
@@ -171,6 +189,9 @@
     async function lookup(code) {
         code = code.trim();
         if (!code || busy) return;
+        // บาร์โค้ดของสินค้าในร้านนี้ = เพิ่มสินค้าลงรายการ
+        const tile = tiles.find((b) => b.dataset.barcode && b.dataset.barcode === code);
+        if (tile) { $('scan').value = ''; if (tile.disabled) { beep(false); say(tile.dataset.name + ' หมด', false); } else { beep(true); add(tileItem(tile)); } return; }
         busy = true; say('', true);
         try {
             const res = await fetch(lookupUrl, { method: 'POST', headers: { 'X-CSRF-TOKEN': token, 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ code }) });
@@ -202,6 +223,11 @@
                 say(`ตัดเงิน ${money(data.total)} บาท จาก ${student.name} แล้ว · คงเหลือ ${money(data.balance)} บาท`, true);
                 $('todayCount').textContent = Number($('todayCount').textContent) + 1;
                 $('todayTotal').textContent = money(Number($('todayTotal').textContent.replace(/,/g, '')) + data.total);
+                const url = receiptUrl.replace('__ID__', data.sale_id);
+                $('receiptLink').href = url; $('receiptLink').classList.remove('d-none');
+                if ($('autoPrint').checked) window.open(url, 'receipt', 'width=340,height=640');
+                // ตัดสต็อกบนหน้าจอให้ตรงกับที่ขายไป
+                cart.forEach((i) => { const b = tiles.find((t) => Number(t.dataset.id) === i.product_id); if (b && b.dataset.stock !== '') { const left = Number(b.dataset.stock) - i.qty; b.dataset.stock = left; const badge = b.querySelector('.badge'); if (badge) { badge.textContent = left > 0 ? 'เหลือ ' + left : 'หมด'; if (left <= 0) { badge.className = 'ms-auto badge bg-danger'; b.disabled = true; } } } });
                 cart = []; student = null; key = newKey(); $('who').classList.add('d-none');
             } else { beep(false); say(data.message || 'ตัดเงินไม่สำเร็จ', false); }
         } catch (e) {

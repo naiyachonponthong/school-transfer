@@ -90,6 +90,8 @@ Route::post('/apply/slip', [ApplyController::class, 'slip'])->name('apply.slip')
 Route::get('/apply/print/{doc}', [ApplyController::class, 'print'])->name('apply.print');
 Route::get('/apply/files/{question}', [ApplyController::class, 'file'])->name('apply.file');
 Route::post('/line/webhook', [LineController::class, 'webhook'])->name('line.webhook');
+// ธนาคาร/ผู้ให้บริการรับชำระแจ้งผลการเติมเงินกระเป๋า (ยืนยันด้วยลายเซ็น HMAC)
+Route::post('/wallet/hook', [\App\Http\Controllers\WalletGatewayController::class, 'hook'])->name('wallet.hook')->middleware('throttle:600,1');
 // เครื่องสแกนใบหน้า/บัตรที่ประตูส่งผลการสแกนเข้ามา (ยืนยันด้วย token ของเครื่องในที่อยู่)
 Route::post('/gate/hook/{token}', [\App\Http\Controllers\GateDeviceController::class, 'hook'])->name('gate.hook')->middleware('throttle:600,1');
 // โหมดทดลองใช้: เข้าระบบตามบทบาทโดยไม่ใช้รหัสผ่าน (เปิด/ปิดที่หน้าตั้งค่า)
@@ -181,6 +183,8 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
         Route::get('/wallet/{student?}', [\App\Http\Controllers\WalletController::class, 'parent'])->name('wallet');
         Route::post('/wallet/{student}/topup', [\App\Http\Controllers\WalletController::class, 'topup'])->name('wallet.topup')->middleware('throttle:20,1');
         Route::put('/wallet/{student}/settings', [\App\Http\Controllers\WalletController::class, 'settings'])->name('wallet.settings');
+        Route::post('/wallet/{student}/auto', [\App\Http\Controllers\WalletController::class, 'auto'])->name('wallet.auto')->middleware('throttle:20,1');
+        Route::get('/wallet/{student}/topups/{topup}', [\App\Http\Controllers\WalletController::class, 'status'])->name('wallet.status');
     });
 
     /* ---------------- นักเรียน ---------------- */
@@ -403,9 +407,14 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
         Route::post('/pos/{shop}/lookup', [\App\Http\Controllers\PosController::class, 'lookup'])->name('pos.lookup')->middleware('throttle:240,1');
         Route::post('/pos/{shop}/charge', [\App\Http\Controllers\PosController::class, 'charge'])->name('pos.charge')->middleware('throttle:240,1');
         Route::post('/pos-sales/{sale}/void', [\App\Http\Controllers\PosController::class, 'void'])->name('pos.void');
+        Route::get('/pos-sales/{sale}/receipt', [\App\Http\Controllers\PosController::class, 'receipt'])->name('pos.receipt');
         Route::middleware('permission:wallet.manage')->group(function () {
             Route::get('/wallets', [\App\Http\Controllers\WalletAdminController::class, 'index'])->name('wallets.index');
             Route::get('/wallets/report', [\App\Http\Controllers\WalletAdminController::class, 'report'])->name('wallets.report');
+            Route::post('/wallets/lookup', [\App\Http\Controllers\WalletAdminController::class, 'lookup'])->name('wallets.lookup');
+            Route::get('/wallets/cards', [\App\Http\Controllers\WalletAdminController::class, 'cards'])->name('wallets.cards');
+            Route::post('/wallets/cards', [\App\Http\Controllers\WalletAdminController::class, 'saveCards'])->name('wallets.cards.save');
+            Route::post('/wallets/gateway', [\App\Http\Controllers\WalletAdminController::class, 'gateway'])->name('wallets.gateway');
             Route::post('/wallets/topup', [\App\Http\Controllers\WalletAdminController::class, 'topupCash'])->name('wallets.topup');
             Route::post('/wallets/topups/{topup}/approve', [\App\Http\Controllers\WalletAdminController::class, 'approve'])->name('wallets.topups.approve');
             Route::post('/wallets/topups/{topup}/reject', [\App\Http\Controllers\WalletAdminController::class, 'reject'])->name('wallets.topups.reject');

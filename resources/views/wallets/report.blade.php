@@ -42,12 +42,12 @@
     <div class="col-lg-7"><div class="card h-100">
         <div class="card-header"><i class="bi bi-grid"></i> ยอดขายแยกสินค้า</div>
         <div class="table-responsive"><table class="table align-middle mb-0">
-            <thead><tr><th>สินค้า</th><th>ร้าน</th><th class="text-end">จำนวน</th><th class="text-end">ยอดขาย</th></tr></thead>
+            <thead><tr><th>สินค้า</th><th>ร้าน</th><th class="text-end">จำนวน</th><th class="text-end">ยอดขาย</th><th class="text-end">กำไรขั้นต้น</th></tr></thead>
             <tbody>
             @forelse ($products as $row)
-                <tr><td>{{ $row['name'] }}</td><td class="small text-muted">{{ $row['shop'] }}</td><td class="text-end">{{ $row['qty'] }}</td><td class="text-end">{{ baht($row['sum']) }}</td></tr>
+                <tr><td>{{ $row['name'] }}</td><td class="small text-muted">{{ $row['shop'] }}</td><td class="text-end">{{ $row['qty'] }}</td><td class="text-end">{{ baht($row['sum']) }}</td><td class="text-end small">{{ $row['cost'] === null ? '-' : baht($row['sum'] - $row['cost']) }}</td></tr>
             @empty
-                <tr><td colspan="4"><div class="empty py-4"><i class="bi bi-grid"></i>ไม่มีการขายในช่วงนี้</div></td></tr>
+                <tr><td colspan="5"><div class="empty py-4"><i class="bi bi-grid"></i>ไม่มีการขายในช่วงนี้</div></td></tr>
             @endforelse
             </tbody>
         </table></div>

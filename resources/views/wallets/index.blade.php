@@ -6,6 +6,7 @@
     <div><h1>กระเป๋าเงินนักเรียน</h1><div class="sub">เติมเงิน ตรวจสลิป ร้านค้า และรายงานการขาย</div></div>
     <div class="actions">
         <a href="{{ route('pos.index') }}" class="btn btn-light border"><i class="bi bi-shop"></i> หน้าจอขาย</a>
+        <a href="{{ route('wallets.cards') }}" class="btn btn-light border"><i class="bi bi-credit-card-2-front"></i> บัตรแตะ <span class="badge bg-light text-body border">{{ $cardCount }}</span></a>
         <a href="{{ route('wallets.report') }}" class="btn btn-light border"><i class="bi bi-graph-up"></i> รายงาน</a>
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addShop"><i class="bi bi-plus-lg"></i> เพิ่มร้านค้า</button>
     </div>
@@ -24,6 +25,11 @@
             @csrf
             <div class="card-header"><i class="bi bi-cash-coin"></i> เติมเงินสด</div>
             <div class="card-body row g-3">
+                <div class="col-12">
+                    <label class="form-label" for="topupScan">สแกนหรือแตะบัตรนักเรียน</label>
+                    <input id="topupScan" class="form-control" autocomplete="off" placeholder="สแกนบัตร… หรือเลือกชื่อด้านล่าง" data-url="{{ route('wallets.lookup') }}">
+                    <div class="form-text" id="topupScanMsg" role="status" aria-live="polite"></div>
+                </div>
                 <div class="col-12">
                     <label class="form-label">นักเรียน</label>
                     <select name="student_id" class="form-select @error('student_id') is-invalid @enderror" required>
@@ -57,6 +63,33 @@
                 <div class="empty py-4"><i class="bi bi-clock-history"></i>ยังไม่มีการเติมเงิน</div>
             @endforelse
         </div>
+
+        <form method="POST" action="{{ route('wallets.gateway') }}" class="card mt-3">
+            @csrf
+            <div class="card-header"><i class="bi bi-lightning-charge"></i> เติมเงินอัตโนมัติผ่านธนาคาร
+                <span class="ms-auto badge bg-{{ $billerId && $hasSecret ? 'success' : 'secondary' }}">{{ $billerId && $hasSecret ? 'เปิดใช้' : 'ยังไม่ตั้งค่า' }}</span>
+            </div>
+            <div class="card-body row g-3">
+                <div class="col-12 small text-muted">ใช้เมื่อโรงเรียนสมัครบริการรับชำระบิล (Bill Payment) กับธนาคารแล้ว ผู้ปกครองจะได้ QR ที่มีเลขอ้างอิง จ่ายแล้วเงินเข้ากระเป๋าเองโดยไม่ต้องตรวจสลิป · ยังไม่มีก็ข้ามได้ ระบบใช้การแนบสลิปตามเดิม</div>
+                <div class="col-12">
+                    <label class="form-label">Biller ID (15 หลัก)</label>
+                    <input name="wallet_biller_id" value="{{ old('wallet_biller_id', $billerId) }}" class="form-control font-monospace @error('wallet_biller_id') is-invalid @enderror" maxlength="15" inputmode="numeric" placeholder="เลขผู้เสียภาษี 13 หลัก + รหัสต่อท้าย 2 หลัก">
+                    @error('wallet_biller_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+                <div class="col-12">
+                    <label class="form-label small" for="walletHook">ที่อยู่รับแจ้งผลการชำระ (ให้ธนาคาร/ตัวกลางส่งมาที่นี่)</label>
+                    <input id="walletHook" class="form-control form-control-sm font-monospace" value="{{ route('wallet.hook') }}" readonly onfocus="this.select()">
+                </div>
+                @if (session('gateway_secret'))
+                    <div class="col-12">
+                        <label class="form-label small text-danger" for="walletSecret">รหัสลับสำหรับเซ็นข้อความ (แสดงครั้งเดียว คัดลอกเก็บไว้ตอนนี้)</label>
+                        <input id="walletSecret" class="form-control form-control-sm font-monospace" value="{{ session('gateway_secret') }}" readonly onfocus="this.select()">
+                    </div>
+                @endif
+                <div class="col-12"><label class="form-check small"><input type="checkbox" class="form-check-input" name="rotate" value="1"> ออกรหัสลับใหม่ (รหัสเดิมใช้ไม่ได้ทันที){{ $hasSecret ? '' : ' — ครั้งแรกระบบออกให้เอง' }}</label></div>
+            </div>
+            <div class="card-footer bg-transparent text-end"><button class="btn btn-light border">บันทึก</button></div>
+        </form>
     </div>
 
     <div class="col-lg-7">
@@ -121,3 +154,29 @@
     </div>
 @endforeach
 @endsection
+
+@push('scripts')
+<script>
+// สแกนบัตรที่ช่องเติมเงินสด: เลือกนักเรียนให้ แล้วไปที่ช่องจำนวนเงิน
+(function () {
+    const scan = document.getElementById('topupScan'), msg = document.getElementById('topupScanMsg');
+    const form = scan.closest('form'), select = form.querySelector('[name=student_id]');
+    scan.addEventListener('keydown', async (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const code = scan.value.trim();
+        if (!code) return;
+        try {
+            const res = await fetch(scan.dataset.url, { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ code }) });
+            const data = await res.json();
+            if (data.ok) {
+                select.value = String(data.id); select.dispatchEvent(new Event('change', { bubbles: true }));
+                msg.className = 'form-text text-success'; msg.textContent = data.name + ' · คงเหลือ ' + Number(data.balance).toLocaleString('th-TH', { minimumFractionDigits: 2 }) + ' บาท';
+                form.querySelector('[name=amount]').focus();
+            } else { msg.className = 'form-text text-danger'; msg.textContent = data.message || 'ไม่พบนักเรียน'; }
+        } catch (err) { msg.className = 'form-text text-danger'; msg.textContent = 'เชื่อมต่อไม่ได้ ลองใหม่อีกครั้ง'; }
+        scan.value = '';
+    });
+})();
+</script>
+@endpush

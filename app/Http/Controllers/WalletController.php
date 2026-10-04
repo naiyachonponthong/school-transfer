@@ -46,7 +46,30 @@ class WalletController extends Controller
             'amount' => $amount,
             'promptpay' => $promptpay,
             'qr' => $canManage && $amount && $promptpay ? PromptPay::payload($promptpay, $amount) : null,
+            'biller' => $biller = Settings::get('wallet_biller_id'),
+            // รายการสแกนจ่ายอัตโนมัติที่เปิดค้างไว้ (แสดง QR ชำระบิลของรายการนั้น)
+            'auto' => $auto = $canManage && $biller ? $wallet->topups()->where('method', 'auto')->whereKey((int) $request->query('topup'))->first() : null,
+            'autoQr' => $auto && $auto->status === 'pending' ? PromptPay::billPayment($biller, $auto->reference, (float) $auto->amount) : null,
         ]);
+    }
+
+    /** เปิดรายการสแกนจ่ายอัตโนมัติ: ได้ QR ชำระบิลที่มีเลขอ้างอิง เงินเข้าเองเมื่อธนาคารแจ้งผล */
+    public function auto(Request $request, Student $student)
+    {
+        abort_unless($student->isGuardedBy($request->user()), 403);
+        abort_unless(filled(Settings::get('wallet_biller_id')), 404);
+        $data = $request->validate(['amount' => ['required', 'numeric', 'min:1', 'max:20000']], [], ['amount' => 'จำนวนเงิน']);
+        $topup = WalletService::openAutoTopup($student, round((float) $data['amount'], 2), $request->user());
+
+        return redirect()->route('parent.wallet', ['student' => $student, 'topup' => $topup->id]);
+    }
+
+    /** หน้า QR ถามสถานะเป็นระยะ เพื่อแจ้งทันทีเมื่อเงินเข้า */
+    public function status(Request $request, Student $student, WalletTopup $topup)
+    {
+        abort_unless($student->isGuardedBy($request->user()) && $topup->wallet->student_id === $student->id, 403);
+
+        return response()->json(['status' => $topup->status, 'balance' => (float) $topup->wallet->balance]);
     }
 
     /** ส่งสลิปการโอนเพื่อเติมเงิน (เงินเข้ากระเป๋าเมื่อการเงินอนุมัติ) */
