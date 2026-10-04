@@ -50,6 +50,11 @@
     </x-manual.steps>
 </x-manual.section>
 
+<x-manual.section anchor="consents" title="หนังสือขออนุญาต">
+    <p>เมื่อโรงเรียนส่งหนังสือขออนุญาต (เช่น ทัศนศึกษา) จะมีแจ้งเตือนและขึ้นที่กระดิ่ง เปิดเมนู <span class="ui">หนังสือขออนุญาต</span> อ่านรายละเอียด แล้วกด <span class="ui">อนุญาต</span> หรือ <span class="ui">ไม่อนุญาต</span> ที่ชื่อบุตรหลาน แก้คำตอบได้จนกว่าครูจะปิดรับคำตอบ</p>
+    <x-manual.go route="parent.consents">เปิดหนังสือขออนุญาต</x-manual.go>
+</x-manual.section>
+
 <x-manual.section anchor="others" title="อื่น ๆ">
     <ul>
         <li><b>ปพ.1</b> — ระเบียนแสดงผลการเรียน (ฉบับสำเนา) · <b>แฟ้มผลงาน</b> — เพิ่มรางวัล/กิจกรรมของลูกพร้อมรูปได้ ครูจะรับรองให้ (ดู <x-manual.link to="portfolio" />)</li>
