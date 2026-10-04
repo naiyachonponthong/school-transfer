@@ -3,11 +3,15 @@
 namespace Tests\Feature;
 
 use App\Models\Attendance;
+use App\Models\ConsentForm;
+use App\Models\ConsentResponse;
 use App\Models\GateDevice;
 use App\Models\GateEvent;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /** เครื่องสแกนใบหน้า/บัตรที่ประตู: หลายเครื่อง ทิศทางของแต่ละเครื่อง และการรับเหตุการณ์จากเครื่อง */
@@ -151,5 +155,49 @@ class GateDeviceTest extends TestCase
         $this->actingAs($this->admin())->post("/gate/devices/{$d->id}/simulate", ['code' => $s->student_code])->assertRedirect()->assertSessionHas('success');
         $this->assertSame('present', Attendance::where('student_id', $s->id)->where('date', today()->toDateString())->value('status'));
         $this->actingAs($this->admin())->post("/gate/devices/{$d->id}/simulate", ['code' => 'zzz'])->assertSessionHas('warning');
+    }
+
+    public function test_face_photos_export_only_students_whose_guardian_agreed(): void
+    {
+        Storage::fake('public');
+        [$agreedWithPhoto, $agreedNoPhoto, $refused, $silent] = Student::active()->take(4)->get()->all();
+        foreach ([$agreedWithPhoto, $refused, $silent] as $s) {
+            $path = "students/{$s->id}.png";
+            Storage::disk('public')->put($path, UploadedFile::fake()->image('p.png', 1200, 1600)->getContent());
+            $s->update(['photo' => $path]);
+        }
+        $agreedNoPhoto->update(['photo' => null]);
+
+        // ยังไม่เลือกหนังสือยินยอม = ส่งออกไม่ได้
+        $this->actingAs($this->admin())->get('/gate/devices-faces')->assertRedirect()->assertSessionHas('warning');
+
+        $form = ConsentForm::create(['title' => 'ยินยอมให้ใช้ใบหน้าสแกนเข้า-ออก', 'body' => 'x', 'classroom_ids' => [$agreedWithPhoto->classroom_id], 'is_open' => true, 'created_by' => $this->admin()->id]);
+        foreach ([[$agreedWithPhoto, true], [$agreedNoPhoto, true], [$refused, false]] as [$s, $agreed]) {
+            ConsentResponse::create(['consent_form_id' => $form->id, 'student_id' => $s->id, 'user_id' => $this->admin()->id, 'agreed' => $agreed]);
+        }
+        $this->actingAs($this->admin())->post('/gate/devices-consent', ['consent_form_id' => $form->id])->assertRedirect();
+
+        $this->actingAs($this->admin())->get('/gate/devices')->assertOk()
+            ->assertSee('ยินยอมแล้วแต่ยังไม่มีรูปในระบบ 1 คน')->assertSee($agreedNoPhoto->student_code);
+
+        $response = $this->actingAs($this->admin())->get('/gate/devices-faces')->assertOk();
+        $zip = new \ZipArchive;
+        $this->assertTrue($zip->open($response->baseResponse->getFile()->getPathname()));
+        $names = [];
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $names[] = $zip->getNameIndex($i);
+        }
+        sort($names);
+        $this->assertSame(['README.txt', "photos/{$agreedWithPhoto->student_code}.jpg", 'students.csv'], $names);
+        $csv = $zip->getFromName('students.csv');
+        $this->assertStringContainsString($agreedWithPhoto->student_code, $csv);
+        $this->assertStringNotContainsString($refused->student_code, $csv);
+        $this->assertStringNotContainsString($silent->student_code, $csv);
+        // รูปถูกย่อเป็น JPEG ด้านยาวไม่เกิน 960px
+        [$w, $h] = getimagesizefromstring($zip->getFromName("photos/{$agreedWithPhoto->student_code}.jpg"));
+        $this->assertSame([720, 960], [$w, $h]);
+        $zip->close();
+
+        $this->actingAs(User::where('role', 'teacher')->first())->get('/gate/devices-faces')->assertForbidden();
     }
 }

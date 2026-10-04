@@ -57,6 +57,42 @@
     @endforelse
 </div>
 
+<div class="card mb-3">
+    <div class="card-header"><i class="bi bi-person-badge"></i> รูปใบหน้าสำหรับลงทะเบียนในเครื่อง
+        @if ($faces['form'])<span class="ms-auto badge bg-success-subtle text-success-emphasis">พร้อมส่งออก {{ $faces['ready']->count() }} จาก {{ $faces['total'] }} คน</span>@endif
+    </div>
+    <div class="card-body">
+        <p class="small text-muted mb-3">ใบหน้าเป็นข้อมูลชีวภาพ ต้องได้รับความยินยอมจากผู้ปกครองก่อน ระบบจึงส่งออกรูปเฉพาะนักเรียนที่ผู้ปกครองกด <b>อนุญาต</b> ในหนังสือที่เลือกไว้ด้านล่าง · นักเรียนที่ไม่ยินยอมยังใช้บัตร QR ได้ตามเดิม</p>
+        <form method="POST" action="{{ route('gate.devices.consent') }}" class="row g-2 align-items-end mb-3">
+            @csrf
+            <div class="col-md-8">
+                <label class="form-label small" for="faceConsent">หนังสือขออนุญาตที่ใช้เป็นความยินยอมสแกนใบหน้า</label>
+                <select name="consent_form_id" id="faceConsent" class="form-select">
+                    <option value="">— ยังไม่เลือก —</option>
+                    @foreach ($consentForms as $f)
+                        <option value="{{ $f->id }}" @selected($faces['form']?->id === $f->id)>{{ $f->title }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-2"><button class="btn btn-light border w-100">บันทึก</button></div>
+            <div class="col-md-2"><a href="{{ route('consents.index') }}" class="btn btn-light border w-100"><i class="bi bi-plus-lg"></i> สร้างหนังสือ</a></div>
+        </form>
+        @if ($faces['form'])
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                <a href="{{ route('gate.devices.faces') }}" class="btn btn-primary {{ $faces['ready']->isEmpty() ? 'disabled' : '' }}"><i class="bi bi-download"></i> ดาวน์โหลดรูป + รายชื่อ (.zip)</a>
+                <div class="small text-muted">ยินยอมแล้ว {{ $faces['ready']->count() + $faces['noPhoto']->count() }} คน · มีรูปพร้อมส่งออก {{ $faces['ready']->count() }} · ยังไม่ยินยอม/ยังไม่ตอบ {{ $faces['total'] - $faces['ready']->count() - $faces['noPhoto']->count() }}</div>
+            </div>
+            @if ($faces['noPhoto']->isNotEmpty())
+                <div class="small mt-3"><span class="fw-semibold text-warning-emphasis"><i class="bi bi-exclamation-triangle"></i> ยินยอมแล้วแต่ยังไม่มีรูปในระบบ {{ $faces['noPhoto']->count() }} คน</span> (เพิ่มรูปที่หน้าข้อมูลนักเรียน หรือถ่ายที่เครื่องโดยตรง)
+                    <div class="text-muted">{{ $faces['noPhoto']->take(60)->map(fn ($s) => $s->student_code.' '.$s->first_name.' ('.$s->classroom?->name().')')->implode(' · ') }}{{ $faces['noPhoto']->count() > 60 ? ' …' : '' }}</div>
+                </div>
+            @endif
+        @else
+            <div class="small text-muted"><i class="bi bi-info-circle"></i> เลือกหนังสือยินยอมก่อน จึงจะดาวน์โหลดรูปได้</div>
+        @endif
+    </div>
+</div>
+
 <div class="card">
     <div class="card-header"><i class="bi bi-list-ul"></i> การสแกนล่าสุดจากทุกเครื่อง</div>
     <div class="table-responsive">

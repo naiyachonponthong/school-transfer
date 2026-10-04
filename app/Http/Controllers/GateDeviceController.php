@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ConsentForm;
+use App\Models\ConsentResponse;
 use App\Models\GateDevice;
 use App\Models\GateEvent;
 use App\Models\Student;
 use App\Services\GateRecorder;
 use App\Support\Audit;
+use App\Support\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -28,6 +32,8 @@ class GateDeviceController extends Controller
             'devices' => GateDevice::withCount(['events as today_count' => fn ($q) => $q->where('occurred_at', '>=', $today)->whereIn('result', ['present', 'late', 'out'])])
                 ->orderBy('name')->get(),
             'events' => GateEvent::with(['device', 'student.classroom'])->latest('occurred_at')->limit(40)->get(),
+            'faces' => $this->faceStatus(),
+            'consentForms' => ConsentForm::latest()->get(['id', 'title']),
             'unknownToday' => GateEvent::where('result', 'unknown')->where('occurred_at', '>=', $today)->count(),
         ]);
     }
@@ -85,6 +91,97 @@ class GateDeviceController extends Controller
 
         return back()->with($event->result === 'unknown' ? 'warning' : 'success',
             "ทดสอบ {$device->name}: {$label}".($event->student ? ' · '.$event->student->fullName() : " · รหัส {$data['code']}"));
+    }
+
+    /* ---------------- รูปใบหน้าสำหรับลงทะเบียนในเครื่อง ---------------- */
+
+    /** เลือกหนังสือขออนุญาตที่ใช้เป็นความยินยอมให้ใช้ใบหน้า (ใบหน้าเป็นข้อมูลชีวภาพ ต้องได้รับความยินยอมก่อน) */
+    public function consent(Request $request)
+    {
+        $data = $request->validate(['consent_form_id' => ['nullable', 'integer', 'exists:consent_forms,id']]);
+        Settings::set(['gate_face_consent_form_id' => $data['consent_form_id'] ?? '']);
+
+        return back()->with('success', 'บันทึกหนังสือยินยอมสำหรับการสแกนใบหน้าแล้ว');
+    }
+
+    /**
+     * นักเรียนที่ผู้ปกครองยินยอมแล้ว แยกเป็นพร้อมส่งออก (มีรูป) กับยังไม่มีรูป
+     *
+     * @return array{form: ?ConsentForm, ready: \Illuminate\Support\Collection, noPhoto: \Illuminate\Support\Collection, total: int}
+     */
+    private function faceStatus(): array
+    {
+        $form = ConsentForm::find((int) Settings::get('gate_face_consent_form_id'));
+        $agreed = $form ? ConsentResponse::where('consent_form_id', $form->id)->where('agreed', true)->pluck('student_id') : collect();
+        $students = Student::active()->with('classroom')->whereIn('id', $agreed)->orderBy('classroom_id')->orderBy('number')->get();
+        [$ready, $noPhoto] = $students->partition(fn (Student $s) => $s->photo && Storage::disk('public')->exists($s->photo));
+
+        return ['form' => $form, 'ready' => $ready->values(), 'noPhoto' => $noPhoto->values(), 'total' => Student::active()->count()];
+    }
+
+    /** ไฟล์ zip รูปนักเรียน (ตั้งชื่อตามรหัสนักเรียน) + รายชื่อ สำหรับนำเข้าเครื่องสแกนผ่านโปรแกรมของผู้ผลิต */
+    public function faces()
+    {
+        $status = $this->faceStatus();
+        if (! $status['form']) {
+            return back()->with('warning', 'เลือกหนังสือยินยอมสำหรับการสแกนใบหน้าก่อน จึงจะส่งออกรูปได้');
+        }
+        if ($status['ready']->isEmpty()) {
+            return back()->with('warning', 'ยังไม่มีนักเรียนที่ผู้ปกครองยินยอมและมีรูปในระบบ');
+        }
+        if (! class_exists(\ZipArchive::class)) {
+            return back()->with('warning', 'เซิร์ฟเวอร์ไม่มีส่วนเสริม zip ของ PHP จึงสร้างไฟล์ไม่ได้');
+        }
+
+        @set_time_limit(300);
+        $dir = storage_path('app/tmp');
+        is_dir($dir) || mkdir($dir, 0775, true);
+        $file = $dir.'/faces-'.Str::random(12).'.zip';
+        $zip = new \ZipArchive;
+        abort_unless($zip->open($file, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === true, 500);
+
+        $rows = [['employee_no', 'name', 'classroom', 'number', 'photo']];
+        foreach ($status['ready'] as $s) {
+            [$bytes, $ext] = self::facePhoto(Storage::disk('public')->get($s->photo), pathinfo($s->photo, PATHINFO_EXTENSION));
+            $name = $s->student_code.'.'.$ext;
+            $zip->addFromString('photos/'.$name, $bytes);
+            $rows[] = [$s->student_code, $s->fullName(), $s->classroom?->name(), $s->number, $name];
+        }
+        $csv = "\u{FEFF}".implode("\r\n", array_map(fn (array $r) => implode(',', array_map(fn ($v) => '"'.str_replace('"', '""', (string) $v).'"', $r)), $rows))."\r\n";
+        $zip->addFromString('students.csv', $csv);
+        $zip->addFromString('README.txt', implode("\r\n", [
+            'รูปใบหน้านักเรียนสำหรับลงทะเบียนในเครื่องสแกน',
+            'ส่งออกเมื่อ '.now()->format('Y-m-d H:i').' จำนวน '.$status['ready']->count().' คน (เฉพาะนักเรียนที่ผู้ปกครองยินยอมและมีรูปในระบบ)',
+            '',
+            '- photos/  รูปของนักเรียนแต่ละคน ชื่อไฟล์ = รหัสนักเรียน',
+            '- students.csv  รายชื่อ: employee_no (รหัสนักเรียน), ชื่อ, ห้อง, เลขที่, ชื่อไฟล์รูป',
+            '',
+            'ตอนเพิ่มบุคคลในเครื่อง/โปรแกรมของผู้ผลิต ให้ใช้รหัสบุคคล (Employee No.) = employee_no เสมอ',
+            'ไฟล์นี้เป็นข้อมูลส่วนบุคคล ลบทิ้งเมื่อนำเข้าเครื่องเสร็จแล้ว',
+        ])."\r\n");
+        $zip->close();
+        Audit::log('setting.update', null, 'ส่งออกรูปใบหน้านักเรียนสำหรับเครื่องสแกน '.$status['ready']->count().' คน');
+
+        return response()->download($file, 'gate-faces-'.now()->format('Ymd-Hi').'.zip')->deleteFileAfterSend();
+    }
+
+    /** แปลงรูปเป็น JPEG ด้านยาวไม่เกิน 960px (เครื่องสแกนส่วนใหญ่รับ JPG ขนาดเล็ก) ถ้าแปลงไม่ได้ใช้ไฟล์เดิม */
+    private static function facePhoto(string $bytes, string $ext): array
+    {
+        $img = function_exists('imagecreatefromstring') ? @imagecreatefromstring($bytes) : false;
+        if (! $img) {
+            return [$bytes, strtolower($ext) ?: 'jpg'];
+        }
+        $scale = min(1, 960 / max(imagesx($img), imagesy($img)));
+        $w = max(1, (int) round(imagesx($img) * $scale));
+        $h = max(1, (int) round(imagesy($img) * $scale));
+        $out = imagecreatetruecolor($w, $h);
+        imagefill($out, 0, 0, imagecolorallocate($out, 255, 255, 255)); // พื้นโปร่งใสของ PNG ให้เป็นสีขาว
+        imagecopyresampled($out, $img, 0, 0, 0, 0, $w, $h, imagesx($img), imagesy($img));
+        ob_start();
+        imagejpeg($out, null, 85);
+
+        return [ob_get_clean(), 'jpg'];
     }
 
     /* ---------------- รับข้อมูลจากเครื่อง (ไม่ต้องเข้าสู่ระบบ ยืนยันด้วย token ในที่อยู่) ---------------- */
