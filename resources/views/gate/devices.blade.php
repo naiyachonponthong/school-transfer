@@ -37,7 +37,7 @@
                 </div>
                 <form method="POST" action="{{ route('gate.devices.simulate', $d) }}" class="input-group input-group-sm">
                     @csrf
-                    <input name="code" class="form-control" placeholder="รหัสนักเรียน หรือชื่อผู้ใช้ของครู" aria-label="รหัสสำหรับทดสอบ" required {{ $d->is_active ? '' : 'disabled' }}>
+                    <input name="code" class="form-control" placeholder="รหัสนักเรียน หรือรหัสบุคลากร" aria-label="รหัสสำหรับทดสอบ" required {{ $d->is_active ? '' : 'disabled' }}>
                     <button class="btn btn-light border" {{ $d->is_active ? '' : 'disabled' }}><i class="bi bi-play-fill"></i> ทดสอบสแกน</button>
                 </form>
                 <div class="form-text">ทดสอบจะบันทึกการมาเรียน/เวลาทำงานจริงของคนนั้น เหมือนเครื่องส่งมา</div>
@@ -92,9 +92,9 @@
         @endif
         <hr class="my-4">
         <div class="fw-semibold mb-1"><i class="bi bi-person-workspace"></i> ครูและบุคลากร</div>
-        <p class="small text-muted mb-2">ครูสแกนที่เครื่องเดียวกันได้ ระบบลงเป็น<b>เวลาทำงานครู</b> · รหัสบุคคลในเครื่องของครู = <b>ชื่อผู้ใช้</b> (แสดงในวงเล็บ) · ติ๊กเฉพาะคนที่ให้ความยินยอมใช้ใบหน้าเป็นเอกสารกับโรงเรียนแล้ว รูปที่ส่งออกคือรูปโปรไฟล์ของบัญชี</p>
+        <p class="small text-muted mb-2">ครูสแกนที่เครื่องเดียวกันได้ ระบบลงเป็น<b>เวลาทำงานครู</b> · รหัสบุคคลในเครื่องของครู = <b>รหัสบุคลากร</b> ที่แสดงในวงเล็บ (คนที่ยังไม่มีรหัสใช้ชื่อผู้ใช้ กำหนดรหัสได้ที่ทะเบียนบุคลากร) · ติ๊กเฉพาะคนที่ให้ความยินยอมใช้ใบหน้าเป็นเอกสารกับโรงเรียนแล้ว รูปที่ส่งออกคือรูปโปรไฟล์ของบัญชี</p>
         @if ($staff['clashes']->isNotEmpty())
-            <div class="small text-danger mb-2"><i class="bi bi-exclamation-octagon"></i> ชื่อผู้ใช้ซ้ำกับรหัสนักเรียน เครื่องจะนับเป็นนักเรียน ต้องเปลี่ยนชื่อผู้ใช้ก่อน: {{ $staff['clashes']->map(fn ($u) => $u->name.' ('.$u->username.')')->implode(' · ') }}</div>
+            <div class="small text-danger mb-2"><i class="bi bi-exclamation-octagon"></i> รหัสซ้ำกับรหัสนักเรียน เครื่องจะนับเป็นนักเรียน ต้องเปลี่ยนรหัสบุคลากรก่อน: {{ $staff['clashes']->map(fn ($u) => $u->name.' ('.$u->gateCode().')')->implode(' · ') }}</div>
         @endif
         <form method="POST" action="{{ route('gate.devices.staff-consent') }}">
             @csrf
@@ -107,7 +107,7 @@
                     <div class="col-sm-6 col-lg-4">
                         <div class="form-check small">
                             <input class="form-check-input" type="checkbox" name="staff[]" value="{{ $u->id }}" id="staffFace{{ $u->id }}" @checked($u->face_consent_at)>
-                            <label class="form-check-label" for="staffFace{{ $u->id }}">{{ $u->name }} <span class="text-muted">({{ $u->username }})</span>@if (! $u->avatar) <span class="text-warning-emphasis" title="ยังไม่มีรูปโปรไฟล์"><i class="bi bi-image"></i> ไม่มีรูป</span>@endif</label>
+                            <label class="form-check-label" for="staffFace{{ $u->id }}">{{ $u->name }} <span class="text-muted">({{ $u->gateCode() }})</span>@if (! $u->avatar) <span class="text-warning-emphasis" title="ยังไม่มีรูปโปรไฟล์"><i class="bi bi-image"></i> ไม่มีรูป</span>@endif</label>
                         </div>
                     </div>
                 @endforeach
@@ -142,7 +142,7 @@
             </tbody>
         </table>
     </div>
-    <div class="card-footer small text-muted">"ไม่พบรหัสนี้" = เครื่องส่งรหัสที่ไม่ตรงกับรหัสนักเรียนหรือชื่อผู้ใช้ของครู ให้แก้รหัสบุคคลในเครื่องให้ตรง · เก็บประวัติ {{ \App\Models\GateEvent::KEEP_DAYS }} วัน</div>
+    <div class="card-footer small text-muted">"ไม่พบรหัสนี้" = เครื่องส่งรหัสที่ไม่ตรงกับรหัสนักเรียนหรือรหัสบุคลากร ให้แก้รหัสบุคคลในเครื่องให้ตรง · เก็บประวัติ {{ \App\Models\GateEvent::KEEP_DAYS }} วัน</div>
 </div>
 
 <div class="modal fade" id="addDevice" tabindex="-1">

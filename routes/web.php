@@ -275,9 +275,19 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
         Route::get('/courses/{course}/export', [GradebookController::class, 'export'])->name('gradebook.export');
 
         // ทะเบียนบุคลากร (เจ้าตัวดู/แก้ของตัวเองได้ ฝ่ายบุคคลดูได้ทุกคน — ตรวจใน controller)
+        Route::get('/directory', [\App\Http\Controllers\OrgController::class, 'directory'])->name('staff.directory');
+        Route::get('/org', [\App\Http\Controllers\OrgController::class, 'index'])->name('org.index');
+        Route::middleware('permission:staff.manage')->group(function () {
+            Route::post('/org', [\App\Http\Controllers\OrgController::class, 'store'])->name('org.store');
+            Route::post('/org-preset', [\App\Http\Controllers\OrgController::class, 'preset'])->name('org.preset');
+            Route::post('/org-codes', [\App\Http\Controllers\OrgController::class, 'generateCodes'])->name('org.codes');
+            Route::put('/org/{department}', [\App\Http\Controllers\OrgController::class, 'update'])->name('org.update');
+            Route::delete('/org/{department}', [\App\Http\Controllers\OrgController::class, 'destroy'])->name('org.destroy');
+        });
         Route::get('/staff', [StaffProfileController::class, 'index'])->name('staff.index')->middleware('permission:staff.manage');
         Route::get('/staff/{user}', [StaffProfileController::class, 'show'])->name('staff.show');
         Route::put('/staff/{user}', [StaffProfileController::class, 'update'])->name('staff.update');
+        Route::put('/staff/{user}/org', [StaffProfileController::class, 'updateOrg'])->name('staff.org');
         Route::post('/staff/{user}/trainings', [StaffProfileController::class, 'storeTraining'])->name('staff.trainings.store');
         Route::delete('/staff-trainings/{training}', [StaffProfileController::class, 'destroyTraining'])->name('staff.trainings.destroy');
 

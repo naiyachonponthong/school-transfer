@@ -22,7 +22,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name', 'username', 'email', 'phone', 'role', 'position', 'is_active', 'password', 'last_login_at',
-        'avatar', 'notifications_seen_at', 'line_user_id', 'line_link_code', 'line_linked_at', 'must_change_password',
+        'avatar', 'notifications_seen_at', 'line_user_id', 'line_link_code', 'line_linked_at', 'must_change_password', 'staff_code', 'hide_phone',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -37,6 +37,7 @@ class User extends Authenticatable
             'line_linked_at' => 'datetime',
             'line_link_expires_at' => 'datetime',
             'is_active' => 'boolean',
+            'hide_phone' => 'boolean',
             'password' => 'hashed',
         ];
     }
@@ -125,6 +126,18 @@ class User extends Authenticatable
     public function activeLineCode(): ?string
     {
         return $this->line_link_code && $this->line_link_expires_at?->isFuture() ? $this->line_link_code : null;
+    }
+
+    /** หน่วยงานที่สังกัดในโครงสร้างองค์กร (หลายหน่วยได้ มีหน่วยหลักหนึ่งหน่วย) */
+    public function departments(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Department::class)->withPivot('is_primary')->withTimestamps()->orderBy('sort')->orderBy('departments.id');
+    }
+
+    /** รหัสที่ใช้ลงในเครื่องสแกนที่ประตู: รหัสบุคลากร ถ้ายังไม่มีใช้ชื่อผู้ใช้ */
+    public function gateCode(): string
+    {
+        return $this->staff_code ?: $this->username;
     }
 
     public function isStaff(): bool

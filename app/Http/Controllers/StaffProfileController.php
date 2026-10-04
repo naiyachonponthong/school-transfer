@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\StaffProfile;
+use App\Models\Student;
 use App\Models\StaffTraining;
 use App\Models\User;
 use App\Support\Audit;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /** ทะเบียนประวัติบุคลากร ใบอนุญาตประกอบวิชาชีพ และชั่วโมงอบรม */
 class StaffProfileController extends Controller
@@ -21,7 +23,7 @@ class StaffProfileController extends Controller
     public function index(Request $request)
     {
         $year = (int) $request->query('year', now()->year);
-        $staff = User::whereIn('role', ['admin', 'teacher'])->where('is_active', true)->orderBy('name')->get();
+        $staff = User::whereIn('role', ['admin', 'teacher'])->where('is_active', true)->with('departments')->orderBy('name')->get();
         $profiles = StaffProfile::whereIn('user_id', $staff->pluck('id'))->get()->keyBy('user_id');
         $hours = StaffTraining::whereIn('user_id', $staff->pluck('id'))->whereYear('date', $year)
             ->selectRaw('user_id, sum(hours) as h')->groupBy('user_id')->pluck('h', 'user_id');
@@ -34,11 +36,21 @@ class StaffProfileController extends Controller
         $this->authorizeView($request, $user);
 
         return view('staff.show', [
-            'user' => $user,
+            'user' => $user->load('departments'),
+            'departments' => $this->departmentRows(),
             'profile' => StaffProfile::firstOrNew(['user_id' => $user->id]),
             'trainings' => StaffTraining::where('user_id', $user->id)->orderByDesc('date')->get(),
             'canManage' => $request->user()->hasPermission('staff.manage'),
         ]);
+    }
+
+    /** หน่วยงานเรียงตามผัง พร้อมระดับความลึก */
+    private function departmentRows(?int $parent = null, int $depth = 0, ?\Illuminate\Support\Collection $all = null): \Illuminate\Support\Collection
+    {
+        $all ??= \App\Models\Department::orderBy('sort')->orderBy('id')->get();
+
+        return $all->where('parent_id', $parent)->flatMap(fn ($d) => collect([['dept' => $d, 'depth' => $depth]])
+            ->concat($this->departmentRows($d->id, $depth + 1, $all)))->values();
     }
 
     public function update(Request $request, User $user)
@@ -67,6 +79,29 @@ class StaffProfileController extends Controller
         Audit::log('user.profile', $user, "แก้ประวัติบุคลากรของ {$user->name}");
 
         return back()->with('success', 'บันทึกประวัติแล้ว');
+    }
+
+    /** สังกัด รหัสบุคลากร และการแสดงเบอร์โทร: เจ้าตัวเลือกซ่อนเบอร์ได้ ที่เหลือเป็นงานของฝ่ายบุคคล */
+    public function updateOrg(Request $request, User $user)
+    {
+        $this->authorizeView($request, $user);
+        $user->forceFill(['hide_phone' => $request->boolean('hide_phone')])->save();
+
+        if ($request->user()->hasPermission('staff.manage')) {
+            $data = $request->validate([
+                'staff_code' => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9_-]+$/', Rule::unique('users', 'staff_code')->ignore($user->id),
+                    Rule::notIn(Student::pluck('student_code')->all())],
+                'departments' => ['nullable', 'array'],
+                'departments.*' => ['integer', 'exists:departments,id'],
+                'primary_department' => ['nullable', 'integer'],
+            ], ['staff_code.not_in' => 'รหัสบุคลากรซ้ำกับรหัสนักเรียน', 'staff_code.regex' => 'รหัสบุคลากรใช้ได้เฉพาะตัวอักษรอังกฤษ ตัวเลข - และ _'], ['staff_code' => 'รหัสบุคลากร']);
+            $user->forceFill(['staff_code' => $data['staff_code'] ?? null])->save();
+            $user->departments()->sync($data['departments'] ?? []);
+            OrgController::ensurePrimary($user->id, isset($data['primary_department']) ? (int) $data['primary_department'] : null);
+            Audit::log('user.profile', $user, "แก้สังกัด/รหัสบุคลากรของ {$user->name}");
+        }
+
+        return back()->with('success', 'บันทึกสังกัดและการติดต่อแล้ว');
     }
 
     public function storeTraining(Request $request, User $user)

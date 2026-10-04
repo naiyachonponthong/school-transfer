@@ -35,6 +35,50 @@
     </div>
 
     <div class="col-lg-6">
+        <form method="POST" action="{{ route('staff.org', $user) }}" class="card mb-3">
+            @csrf @method('PUT')
+            <div class="card-header"><i class="bi bi-diagram-3"></i> สังกัดและการติดต่อ</div>
+            <div class="card-body row g-3">
+                <div class="col-md-5">
+                    <label class="form-label">รหัสบุคลากร</label>
+                    @if ($canManage)
+                        <input name="staff_code" value="{{ old('staff_code', $user->staff_code) }}" class="form-control @error('staff_code') is-invalid @enderror" maxlength="20" placeholder="เช่น 90001">
+                        @error('staff_code')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <div class="form-text">ใช้เป็นรหัสบุคคลในเครื่องสแกนที่ประตูได้</div>
+                    @else
+                        <div class="form-control-plaintext">{{ $user->staff_code ?: '-' }}</div>
+                    @endif
+                </div>
+                <div class="col-md-7">
+                    <label class="form-label">เบอร์โทร</label>
+                    <div class="form-control-plaintext py-1">{{ $user->phone ?: '-' }}</div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" name="hide_phone" value="1" id="hidePhone" @checked($user->hide_phone)>
+                        <label class="form-check-label small" for="hidePhone">ไม่แสดงเบอร์โทรในทะเบียนติดต่อ</label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">หน่วยงานที่สังกัด</label>
+                    @if ($canManage && $departments->isNotEmpty())
+                        <div class="border rounded-3 p-2" style="max-height:200px;overflow:auto">
+                            @foreach ($departments as $row)
+                                <div class="d-flex align-items-center gap-2 small" style="padding-left:{{ $row['depth'] * 16 }}px">
+                                    <div class="form-check flex-grow-1 mb-0">
+                                        <input class="form-check-input" type="checkbox" name="departments[]" value="{{ $row['dept']->id }}" id="dept{{ $row['dept']->id }}" @checked($user->departments->contains('id', $row['dept']->id))>
+                                        <label class="form-check-label" for="dept{{ $row['dept']->id }}">{{ $row['dept']->name }}</label>
+                                    </div>
+                                    <label class="text-muted text-nowrap"><input type="radio" name="primary_department" value="{{ $row['dept']->id }}" @checked($user->departments->firstWhere('pivot.is_primary', true)?->id === $row['dept']->id)> หน่วยหลัก</label>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="small">{{ $user->departments->map(fn ($d) => $d->name.($d->pivot->is_primary && $user->departments->count() > 1 ? ' (หลัก)' : ''))->implode(' · ') ?: 'ยังไม่ได้สังกัดหน่วยงาน' }}</div>
+                        @if ($canManage)<div class="form-text">ยังไม่มีหน่วยงาน สร้างได้ที่ <a href="{{ route('org.index') }}">โครงสร้างองค์กร</a></div>@endif
+                    @endif
+                </div>
+            </div>
+            <div class="card-footer bg-transparent text-end"><button class="btn btn-primary"><i class="bi bi-check-lg"></i> บันทึก</button></div>
+        </form>
         <div class="card">
             <div class="card-header"><i class="bi bi-mortarboard"></i> ประวัติการอบรม/พัฒนา</div>
             @forelse ($trainings as $t)

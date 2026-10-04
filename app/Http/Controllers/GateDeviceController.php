@@ -21,7 +21,7 @@ use Illuminate\Validation\Rule;
  * เครื่องสแกนใบหน้า/บัตรที่ประตู: จัดการเครื่อง (ได้หลายเครื่อง) และรับเหตุการณ์ที่เครื่องส่งเข้ามา
  *
  * เครื่องระบุตัวนักเรียนเองแล้วส่ง "รหัสนักเรียน" มาให้ ระบบบันทึกเข้า-ออกผ่าน GateRecorder เหมือนการสแกน QR
- * ถ้ารหัสเป็นชื่อผู้ใช้ของครู/บุคลากร จะลงเป็นเวลาทำงานครูแทน
+ * ถ้ารหัสเป็นรหัสบุคลากร (หรือชื่อผู้ใช้) ของครู/บุคลากร จะลงเป็นเวลาทำงานครูแทน
  * รูปแบบที่รับ: JSON ทั่วไป {code, time?, mode?} หรือเหตุการณ์ AccessControllerEvent ของ Hikvision (ISAPI HTTP listening)
  */
 class GateDeviceController extends Controller
@@ -144,7 +144,9 @@ class GateDeviceController extends Controller
         $all = User::whereIn('role', ['admin', 'teacher'])->where('is_active', true)->orderBy('name')->get();
         [$ready, $noPhoto] = $all->whereNotNull('face_consent_at')
             ->partition(fn (User $u) => $u->avatar && Storage::disk('public')->exists($u->avatar));
-        $clashes = $all->whereIn('username', Student::whereIn('student_code', $all->pluck('username'))->pluck('student_code'));
+        $codes = $all->map->gateCode();
+        $taken = Student::whereIn('student_code', $codes)->pluck('student_code')->all();
+        $clashes = $all->filter(fn (User $u) => in_array($u->gateCode(), $taken, true));
 
         return ['all' => $all, 'ready' => $ready->values(), 'noPhoto' => $noPhoto->values(), 'clashes' => $clashes->values()];
     }
@@ -184,9 +186,9 @@ class GateDeviceController extends Controller
             $rows = [['employee_no', 'name', 'position', 'photo']];
             foreach ($staff as $u) {
                 [$bytes, $ext] = self::facePhoto(Storage::disk('public')->get($u->avatar), pathinfo($u->avatar, PATHINFO_EXTENSION));
-                $name = $u->username.'.'.$ext;
+                $name = $u->gateCode().'.'.$ext;
                 $zip->addFromString('staff/'.$name, $bytes);
-                $rows[] = [$u->username, $u->name, $u->position, $name];
+                $rows[] = [$u->gateCode(), $u->name, $u->position, $name];
             }
             $zip->addFromString('staff.csv', "\u{FEFF}".implode("\r\n", array_map(fn (array $r) => implode(',', array_map(fn ($v) => '"'.str_replace('"', '""', (string) $v).'"', $r)), $rows))."\r\n");
         }
@@ -196,7 +198,7 @@ class GateDeviceController extends Controller
             '',
             '- photos/  รูปของนักเรียนแต่ละคน ชื่อไฟล์ = รหัสนักเรียน',
             '- students.csv  รายชื่อ: employee_no (รหัสนักเรียน), ชื่อ, ห้อง, เลขที่, ชื่อไฟล์รูป',
-            '- staff/ และ staff.csv  ครูและบุคลากร (ถ้ามี) ชื่อไฟล์และ employee_no = ชื่อผู้ใช้',
+            '- staff/ และ staff.csv  ครูและบุคลากร (ถ้ามี) ชื่อไฟล์และ employee_no = รหัสบุคลากร (ถ้ายังไม่มีรหัสใช้ชื่อผู้ใช้)',
             '',
             'ตอนเพิ่มบุคคลในเครื่อง/โปรแกรมของผู้ผลิต ให้ใช้รหัสบุคคล (Employee No.) = employee_no เสมอ',
             'ไฟล์นี้เป็นข้อมูลส่วนบุคคล ลบทิ้งเมื่อนำเข้าเครื่องเสร็จแล้ว',
@@ -285,8 +287,9 @@ class GateDeviceController extends Controller
             return $device->events()->create(['student_id' => $student->id, 'code' => $code, 'result' => $result['kind'], 'occurred_at' => $at]);
         }
 
-        // ไม่ใช่นักเรียน: ชื่อผู้ใช้ของครู/บุคลากร = ลงเวลาทำงาน
-        $staff = User::whereIn('role', ['admin', 'teacher'])->where('is_active', true)->where('username', $code)->first();
+        // ไม่ใช่นักเรียน: รหัสบุคลากร (หรือชื่อผู้ใช้) ของครู/บุคลากร = ลงเวลาทำงาน
+        $staff = User::whereIn('role', ['admin', 'teacher'])->where('is_active', true)
+            ->where(fn ($q) => $q->where('staff_code', $code)->orWhere('username', $code))->orderByRaw('staff_code = ? desc', [$code])->first();
         if ($staff) {
             $result = GateRecorder::recordStaff($staff, $mode, $at);
 

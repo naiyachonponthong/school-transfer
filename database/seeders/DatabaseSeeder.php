@@ -92,6 +92,19 @@ class DatabaseSeeder extends Seeder
             $teachers->push(User::create(['name' => $name, 'username' => 't'.($i + 2), 'phone' => '08000000'.str_pad((string) ($i + 3), 2, '0', STR_PAD_LEFT), 'role' => 'teacher', 'position' => $pos, 'password' => Hash::make('teacher1234')]));
         }
 
+        // ---------- โครงสร้างองค์กรและรหัสบุคลากร ----------
+        \App\Models\Department::createPreset();
+        $depts = \App\Models\Department::all()->keyBy('name');
+        $depts['ผู้อำนวยการโรงเรียน']->update(['head_id' => $admin->id]);
+        $depts['ฝ่ายบริหารวิชาการ']->update(['head_id' => $teacher->id]);
+        $groupOf = ['คณิตศาสตร์', 'ภาษาไทย', 'วิทยาศาสตร์และเทคโนโลยี', 'สังคมศึกษา ศาสนา และวัฒนธรรม', 'ภาษาต่างประเทศ', 'สุขศึกษาและพลศึกษา', 'ศิลปะ', 'การงานอาชีพ', 'กิจกรรมพัฒนาผู้เรียน'];
+        foreach ($teachers as $i => $t) {
+            $t->departments()->attach($depts['กลุ่มสาระ'.$groupOf[$i]]->id, ['is_primary' => true]);
+            $t->forceFill(['staff_code' => (string) (90001 + $i)])->save();
+        }
+        $teachers[1]->departments()->attach($depts['ฝ่ายบริหารงานบุคคล']->id);
+        $teachers[4]->departments()->attach($depts['ฝ่ายบริหารทั่วไป']->id);
+
         // ---------- ปีการศึกษา ----------
         Term::create(['year' => 2568, 'term' => 2, 'start_date' => '2025-11-01', 'end_date' => '2026-03-31']);
         $term = Term::create(['year' => 2569, 'term' => 1, 'start_date' => '2026-05-16', 'end_date' => '2026-10-10']);

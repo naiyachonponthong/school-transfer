@@ -313,9 +313,9 @@ class GateDeviceTest extends TestCase
         $response = $this->actingAs($this->admin())->get('/gate/devices-faces')->assertOk();
         $zip = new \ZipArchive;
         $this->assertTrue($zip->open($response->baseResponse->getFile()->getPathname()));
-        $this->assertNotFalse($zip->locateName("staff/{$t->username}.jpg"));
-        $this->assertFalse($zip->locateName("staff/{$other->username}.jpg"));
-        $this->assertStringContainsString($t->username, $zip->getFromName('staff.csv'));
+        $this->assertNotFalse($zip->locateName("staff/{$t->gateCode()}.jpg"));
+        $this->assertFalse($zip->locateName("staff/{$other->gateCode()}.jpg"));
+        $this->assertStringContainsString($t->gateCode(), $zip->getFromName('staff.csv'));
         $zip->close();
 
         // เอาติ๊กออก = ถอนความยินยอม

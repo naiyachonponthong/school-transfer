@@ -74,6 +74,8 @@ class Menu
             ])),
             'บุคลากร' => [
                 self::item('myprofile', 'ประวัติของฉัน', 'bi-person-vcard', route('staff.show', $user), 'primary', 0, [], 'staff/'.$user->id),
+                self::item('directory', 'ทะเบียนติดต่อ', 'bi-person-lines-fill', route('staff.directory'), 'primary', 0, ['staff.directory']),
+                self::item('org', 'โครงสร้างองค์กร', 'bi-diagram-3', route('org.index'), 'primary', 0, ['org.*']),
                 self::item('stafflist', 'ทะเบียนบุคลากร', 'bi-people-fill', route('staff.index'), 'slate', 0, ['staff.index']),
                 self::item('checkin', 'ลงเวลา', 'bi-fingerprint', route('checkin'), 'primary', 0, ['checkin']),
                 self::item('staffleave', 'ลางาน', 'bi-briefcase', route('staff-leaves.index'), 'primary', $staffLeaves, ['staff-leaves.*']),
