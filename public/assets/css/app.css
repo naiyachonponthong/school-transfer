@@ -404,6 +404,8 @@ a.card:hover { box-shadow: var(--sb-shadow-lg); }
 .hscroll { display: flex; gap: .75rem; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; scrollbar-width: none; }
 .hscroll::-webkit-scrollbar { display: none; }
 .hscroll > * { scroll-snap-align: start; flex: 0 0 88%; }
+/* จอกว้าง: การ์ดเรียงให้เห็นครบทุกใบ (ไม่พอก็ขึ้นแถวใหม่) · จอมือถือยังปัดซ้าย-ขวา โดยเห็นขอบใบถัดไป */
+@media (min-width: 768px) { .hscroll-fit { flex-wrap: wrap; overflow: visible; } .hscroll-fit > * { flex: 1 1 260px; min-width: 0; } }
 
 /* ----- เช็คชื่อ ----- */
 .att-toolbar { position: sticky; top: 62px; z-index: 20; background: var(--sb-bg); padding: .5rem 0 .75rem; }

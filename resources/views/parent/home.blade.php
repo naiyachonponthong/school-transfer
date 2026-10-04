@@ -25,7 +25,7 @@
         </div>
 
         {{-- การ์ดลูกแต่ละคน ซ้อนบนหัวแอป เลื่อนซ้าย-ขวาได้ถ้ามีหลายคน --}}
-        <div class="{{ $children->count() > 1 ? 'hscroll' : '' }} m-float" style="box-shadow:none">
+        <div class="{{ $children->count() > 1 ? 'hscroll hscroll-fit' : '' }} m-float" style="box-shadow:none">
             @forelse ($children as $child)
                 @php($st = $todayStatus[$child->id] ?? null)
                 <a href="{{ route('parent.child', $child) }}" class="card text-body d-block" style="box-shadow:var(--sb-shadow-lg);border-radius:20px">
