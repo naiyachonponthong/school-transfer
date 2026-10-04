@@ -1,0 +1,6 @@
+# ค่าตั้ง OpenSSL ขั้นต่ำสำหรับสร้างกุญแจ VAPID (Windows มักไม่มี openssl.cnf ให้ PHP ใช้)
+[req]
+default_bits = 2048
+distinguished_name = req_distinguished_name
+
+[req_distinguished_name]

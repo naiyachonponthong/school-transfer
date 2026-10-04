@@ -40,6 +40,10 @@ class Settings
         // LINE Official Account (Messaging API)
         'line_channel_token' => '',
         'line_channel_secret' => '',
+        'line_login_channel_id' => '',     // LINE Login (เข้าสู่ระบบด้วย LINE)
+        'line_login_channel_secret' => '',
+        'webpush_public_key' => '',        // กุญแจ VAPID ของแจ้งเตือนบนอุปกรณ์ (สร้างอัตโนมัติ)
+        'webpush_private_key' => '',
         'line_oa_id' => '',          // เช่น @school
         'line_notify_gate' => '1',   // แจ้งผู้ปกครองเมื่อสแกนเข้า/ออก
         'line_notify_absent' => '1', // แจ้งเมื่อขาด/สาย
@@ -60,7 +64,7 @@ class Settings
     ];
 
     /** เก็บแบบเข้ารหัสในฐานข้อมูล (ไฟล์สำรองหลุดไปก็อ่านไม่ได้ถ้าไม่มี APP_KEY) */
-    public const ENCRYPTED = ['line_channel_token', 'line_channel_secret'];
+    public const ENCRYPTED = ['line_channel_token', 'line_channel_secret', 'line_login_channel_secret', 'webpush_private_key'];
 
     private static ?array $cache = null;
 

@@ -68,6 +68,9 @@
                 </div>
                 <button class="btn btn-primary btn-lg w-100">เข้าสู่ระบบ</button>
             </form>
+            @if (\App\Http\Controllers\Auth\LineLoginController::configured())
+                <a href="{{ route('line.login') }}" class="btn btn-lg w-100 mt-3 text-white" style="background:#06c755"><i class="bi bi-chat-dots-fill"></i> เข้าสู่ระบบด้วย LINE</a>
+            @endif
             <button type="button" class="btn btn-soft w-100 mt-3 d-none" data-install-app><i class="bi bi-download"></i> ติดตั้งแอป</button>
             @if (\App\Support\AdmissionForm::isOpen())
                 <a href="{{ route('apply') }}" class="btn btn-soft w-100 mt-3"><i class="bi bi-person-plus"></i> สมัครเรียนออนไลน์</a>

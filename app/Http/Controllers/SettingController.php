@@ -50,6 +50,8 @@ class SettingController extends Controller
             'line_channel_token' => ['nullable', 'string', 'max:500'],
             'line_channel_secret' => ['nullable', 'string', 'max:100'],
             'line_oa_id' => ['nullable', 'string', 'max:40'],
+            'line_login_channel_id' => ['nullable', 'string', 'max:40'],
+            'line_login_channel_secret' => ['nullable', 'string', 'max:100'],
             'gate_checkout_after' => ['nullable', 'date_format:H:i'],
             'school_lat' => ['nullable', 'numeric', 'between:-90,90'],
             'school_lng' => ['nullable', 'numeric', 'between:-180,180'],
@@ -68,7 +70,7 @@ class SettingController extends Controller
             $data[$flag] = $request->boolean($flag) ? '1' : '0';
         }
         // ช่อง token/secret เว้นว่าง = ใช้ค่าเดิม (ไม่แสดงค่าจริงบนหน้าเว็บ)
-        foreach (['line_channel_token', 'line_channel_secret'] as $secret) {
+        foreach (['line_channel_token', 'line_channel_secret', 'line_login_channel_secret'] as $secret) {
             if (blank($data[$secret] ?? null)) {
                 unset($data[$secret]);
             }
@@ -85,7 +87,7 @@ class SettingController extends Controller
         $changed = array_keys(array_filter($data, fn ($v, $k) => (string) ($old[$k] ?? '') !== (string) $v, ARRAY_FILTER_USE_BOTH));
         if ($changed) {
             // ไม่เก็บค่าของ token/secret ลงประวัติ เก็บแค่ว่ามีการเปลี่ยน
-            $secret = ['line_channel_token', 'line_channel_secret'];
+            $secret = ['line_channel_token', 'line_channel_secret', 'line_login_channel_secret'];
             Audit::log('setting.update', null, 'แก้ตั้งค่าโรงเรียน: '.implode(', ', $changed), collect($changed)
                 ->mapWithKeys(fn ($k) => [$k => in_array($k, $secret, true) ? ['***', '***'] : [$old[$k] ?? null, $data[$k]]])->all());
         }

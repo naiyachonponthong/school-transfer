@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Jobs\SendLineMessage;
+use App\Jobs\SendWebPush;
 use App\Models\Announcement;
 use App\Models\Student;
 use App\Models\User;
@@ -35,11 +36,7 @@ class Notifier
     /** ส่งถึงผู้ปกครองของนักเรียน */
     public static function parents(Student $student, string $text, ?string $url = null): void
     {
-        $guardians = $student->lineGuardians();
-        if ($guardians->isEmpty()) {
-            return;
-        }
-        self::dispatch($guardians, $text, $url);
+        self::dispatch($student->guardians()->get(), $text, $url);
     }
 
     public static function users(iterable $users, string $text, ?string $url = null): void
@@ -49,7 +46,7 @@ class Notifier
 
     public static function announcement(Announcement $a): void
     {
-        $q = User::whereNotNull('line_user_id')->where('is_active', true);
+        $q = User::where('is_active', true)->where(fn ($w) => $w->whereNotNull('line_user_id')->orWhereHas('pushSubscriptions'));
         match ($a->audience) {
             'parents' => $q->where('role', 'parent'),
             'staff' => $q->whereIn('role', ['admin', 'teacher']),
@@ -64,21 +61,32 @@ class Notifier
     {
         $prefix = '['.(Settings::get('school_short') ?: Settings::get('school_name')).'] ';
         $message = $prefix.$text.($url ? "\n\n".$url : '');
+        // ผู้ที่เปิดรับแจ้งเตือนบนอุปกรณ์ได้ข้อความเดียวกัน (ไม่ต้องเชื่อม LINE)
+        $pushIds = WebPush::notify(collect($users), $prefix.$text, $url);
         $users = collect($users)->filter(fn (User $u) => $u->line_user_id)->values();
-        if ($users->isEmpty()) {
+        if ($users->isEmpty() && ! $pushIds) {
             return;
         }
 
         // งานจำนวนมากใน request เดียว (ออกใบแจ้งหนี้ทั้งชั้น, คำสั่งเตือนตามเวลา) เข้าคิว ไม่ถ่วง request
         if (++self::$inline > self::INLINE_LIMIT) {
-            SendLineMessage::dispatch($users->pluck('id')->all(), $message);
+            if ($users->isNotEmpty()) {
+                SendLineMessage::dispatch($users->pluck('id')->all(), $message);
+            }
+            if ($pushIds) {
+                SendWebPush::dispatch($pushIds);
+            }
 
             return;
         }
 
         // งานปกติส่งทันทีหลังตอบหน้าเว็บ ผู้ปกครองจึงได้แจ้งเตือนเข้า-ออกโรงเรียนแบบไม่ต้องรอคิว
         // ส่งไม่ถึงเพราะปัญหาชั่วคราว → เข้าคิวไว้ส่งซ้ำ
-        defer(function () use ($users, $message) {
+        defer(function () use ($users, $message, $pushIds) {
+            WebPush::send($pushIds);
+            if ($users->isEmpty()) {
+                return;
+            }
             $failed = Line::send($users, $message);
             if ($failed->isNotEmpty()) {
                 SendLineMessage::dispatch($failed->pluck('id')->all(), $message, 2)->delay(now()->addMinutes(2));

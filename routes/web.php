@@ -90,6 +90,9 @@ Route::post('/apply/slip', [ApplyController::class, 'slip'])->name('apply.slip')
 Route::get('/apply/print/{doc}', [ApplyController::class, 'print'])->name('apply.print');
 Route::get('/apply/files/{question}', [ApplyController::class, 'file'])->name('apply.file');
 Route::post('/line/webhook', [LineController::class, 'webhook'])->name('line.webhook');
+// เข้าสู่ระบบด้วย LINE (และเชื่อมบัญชีเมื่อเข้าสู่ระบบอยู่แล้ว)
+Route::get('/auth/line', [\App\Http\Controllers\Auth\LineLoginController::class, 'redirect'])->name('line.login')->middleware('throttle:20,1');
+Route::get('/auth/line/callback', [\App\Http\Controllers\Auth\LineLoginController::class, 'callback'])->name('line.callback')->middleware('throttle:20,1');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'show'])->name('login');
@@ -145,6 +148,11 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
     Route::post('/surveys/{survey}/students/{student}', [SurveyController::class, 'save'])->name('surveys.save');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
+    // แจ้งเตือนบนอุปกรณ์ (Web Push)
+    Route::post('/push/subscribe', [\App\Http\Controllers\PushController::class, 'subscribe'])->name('push.subscribe');
+    Route::delete('/push/subscribe', [\App\Http\Controllers\PushController::class, 'unsubscribe'])->name('push.unsubscribe');
+    Route::get('/push/pending', [\App\Http\Controllers\PushController::class, 'pending'])->name('push.pending');
+    Route::post('/push/test', [\App\Http\Controllers\PushController::class, 'test'])->name('push.test')->middleware('throttle:6,1');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
     // ประกาศ: ทุกบทบาทอ่านได้ (กรองตามกลุ่มเป้าหมาย)

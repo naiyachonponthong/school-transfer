@@ -56,10 +56,77 @@
                     </div>
                 @else
                     <p class="small text-muted">{{ $user->isParent() ? 'รับแจ้งเตือนเมื่อบุตรหลานมาถึง/กลับจากโรงเรียน ขาดเรียน ผลใบลา ห้องพยาบาล ค่าเทอม และประกาศ' : 'รับแจ้งเตือนใบลา ผลการลางาน และประกาศของโรงเรียน' }}</p>
-                    <form method="POST" action="{{ route('profile.line') }}">@csrf<button class="btn text-white" style="background:#06c755"><i class="bi bi-link-45deg"></i> เชื่อม LINE</button></form>
+                    <div class="d-flex flex-wrap gap-2">
+                        @if (\App\Http\Controllers\Auth\LineLoginController::configured())
+                            <a href="{{ route('line.login') }}" class="btn text-white" style="background:#06c755"><i class="bi bi-box-arrow-in-right"></i> เชื่อมด้วยบัญชี LINE</a>
+                        @endif
+                        <form method="POST" action="{{ route('profile.line') }}">@csrf<button class="btn {{ \App\Http\Controllers\Auth\LineLoginController::configured() ? 'btn-light border' : 'text-white' }}" @style(['background:#06c755' => ! \App\Http\Controllers\Auth\LineLoginController::configured()])><i class="bi bi-link-45deg"></i> เชื่อมด้วยรหัส 6 หลัก</button></form>
+                    </div>
                 @endif
+            </div>
+        </div>
+
+        {{-- แจ้งเตือนบนอุปกรณ์นี้ (Web Push) --}}
+        <div class="card mt-3" id="pushCard" data-key="{{ \App\Services\WebPush::publicKey() }}" data-sw="{{ asset('sw.js') }}" data-subscribe="{{ route('push.subscribe') }}">
+            <div class="card-header"><i class="bi bi-bell"></i> แจ้งเตือนบนอุปกรณ์นี้
+                <span class="ms-auto badge bg-secondary-subtle text-secondary-emphasis fw-normal" id="pushState">กำลังตรวจสอบ…</span>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-2">รับแจ้งเตือนเด้งบนมือถือหรือคอมพิวเตอร์เครื่องนี้โดยไม่ต้องเปิดหน้าเว็บค้างไว้ (เปิดได้หลายเครื่อง · iPhone ต้องติดตั้งแอปลงหน้าจอโฮมก่อน)</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-primary d-none" id="pushOn"><i class="bi bi-bell-fill"></i> เปิดรับแจ้งเตือน</button>
+                    <button type="button" class="btn btn-light border d-none" id="pushOff">ปิดบนเครื่องนี้</button>
+                    <form method="POST" action="{{ route('push.test') }}" class="d-none" id="pushTest">@csrf<button class="btn btn-light border"><i class="bi bi-send"></i> ส่งทดสอบ</button></form>
+                </div>
+                <div class="small text-muted mt-2">อุปกรณ์ที่เปิดรับอยู่ {{ $user->pushSubscriptions()->count() }} เครื่อง</div>
             </div>
         </div>
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    const card = document.getElementById('pushCard'), state = document.getElementById('pushState');
+    const on = document.getElementById('pushOn'), off = document.getElementById('pushOff'), test = document.getElementById('pushTest');
+    const csrf = document.querySelector('meta[name="csrf-token"]').content;
+    const show = (label, cls, buttons) => {
+        state.textContent = label; state.className = 'ms-auto badge fw-normal ' + cls;
+        on.classList.toggle('d-none', !buttons.includes('on')); off.classList.toggle('d-none', !buttons.includes('off')); test.classList.toggle('d-none', !buttons.includes('off'));
+    };
+    if (!card.dataset.key) return show('เซิร์ฟเวอร์ยังไม่พร้อมใช้งาน', 'bg-secondary-subtle text-secondary-emphasis', []);
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+        return show('เบราว์เซอร์นี้ไม่รองรับ', 'bg-secondary-subtle text-secondary-emphasis', []);
+    }
+    const keyBytes = (b64) => Uint8Array.from(atob(b64.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - b64.length % 4) % 4)), (c) => c.charCodeAt(0));
+    const call = (method, endpoint) => fetch(card.dataset.subscribe, {
+        method, credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, Accept: 'application/json' }, body: JSON.stringify({ endpoint }),
+    });
+    const refresh = async () => {
+        if (Notification.permission === 'denied') return show('ถูกปิดกั้นในเบราว์เซอร์', 'bg-danger-subtle text-danger-emphasis', []);
+        const reg = await navigator.serviceWorker.getRegistration(card.dataset.sw);
+        const sub = reg && await reg.pushManager.getSubscription();
+        sub ? show('เปิดอยู่บนเครื่องนี้', 'bg-success-subtle text-success-emphasis', ['off']) : show('ยังไม่ได้เปิด', 'bg-secondary-subtle text-secondary-emphasis', ['on']);
+    };
+    on.addEventListener('click', async () => {
+        try {
+            if (await Notification.requestPermission() !== 'granted') return refresh();
+            const reg = await navigator.serviceWorker.register(card.dataset.sw);
+            await navigator.serviceWorker.ready;
+            const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(card.dataset.key) });
+            const res = await call('POST', sub.endpoint);
+            if (!res.ok) { await sub.unsubscribe(); alert('เปิดรับแจ้งเตือนไม่สำเร็จ'); }
+        } catch (e) { alert('เปิดรับแจ้งเตือนไม่สำเร็จ: ' + e.message); }
+        refresh();
+    });
+    off.addEventListener('click', async () => {
+        const reg = await navigator.serviceWorker.getRegistration(card.dataset.sw);
+        const sub = reg && await reg.pushManager.getSubscription();
+        if (sub) { await call('DELETE', sub.endpoint); await sub.unsubscribe(); }
+        refresh();
+    });
+    refresh();
+})();
+</script>
+@endpush

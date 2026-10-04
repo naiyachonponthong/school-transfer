@@ -85,6 +85,15 @@
                     <label class="form-check form-switch"><input type="checkbox" class="form-check-input" name="line_notify_absent" value="1" @checked($settings['line_notify_absent'])> แจ้งเมื่อเช็คชื่อ ขาด/สาย</label>
                 </div>
             </div>
+            <div class="card-header border-top" id="line-login"><i class="bi bi-box-arrow-in-right"></i> เข้าสู่ระบบด้วย LINE (LINE Login)</div>
+            <div class="card-body row g-3">
+                <div class="col-12 small text-muted">
+                    สร้างช่อง LINE Login ใน LINE Developers <b>ใต้ Provider เดียวกับ LINE OA</b> แล้วใส่ Callback URL: <code>{{ route('line.callback') }}</code>
+                    · สถานะ: {!! \App\Http\Controllers\Auth\LineLoginController::configured() ? '<span class="text-success fw-semibold">เปิดใช้งาน</span>' : '<span class="text-muted">ยังไม่ได้ตั้งค่า</span>' !!}
+                </div>
+                <div class="col-md-4"><label class="form-label">Channel ID</label><input name="line_login_channel_id" value="{{ $settings['line_login_channel_id'] }}" class="form-control" inputmode="numeric"></div>
+                <div class="col-md-4"><label class="form-label">Channel secret</label><input type="password" name="line_login_channel_secret" class="form-control" placeholder="{{ $settings['line_login_channel_secret'] ? '•••••••• (เว้นว่าง = ใช้ค่าเดิม)' : '' }}" autocomplete="off"></div>
+            </div>
             <div class="card-header border-top"><i class="bi bi-qr-code-scan"></i> สแกนหน้าประตู และลงเวลาครูด้วย GPS</div>
             <div class="card-body row g-3">
                 <div class="col-md-4"><label class="form-label">สแกนหลังเวลานี้ = กลับบ้าน</label><input type="time" name="gate_checkout_after" value="{{ $settings['gate_checkout_after'] }}" class="form-control"></div>

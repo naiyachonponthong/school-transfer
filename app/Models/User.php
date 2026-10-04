@@ -137,6 +137,11 @@ class User extends Authenticatable
         return self::ROLES[$this->role] ?? $this->role;
     }
 
+    public function pushSubscriptions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PushSubscription::class);
+    }
+
     public function children(): BelongsToMany
     {
         return $this->belongsToMany(Student::class, 'guardian_student')->withPivot('relation');
