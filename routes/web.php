@@ -296,6 +296,22 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
         Route::delete('/assessments/{assessment}', [GradebookController::class, 'destroyAssessment'])->name('assessments.destroy');
         Route::get('/courses/{course}/export', [GradebookController::class, 'export'])->name('gradebook.export');
 
+        // ทุนการศึกษา: ครูประจำชั้นเสนอชื่อนักเรียนในห้องตัวเอง · ผู้มีสิทธิ์ scholarships.manage ตั้งทุน พิจารณา และจ่ายทุน
+        Route::get('/scholarships', [\App\Http\Controllers\ScholarshipController::class, 'index'])->name('scholarships.index');
+        Route::get('/scholarships/{scholarship}', [\App\Http\Controllers\ScholarshipController::class, 'show'])->name('scholarships.show')->whereNumber('scholarship');
+        Route::post('/scholarships/{scholarship}/nominate', [\App\Http\Controllers\ScholarshipController::class, 'nominate'])->name('scholarships.nominate');
+        Route::delete('/scholarship-awards/{award}', [\App\Http\Controllers\ScholarshipController::class, 'withdraw'])->name('scholarships.withdraw');
+        Route::middleware('permission:scholarships.manage')->group(function () {
+            Route::post('/scholarships', [\App\Http\Controllers\ScholarshipController::class, 'store'])->name('scholarships.store');
+            Route::put('/scholarships/{scholarship}', [\App\Http\Controllers\ScholarshipController::class, 'update'])->name('scholarships.update');
+            Route::post('/scholarships/{scholarship}/decide', [\App\Http\Controllers\ScholarshipController::class, 'decide'])->name('scholarships.decide');
+            Route::get('/scholarships/{scholarship}/announce', [\App\Http\Controllers\ScholarshipController::class, 'announce'])->name('scholarships.announce');
+            Route::get('/scholarships/{scholarship}/export', [\App\Http\Controllers\ScholarshipController::class, 'export'])->name('scholarships.export');
+            Route::post('/scholarship-awards/{award}/revoke', [\App\Http\Controllers\ScholarshipController::class, 'revoke'])->name('scholarships.revoke');
+            Route::post('/scholarship-awards/{award}/pay', [\App\Http\Controllers\ScholarshipController::class, 'pay'])->name('scholarships.pay');
+            Route::get('/scholarship-awards/{award}/receipt', [\App\Http\Controllers\ScholarshipController::class, 'receipt'])->name('scholarships.receipt');
+        });
+
         // ทะเบียนบุคลากร (เจ้าตัวดู/แก้ของตัวเองได้ ฝ่ายบุคคลดูได้ทุกคน — ตรวจใน controller)
         Route::get('/directory', [\App\Http\Controllers\OrgController::class, 'directory'])->name('staff.directory');
         Route::get('/org', [\App\Http\Controllers\OrgController::class, 'index'])->name('org.index');

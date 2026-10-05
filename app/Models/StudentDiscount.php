@@ -12,7 +12,7 @@ class StudentDiscount extends Model
 {
     public const TYPES = ['percent' => 'ร้อยละ', 'amount' => 'บาท'];
 
-    protected $fillable = ['student_id', 'name', 'type', 'value', 'fee_item_id', 'year', 'is_active', 'created_by'];
+    protected $fillable = ['student_id', 'name', 'type', 'value', 'fee_item_id', 'year', 'is_active', 'created_by', 'scholarship_award_id'];
 
     protected function casts(): array
     {

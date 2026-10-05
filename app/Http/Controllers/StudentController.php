@@ -168,6 +168,7 @@ class StudentController extends Controller
             'ใบแจ้งหนี้/ใบเสร็จ' => $student->invoices()->exists(),
             'เอกสาร ปพ. ที่ออกแล้ว' => DocumentIssue::where('student_id', $student->id)->exists(),
             'กระเป๋าเงิน (ยอดเงินหรือรายการเติม/ซื้อ)' => (bool) $wallet?->hasHistory(),
+            'ทุนการศึกษา' => \App\Models\ScholarshipAward::where('student_id', $student->id)->exists(),
         ]);
         if ($records) {
             return back()->withErrors(['student' => 'ลบไม่ได้ เพราะมีข้อมูล '.implode(', ', array_keys($records)).' แล้ว — ถ้านักเรียนย้ายหรือลาออก ให้แก้ไขข้อมูลแล้วเปลี่ยนสถานะเป็น "ย้ายโรงเรียน" หรือ "พ้นสภาพ" แทน']);

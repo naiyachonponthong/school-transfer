@@ -87,6 +87,8 @@ class Menu
                     \Illuminate\Support\Facades\DB::table('office_document_user')->where('user_id', $user->id)->whereNull('acknowledged_at')->count(), ['office.*']),
                 self::item('feed', 'ฟีดข่าว', 'bi-newspaper', route('feed.index'), 'blue', 0, ['feed.*']),
                 self::item('announcements', 'ประกาศ', 'bi-megaphone', route('announcements.index'), 'primary', 0, ['announcements.*']),
+                self::item('scholarships', 'ทุนการศึกษา', 'bi-mortarboard', route('scholarships.index'), 'teal',
+                    $can('scholarships.manage') ? \App\Models\ScholarshipAward::where('status', 'nominated')->count() : 0, ['scholarships.*']),
                 self::item('invoices', 'ค่าธรรมเนียม', 'bi-wallet2', route('invoices.index'), 'teal', 0, ['invoices.*', 'payments.*']),
                 self::item('pos', 'หน้าจอขาย', 'bi-shop', route('pos.index'), 'teal', 0, ['pos.*']),
                 self::item('wallets', 'กระเป๋าเงิน', 'bi-wallet', route('wallets.index'), 'teal',

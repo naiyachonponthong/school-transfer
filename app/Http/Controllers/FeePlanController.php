@@ -125,6 +125,10 @@ class FeePlanController extends Controller
 
     public function destroyDiscount(StudentDiscount $discount)
     {
+        // ส่วนลดที่มาจากทุนการศึกษาต้องเพิกถอนที่ทุน ทะเบียนทุนกับส่วนลดจึงตรงกันเสมอ
+        if ($discount->scholarship_award_id) {
+            return back()->with('warning', 'ส่วนลดนี้มาจากทุนการศึกษา ให้เพิกถอนทุนที่เมนูทุนการศึกษาแทนการลบ');
+        }
         Audit::log('finance.discount', $discount, "ลบส่วนลดประจำตัว {$discount->name}");
         $discount->delete();
 

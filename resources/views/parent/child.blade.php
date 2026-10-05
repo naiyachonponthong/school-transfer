@@ -201,6 +201,7 @@
     </div>
 
     <div class="tab-pane fade {{ $tab === 'fees' ? 'show active' : '' }}" id="p-fees">
+        @include('scholarships._student', ['all' => false])
         <div class="card">
             @if ($isStudent ?? false)
                 @php($owed = $student->invoices->where('status', '!=', 'void')->sum(fn ($i) => max(0, $i->balance())))

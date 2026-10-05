@@ -258,6 +258,7 @@
 
     {{-- การเงิน --}}
     <div class="tab-pane fade" id="t-fin">
+        @include('scholarships._student', ['all' => auth()->user()->hasPermission('scholarships.manage')])
         <div class="card">
             <div class="card-header"><i class="bi bi-receipt"></i> ใบแจ้งหนี้</div>
             <div class="table-responsive">

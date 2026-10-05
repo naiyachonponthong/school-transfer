@@ -23,6 +23,7 @@ class Permissions
             'finance.manage' => 'ออกใบแจ้งหนี้ รับชำระ ตรวจสลิป ยกเลิกใบแจ้งหนี้',
             'wallet.manage' => 'กระเป๋าเงินนักเรียน: เติมเงิน ตรวจสลิปเติมเงิน ร้านค้าและสินค้า รายงานการขาย ปรับยอด/ถอนคืน',
             'pos.use' => 'ขายที่หน้าจอขายของร้านที่ถูกกำหนดให้เป็นผู้ขาย',
+            'scholarships.manage' => 'ทุนการศึกษา: ตั้งทุน พิจารณาผู้ถูกเสนอชื่อ จ่ายทุน (ครูประจำชั้นเสนอชื่อนักเรียนในห้องตัวเองได้อยู่แล้ว)',
         ],
         'วิชาการและทะเบียน' => [
             'academics.manage' => 'ปีการศึกษา ห้องเรียน เลื่อนชั้น รายวิชา ตารางเรียน ปฏิทิน แบบประเมิน ออก ปพ.7 / ปพ.3',
@@ -45,9 +46,9 @@ class Permissions
     public const DEFAULT_ROLES = [
         // บุคลากรที่ยังไม่ได้กำหนดตำแหน่งใช้สิทธิ์ของ "ครู"
         'teacher' => ['ครู', ['students.edit', 'gate.use', 'health.manage', 'library.manage', 'reports.view']],
-        'executive' => ['ผู้บริหาร', ['finance.view', 'reports.view', 'staff.manage', 'audit.view', 'care.manage', 'executive.view']],
+        'executive' => ['ผู้บริหาร', ['finance.view', 'reports.view', 'staff.manage', 'audit.view', 'care.manage', 'executive.view', 'scholarships.manage']],
         'academic' => ['วิชาการ/ทะเบียน', ['students.edit', 'reports.view', 'academics.manage', 'admissions.manage']],
-        'finance' => ['การเงิน', ['finance.view', 'finance.manage', 'wallet.manage', 'pos.use']],
+        'finance' => ['การเงิน', ['finance.view', 'finance.manage', 'wallet.manage', 'pos.use', 'scholarships.manage']],
         'cashier' => ['ผู้ขาย/ร้านค้า', ['pos.use']],
         'nurse' => ['พยาบาล', ['health.manage']],
         'librarian' => ['บรรณารักษ์', ['library.manage']],
