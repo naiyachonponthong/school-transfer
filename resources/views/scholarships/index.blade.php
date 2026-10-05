@@ -6,7 +6,7 @@
     <div><h1>ทุนการศึกษา</h1><div class="sub">ปีการศึกษา {{ $year }} · {{ $scholarships->count() }} ทุน · ได้รับทุนแล้ว {{ number_format($scholarships->sum('approved_count')) }} คน</div></div>
     <div class="actions">
         <form method="GET"><select name="year" class="form-select" data-autosubmit aria-label="ปีการศึกษา">
-            @foreach ($years as $y)<option value="{{ $y }}" @selected($y === $year)>ปี {{ $y }}</option>@endforeach
+            @foreach ($years as $y)<option value="{{ $y }}" @selected($y === $year)>ปีการศึกษา {{ $y }}</option>@endforeach
         </select></form>
         @if ($canManage)<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addScholarship"><i class="bi bi-plus-lg"></i> ตั้งทุน</button>@endif
     </div>

@@ -881,3 +881,7 @@ html.pos-kiosk .pos-cart { top: 12px; }
 html.pos-kiosk .pos-item { min-height: 84px; font-size: 1.05rem; }
 html.pos-kiosk .pos-item img { height: 110px !important; }
 html.pos-kiosk #pay { padding-top: 1rem; padding-bottom: 1rem; font-size: 1.35rem; }
+
+/* วันที่แบบ พ.ศ. ใต้ช่องวันที่ (app.js) */
+.be-date-hint { font-size: .78rem; color: var(--sb-muted); margin-top: .15rem; line-height: 1.2; }
+@media print { .be-date-hint { display: none; } }

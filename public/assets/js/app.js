@@ -561,3 +561,37 @@ document.querySelectorAll('table.table').forEach((t) => {
         if (n.tagName === 'SELECT') enhance(n); else if (n.querySelectorAll) n.querySelectorAll('select').forEach(enhance);
     }))).observe(document.body, { childList: true, subtree: true });
 })();
+
+// ช่องวันที่ของเบราว์เซอร์แสดงปี ค.ศ. เสมอ (เปลี่ยนไม่ได้) จึงบอกวันที่แบบ พ.ศ. กำกับไว้ใต้ช่อง
+// ช่องที่อยู่ในแถวแนวนอน (เช่น ตัวกรองบนหัวหน้า) ไม่มีที่ให้วางข้อความ ใช้ข้อความเมื่อชี้แทน
+(function () {
+    const thai = (value) => {
+        const d = value ? new Date(value + 'T00:00:00') : null;
+        return d && !isNaN(d) ? d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+    };
+    function enhance(input) {
+        if (input.dataset.beReady) return;
+        input.dataset.beReady = '1';
+        const inline = /flex/.test(getComputedStyle(input.parentElement).display) || input.closest('.page-head, .input-group');
+        let hint = null;
+        if (!inline) {
+            hint = document.createElement('div');
+            hint.className = 'be-date-hint';
+            hint.setAttribute('aria-hidden', 'true'); // โปรแกรมอ่านหน้าจออ่านค่าจากช่องวันที่อยู่แล้ว
+            input.insertAdjacentElement('afterend', hint);
+        }
+        const sync = () => {
+            const text = thai(input.value);
+            input.title = text;
+            if (hint) { hint.textContent = text; hint.hidden = !text; }
+        };
+        input.addEventListener('input', sync);
+        input.addEventListener('change', sync);
+        sync();
+    }
+    document.querySelectorAll('input[type=date]').forEach(enhance);
+    new MutationObserver((muts) => muts.forEach((m) => m.addedNodes.forEach((n) => {
+        if (n.nodeType !== 1) return;
+        if (n.matches && n.matches('input[type=date]')) enhance(n); else if (n.querySelectorAll) n.querySelectorAll('input[type=date]').forEach(enhance);
+    }))).observe(document.body, { childList: true, subtree: true });
+})();

@@ -6,7 +6,7 @@
     <div><h1>โครงการ</h1><div class="sub">ปีงบประมาณ {{ $year }} · {{ $projects->count() }} โครงการ · งบรวม {{ baht($projects->sum('budget'), 0) }} บาท{{ $canManage ? '' : ' · แสดงโครงการที่คุณรับผิดชอบ' }}</div></div>
     <div class="actions">
         <form method="GET"><select name="year" class="form-select" data-autosubmit aria-label="ปีงบประมาณ">
-            @foreach ($years as $y)<option value="{{ $y }}" @selected($y === $year)>ปีงบ {{ $y }}</option>@endforeach
+            @foreach ($years as $y)<option value="{{ $y }}" @selected($y === $year)>ปีงบประมาณ {{ $y }}</option>@endforeach
         </select></form>
         @if ($canManage)<a href="{{ route('budget.index', ['year' => $year]) }}" class="btn btn-light border"><i class="bi bi-bank"></i> งบประมาณ</a>@endif
         <a href="{{ route('budget-requests.index') }}" class="btn btn-light border"><i class="bi bi-cart-check"></i> คำขอใช้งบ</a>

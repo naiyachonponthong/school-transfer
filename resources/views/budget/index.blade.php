@@ -11,7 +11,7 @@
     <div><h1>งบประมาณ</h1><div class="sub">ปีงบประมาณ {{ $year }} (1 ต.ค. {{ $year - 1 }} – 30 ก.ย. {{ $year }}) · {{ $projectCount }} โครงการ</div></div>
     <div class="actions">
         <form method="GET"><select name="year" class="form-select" data-autosubmit aria-label="ปีงบประมาณ">
-            @foreach ($years as $y)<option value="{{ $y }}" @selected($y === $year)>ปีงบ {{ $y }}</option>@endforeach
+            @foreach ($years as $y)<option value="{{ $y }}" @selected($y === $year)>ปีงบประมาณ {{ $y }}</option>@endforeach
         </select></form>
         <a href="{{ route('projects.index', ['year' => $year]) }}" class="btn btn-light border"><i class="bi bi-kanban"></i> โครงการ</a>
         <a href="{{ route('budget-requests.index') }}" class="btn btn-light border"><i class="bi bi-cart-check"></i> คำขอใช้งบ</a>
