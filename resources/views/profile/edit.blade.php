@@ -78,6 +78,28 @@
             </div>
         @endif
 
+        @if ($user->isStaff())
+            <form method="POST" action="{{ route('profile.signature') }}" class="card mt-3" id="signatureForm">
+                @csrf
+                <input type="hidden" name="signature" id="signatureInput">
+                <div class="card-header"><i class="bi bi-pen"></i> ลายเซ็นของฉัน
+                    <span class="ms-auto badge fw-normal {{ $user->signature ? 'bg-success-subtle text-success-emphasis' : 'bg-secondary-subtle text-secondary-emphasis' }}">{{ $user->signature ? 'บันทึกแล้ว' : 'ยังไม่มี' }}</span>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-2">เซ็นด้วยนิ้ว เมาส์ หรือปากกาในกรอบ ใช้ลงนามเมื่อคุณพิจารณาคำขอใช้งบ เอกสารที่เซ็นไปแล้วเก็บสำเนาไว้ ไม่เปลี่ยนตามเมื่อเซ็นใหม่</p>
+                    <div class="position-relative border rounded-3 bg-white overflow-hidden" style="border-style:dashed !important">
+                        <canvas id="signaturePad" width="600" height="200" class="d-block w-100" style="height:auto;touch-action:none;cursor:crosshair" aria-label="กรอบเซ็นชื่อ"></canvas>
+                        @if ($user->signature)<img src="{{ route('files.show', ['my-signature', $user->id]) }}?v={{ md5($user->signature) }}" alt="ลายเซ็นปัจจุบัน" id="signatureSaved" class="position-absolute top-0 start-0 w-100 h-100 bg-white" style="object-fit:contain;pointer-events:none">@endif
+                    </div>
+                    @error('signature')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                </div>
+                <div class="card-footer bg-transparent d-flex gap-2">
+                    <button class="btn btn-primary" id="signatureSave" disabled><i class="bi bi-save"></i> บันทึกลายเซ็น</button>
+                    <button type="button" class="btn btn-light border" id="signatureClear">{{ $user->signature ? 'เซ็นใหม่' : 'ล้าง' }}</button>
+                </div>
+            </form>
+        @endif
+
         {{-- แจ้งเตือนบนอุปกรณ์นี้ (Web Push) --}}
         <div class="card mt-3" id="pushCard" data-key="{{ \App\Services\WebPush::publicKey() }}" data-sw="{{ asset('sw.js') }}" data-subscribe="{{ route('push.subscribe') }}">
             <div class="card-header"><i class="bi bi-bell"></i> แจ้งเตือนบนอุปกรณ์นี้
@@ -98,6 +120,28 @@
 @endsection
 
 @push('scripts')
+<script>
+// กรอบเซ็นชื่อ: วาดแล้วส่งเป็น PNG ตอนกดบันทึก
+(function () {
+    const cv = document.getElementById('signaturePad');
+    if (!cv) return;
+    const ctx = cv.getContext('2d'), input = document.getElementById('signatureInput'), save = document.getElementById('signatureSave');
+    let drawing = false;
+    ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#111';
+    const pos = (e) => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * cv.width / r.width, (e.clientY - r.top) * cv.height / r.height]; };
+    cv.addEventListener('pointerdown', (e) => {
+        document.getElementById('signatureSaved')?.remove();
+        drawing = true; cv.setPointerCapture(e.pointerId);
+        const [x, y] = pos(e); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + .1, y + .1); ctx.stroke();
+    });
+    cv.addEventListener('pointermove', (e) => { if (!drawing) return; const [x, y] = pos(e); ctx.lineTo(x, y); ctx.stroke(); });
+    const stop = () => { if (!drawing) return; drawing = false; input.value = cv.toDataURL('image/png'); save.disabled = false; };
+    cv.addEventListener('pointerup', stop); cv.addEventListener('pointercancel', stop);
+    document.getElementById('signatureClear').addEventListener('click', () => {
+        ctx.clearRect(0, 0, cv.width, cv.height); document.getElementById('signatureSaved')?.remove(); input.value = ''; save.disabled = true;
+    });
+})();
+</script>
 <script>
 (function () {
     const card = document.getElementById('pushCard'), state = document.getElementById('pushState');

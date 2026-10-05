@@ -13,9 +13,12 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 /** โครงการในแผนปฏิบัติการประจำปีงบประมาณ */
 class Project extends Model
 {
+    /** กลุ่มของโครงการ กำหนดว่าเจ้าหน้าที่ตัดงบกลุ่มไหนเป็นผู้ตัด */
+    public const TRACKS = ['general' => 'กลุ่มทั่วไป', 'special' => 'ห้องเรียนพิเศษ'];
+
     public const STATUSES = ['active' => ['ดำเนินการ', 'success'], 'closed' => ['ปิดโครงการ', 'secondary']];
 
-    protected $fillable = ['code', 'name', 'fiscal_year', 'department_id', 'owner_id', 'objective', 'starts_on', 'ends_on', 'status', 'summary', 'created_by'];
+    protected $fillable = ['code', 'name', 'fiscal_year', 'department_id', 'owner_id', 'objective', 'starts_on', 'ends_on', 'status', 'summary', 'created_by', 'track'];
 
     protected function casts(): array
     {
@@ -32,17 +35,17 @@ class Project extends Model
         return $this->belongsTo(User::class, 'owner_id');
     }
 
-    public function budgets(): HasMany
+    public function activities(): HasMany
     {
-        return $this->hasMany(ProjectBudget::class);
+        return $this->hasMany(ProjectActivity::class)->orderBy('id');
     }
 
     public function requests(): HasManyThrough
     {
-        return $this->hasManyThrough(PurchaseRequest::class, ProjectBudget::class);
+        return $this->hasManyThrough(BudgetRequest::class, ProjectActivity::class);
     }
 
-    /** โครงการที่ผู้ใช้เห็นได้: ผู้ดูแลงบ/ผู้อนุมัติ/พัสดุเห็นทุกโครงการ คนอื่นเห็นโครงการที่ตัวเองรับผิดชอบ */
+    /** โครงการที่ผู้ใช้เห็นได้: ผู้ที่มีสิทธิ์เกี่ยวกับงบประมาณข้อใดข้อหนึ่งเห็นทุกโครงการ คนอื่นเห็นโครงการที่ตัวเองรับผิดชอบ */
     public function scopeVisibleTo(Builder $q, User $user): Builder
     {
         return self::seesAll($user) ? $q : $q->where('owner_id', $user->id);
@@ -50,7 +53,7 @@ class Project extends Model
 
     public static function seesAll(User $user): bool
     {
-        return $user->hasPermission('budget.manage') || $user->hasPermission('budget.approve') || $user->hasPermission('procurement.manage');
+        return (bool) array_intersect(['budget.manage', 'budget.review', 'budget.approve_vice', 'budget.approve', 'budget.cut', 'budget.cut_special'], $user->permissions());
     }
 
     public function isClosed(): bool

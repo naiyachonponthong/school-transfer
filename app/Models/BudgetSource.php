@@ -17,10 +17,13 @@ class BudgetSource extends Model
 
     public function budgets(): HasMany
     {
-        return $this->hasMany(ProjectBudget::class);
+        return $this->hasMany(ActivityBudget::class);
     }
 
-    /** จัดสรรให้โครงการไปแล้วเท่าไร ($except = บรรทัดงบที่กำลังแก้ ไม่นับตัวเอง) */
+    /** ชื่อประเภทเงินที่โรงเรียนใช้ทั่วไป (ปุ่มสร้างชุดมาตรฐานในหน้างบประมาณ) */
+    public const STANDARD = ['เงินอุดหนุน', 'เงินกิจกรรมพัฒนาผู้เรียน', 'เงินบำรุงการศึกษา', 'เงินรายได้สถานศึกษา'];
+
+    /** จัดสรรให้กิจกรรมไปแล้วเท่าไร ($except = บรรทัดงบที่กำลังแก้ ไม่นับตัวเอง) */
     public function allocated(?int $except = null): float
     {
         return (float) $this->budgets()->when($except, fn ($q) => $q->where('id', '!=', $except))->sum('amount');

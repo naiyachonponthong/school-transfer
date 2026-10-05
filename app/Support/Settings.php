@@ -43,7 +43,7 @@ class Settings
         'wallet_reconciled_at' => '',   // ผลกระทบยอดกระเป๋าเงินครั้งล่าสุด (App\Support\WalletReconciler)
         'wallet_reconcile_count' => '0',
         'wallet_reconcile_issues' => '',
-        'purchase_steps' => 'owner,procurement,finance,director', // ขั้นอนุมัติใบขอซื้อ/ขอจ้างที่เปิดใช้ (App\Models\PurchaseRequest::STEPS)
+        'budget_request_steps' => 'review,vice,director', // ขั้นพิจารณาคำขอใช้งบที่เปิดใช้ก่อนขั้นตัดงบ (App\Models\BudgetRequest::STEPS)
         'two_factor_required' => '0',   // บังคับยืนยันตัวตน 2 ขั้นสำหรับผู้ดูแลระบบและผู้ที่ดูแลเงิน/ผู้ใช้/ตั้งค่า
         // LINE Official Account (Messaging API)
         'line_channel_token' => '',

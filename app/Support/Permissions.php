@@ -23,8 +23,12 @@ class Permissions
             'finance.manage' => 'ออกใบแจ้งหนี้ รับชำระ ตรวจสลิป ยกเลิกใบแจ้งหนี้',
             'wallet.manage' => 'กระเป๋าเงินนักเรียน: เติมเงิน ตรวจสลิปเติมเงิน ร้านค้าและสินค้า รายงานการขาย ปรับยอด/ถอนคืน',
             'pos.use' => 'ขายที่หน้าจอขายของร้านที่ถูกกำหนดให้เป็นผู้ขาย',
-            'budget.manage' => 'งบประมาณ: แหล่งเงิน โครงการ งบของโครงการ และพิจารณาใบขอซื้อ/ขอจ้างในขั้นการเงิน',
-            'budget.approve' => 'อนุมัติใบขอซื้อ/ขอจ้างในขั้นผู้อำนวยการ และดูโครงการทั้งหมด',
+            'budget.manage' => 'งานแผน/งบประมาณ: ประเภทเงิน โครงการ กิจกรรม งบของกิจกรรม ขั้นพิจารณา',
+            'budget.review' => 'ตรวจสอบเอกสารของคำขอใช้งบ (ขั้นแรก)',
+            'budget.approve_vice' => 'อนุมัติคำขอใช้งบในขั้นรองผู้อำนวยการ',
+            'budget.approve' => 'อนุมัติคำขอใช้งบในขั้นผู้อำนวยการ',
+            'budget.cut' => 'ตัดงบของคำขอที่อนุมัติแล้ว: โครงการกลุ่มทั่วไป',
+            'budget.cut_special' => 'ตัดงบของคำขอที่อนุมัติแล้ว: โครงการห้องเรียนพิเศษ',
             'scholarships.manage' => 'ทุนการศึกษา: ตั้งทุน พิจารณาผู้ถูกเสนอชื่อ จ่ายทุน (ครูประจำชั้นเสนอชื่อนักเรียนในห้องตัวเองได้อยู่แล้ว)',
         ],
         'วิชาการและทะเบียน' => [
@@ -34,7 +38,6 @@ class Permissions
         'บุคลากรและบริหารทั่วไป' => [
             'staff.manage' => 'รายงานลงเวลาครู อนุมัติใบลาบุคลากร ทะเบียนประวัติบุคลากร',
             'office.manage' => 'สารบรรณ: ลงทะเบียนหนังสือ เวียนหนังสือ ดูการรับทราบ',
-            'procurement.manage' => 'พัสดุ: พิจารณาใบขอซื้อ/ขอจ้างในขั้นเจ้าหน้าที่พัสดุ และดูโครงการทั้งหมด',
             'facilities.manage' => 'งานพัสดุ/อาคารสถานที่: ครุภัณฑ์ ตรวจสอบพัสดุ คลังวัสดุ รับเรื่องแจ้งซ่อม อนุมัติการจอง',
         ],
         'ระบบ' => [
@@ -49,13 +52,13 @@ class Permissions
     public const DEFAULT_ROLES = [
         // บุคลากรที่ยังไม่ได้กำหนดตำแหน่งใช้สิทธิ์ของ "ครู"
         'teacher' => ['ครู', ['students.edit', 'gate.use', 'health.manage', 'library.manage', 'reports.view']],
-        'executive' => ['ผู้บริหาร', ['finance.view', 'reports.view', 'staff.manage', 'audit.view', 'care.manage', 'executive.view', 'scholarships.manage', 'budget.manage', 'budget.approve']],
+        'executive' => ['ผู้บริหาร', ['finance.view', 'reports.view', 'staff.manage', 'audit.view', 'care.manage', 'executive.view', 'scholarships.manage', 'budget.manage', 'budget.approve_vice', 'budget.approve']],
         'academic' => ['วิชาการ/ทะเบียน', ['students.edit', 'reports.view', 'academics.manage', 'admissions.manage']],
-        'finance' => ['การเงิน', ['finance.view', 'finance.manage', 'wallet.manage', 'pos.use', 'scholarships.manage', 'budget.manage']],
+        'finance' => ['การเงิน', ['finance.view', 'finance.manage', 'wallet.manage', 'pos.use', 'scholarships.manage', 'budget.manage', 'budget.review', 'budget.cut', 'budget.cut_special']],
         'cashier' => ['ผู้ขาย/ร้านค้า', ['pos.use']],
         'nurse' => ['พยาบาล', ['health.manage']],
         'librarian' => ['บรรณารักษ์', ['library.manage']],
-        'clerk' => ['ธุรการ/พัสดุ', ['students.edit', 'gate.use', 'reports.view', 'admissions.manage', 'facilities.manage', 'office.manage', 'procurement.manage']],
+        'clerk' => ['ธุรการ/พัสดุ', ['students.edit', 'gate.use', 'reports.view', 'admissions.manage', 'facilities.manage', 'office.manage', 'budget.review']],
     ];
 
     public const FALLBACK_ROLE = 'teacher';

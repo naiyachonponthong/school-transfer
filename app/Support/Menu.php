@@ -68,7 +68,7 @@ class Menu
                     $user->canManageFacilities() ? Booking::where('status', 'pending')->count() : 0, ['bookings.*']),
                 self::item('requisitions', 'เบิกวัสดุ', 'bi-bag-check', route('requisitions.index'), 'teal',
                     $user->canManageFacilities() ? SupplyRequisition::where('status', 'pending')->count() : 0, ['requisitions.*']),
-                self::item('purchases', 'ขอซื้อ/ขอจ้าง', 'bi-cart-check', route('purchases.index'), 'teal', \App\Models\PurchaseRequest::awaiting($user)->count(), ['purchases.*']),
+                self::item('budgetrequests', 'ขอใช้งบ', 'bi-cart-check', route('budget-requests.index'), 'teal', \App\Models\BudgetRequest::awaiting($user)->count(), ['budget-requests.*']),
                 self::item('projects', 'โครงการ', 'bi-kanban', route('projects.index'), 'teal', 0, ['projects.*']),
                 self::item('budget', 'งบประมาณ', 'bi-bank', route('budget.index'), 'teal', 0, ['budget.*']),
                 $user->canManageFacilities() ? self::item('supplies', 'คลังวัสดุ', 'bi-boxes', route('supplies.index'), 'teal', 0, ['supplies.*']) : null,

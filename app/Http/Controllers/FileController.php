@@ -34,6 +34,8 @@ class FileController extends Controller
         'home-visit-sign-visitor' => [HomeVisit::class, 'sign_visitor'],
         'training' => [StaffTraining::class, 'file'],
         'office-doc' => [OfficeDocument::class, 'file'],
+        'my-signature' => [\App\Models\User::class, 'signature'],
+        'budget-approval-sign' => [\App\Models\BudgetRequestApproval::class, 'signature'],
     ];
 
     public function show(Request $request, string $type, int $id)
@@ -62,6 +64,9 @@ class FileController extends Controller
             'submission' => $model->student->canBeViewedBy($user),
             'training' => $user->hasPermission('staff.manage') || $model->user_id === $user->id,
             'office-doc' => $user->isStaff() && $model->canBeViewedBy($user),
+            // ลายเซ็น: เจ้าตัวเห็นของตัวเอง · ลายเซ็นในคำขอใช้งบเห็นได้เท่ากับคนที่เปิดคำขอนั้นได้
+            'my-signature' => $model->id === $user->id,
+            'budget-approval-sign' => $user->isStaff() && ($model->request->canBeViewedBy($user) || $model->request->canBeDecidedBy($user)),
             // รูปเยี่ยมบ้าน: เฉพาะครูประจำชั้นและผู้มีสิทธิ์ดูแลช่วยเหลือ ผู้ปกครองเปิดไม่ได้
             'home-visit', 'home-visit-inside', 'home-visit-sign-guardian', 'home-visit-sign-visitor' => $user->hasPermission('care.manage') || $user->myClassrooms()->contains('id', $model->student->classroom_id),
             default => false,
