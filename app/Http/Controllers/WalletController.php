@@ -69,6 +69,8 @@ class WalletController extends Controller
             'transactions' => $wallet->transactions()->with('sale.shop')->latest('id')->limit(60)->get(),
             'topups' => $wallet->topups()->where('method', 'transfer')->latest('id')->limit(5)->get(),
             'spentToday' => $wallet->spentToday(),
+            // หมวดของสินค้าที่ร้านในโรงเรียนขายอยู่ (ให้ผู้ปกครองเลือกหมวดที่ไม่ให้ซื้อ)
+            'categories' => \App\Models\ShopProduct::where('is_active', true)->whereNotNull('category')->distinct()->orderBy('category')->pluck('category'),
             'amount' => $amount,
             'promptpay' => $promptpay,
             'qr' => $canManage && $amount && $promptpay ? PromptPay::payload($promptpay, $amount) : null,
@@ -143,8 +145,12 @@ class WalletController extends Controller
     public function settings(Request $request, ?Student $student = null)
     {
         $owner = $this->owner($request, $student);
-        $data = $request->validate(['daily_limit' => ['nullable', 'numeric', 'min:1', 'max:20000']], [], ['daily_limit' => 'วงเงินต่อวัน']);
-        WalletService::for($owner)->update(['daily_limit' => $data['daily_limit'] ?? null, 'is_frozen' => $request->boolean('is_frozen')]);
+        $data = $request->validate([
+            'daily_limit' => ['nullable', 'numeric', 'min:1', 'max:20000'],
+            'blocked_categories' => ['nullable', 'array', 'max:50'], 'blocked_categories.*' => ['string', 'max:60'],
+        ], [], ['daily_limit' => 'วงเงินต่อวัน', 'blocked_categories' => 'หมวดที่ไม่ให้ซื้อ']);
+        WalletService::for($owner)->update(['daily_limit' => $data['daily_limit'] ?? null, 'is_frozen' => $request->boolean('is_frozen'),
+            'blocked_categories' => array_values(array_unique($data['blocked_categories'] ?? [])) ?: null]);
 
         return back()->with('success', 'บันทึกการตั้งค่ากระเป๋าเงินแล้ว');
     }

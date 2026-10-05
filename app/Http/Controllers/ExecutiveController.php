@@ -8,13 +8,18 @@ use App\Models\Classroom;
 use App\Models\Course;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Models\Shop;
 use App\Models\StaffAttendance;
 use App\Models\StaffLeave;
 use App\Models\Student;
 use App\Models\Term;
 use App\Models\User;
+use App\Models\Wallet;
+use App\Models\WalletSale;
+use App\Models\WalletTransaction;
 use App\Support\Grade;
 use App\Support\RiskScan;
+use App\Support\WalletReconciler;
 use Illuminate\Support\Facades\DB;
 
 /** แดชบอร์ดผู้บริหาร: ภาพรวมการมาเรียน การเงิน ผลการเรียน บุคลากร และนักเรียนกลุ่มเสี่ยง ในหน้าเดียว */
@@ -35,6 +40,7 @@ class ExecutiveController extends Controller
             'finance' => $this->finance($term),
             'grades' => $this->grades($term),
             'staff' => $this->staff(),
+            'wallet' => $this->wallet(),
             'care' => [
                 'risk' => RiskScan::forClassrooms($rooms->pluck('id'))->count(),
                 'cases' => CareCase::where('status', '!=', 'closed')->count(),
@@ -117,6 +123,26 @@ class ExecutiveController extends Controller
             'failing' => $all->filter(fn ($g) => ! Grade::passed($g))->count(),
             'total' => $all->count(),
             'distribution' => collect($order)->filter(fn ($g) => isset($counts[$g]))->map(fn ($g) => ['grade' => $g, 'count' => $counts[$g]])->values()->all(),
+        ];
+    }
+
+    /** กระเป๋าเงิน: เงินที่โรงเรียนถือแทนผู้ปกครอง ยอดขายเดือนนี้แยกร้าน และงานที่ค้าง */
+    private function wallet(): array
+    {
+        $month = now()->startOfMonth();
+        $sales = WalletSale::whereNull('voided_at')->where('created_at', '>=', $month);
+        $shops = Shop::pluck('name', 'id');
+
+        return [
+            'outstanding' => (float) Wallet::sum('balance'),
+            'holders' => Wallet::where('balance', '>', 0)->count(),
+            'topups' => (float) WalletTransaction::where('type', 'topup')->where('created_at', '>=', $month)->sum('amount'),
+            'sales' => (float) (clone $sales)->sum('total'),
+            'unsettled' => (float) WalletSale::whereNotNull('wallet_id')->whereNull('voided_at')->whereNull('settlement_id')->sum('total'),
+            'leavers' => Wallet::ofLeavers()->count(),
+            'reconcile' => WalletReconciler::lastResult(),
+            'shops' => (clone $sales)->toBase()->selectRaw('shop_id, count(*) as n, sum(total) as total')->groupBy('shop_id')->orderByDesc('total')->get()
+                ->map(fn ($r) => ['name' => $shops[$r->shop_id] ?? '-', 'count' => (int) $r->n, 'total' => (float) $r->total])->all(),
         ];
     }
 

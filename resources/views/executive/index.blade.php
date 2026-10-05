@@ -126,6 +126,28 @@
                 </div>
             </div>
         </div>
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-wallet"></i> กระเป๋าเงินและร้านค้า</div>
+            <div class="card-body row g-3 ex-tile">
+                <div class="col-6"><div class="lbl">เงินที่ถือแทนผู้ปกครอง</div><div class="fs-5 fw-bold">{{ baht($wallet['outstanding'], 0) }}</div><div class="lbl">{{ number_format($wallet['holders']) }} กระเป๋าที่มีเงิน</div></div>
+                <div class="col-6"><div class="lbl">ยอดขายเดือนนี้</div><div class="fs-5 fw-bold">{{ baht($wallet['sales'], 0) }}</div><div class="lbl">เติมเงินเดือนนี้ {{ baht($wallet['topups'], 0) }}</div></div>
+                @php($salesTotal = collect($wallet['shops'])->sum('total'))
+                @foreach ($wallet['shops'] as $shop)
+                    <div class="col-12" title="{{ $shop['name'] }}: {{ baht($shop['total']) }} บาท {{ number_format($shop['count']) }} รายการ">
+                        <div class="d-flex justify-content-between small"><span>{{ $shop['name'] }}</span><span>{{ baht($shop['total'], 0) }}</span></div>
+                        <div class="ex-bar"><span style="width:{{ $salesTotal > 0 ? $shop['total'] / $salesTotal * 100 : 0 }}%"></span></div>
+                    </div>
+                @endforeach
+                <div class="col-12 small">
+                    @if ($wallet['unsettled'] > 0)<div class="text-warning-emphasis"><i class="bi bi-cash-stack"></i> ยอดขายที่ยังไม่ได้จ่ายให้ร้านค้า {{ baht($wallet['unsettled'], 0) }} บาท</div>@endif
+                    @if ($wallet['leavers'])<div class="text-warning-emphasis"><i class="bi bi-box-arrow-left"></i> ผู้พ้นสภาพที่ยังไม่ได้คืนเงิน {{ $wallet['leavers'] }} คน</div>@endif
+                    @if (! $wallet['reconcile'])<div class="text-muted"><i class="bi bi-shield"></i> ยังไม่เคยกระทบยอด</div>
+                    @elseif ($wallet['reconcile']['count'])<div class="text-danger"><i class="bi bi-shield-exclamation"></i> กระทบยอดพบ {{ $wallet['reconcile']['count'] }} จุดที่ไม่ตรง ({{ thai_datetime($wallet['reconcile']['at']) }})</div>
+                    @else<div class="text-success"><i class="bi bi-shield-check"></i> กระทบยอดตรงกันทั้งหมด ({{ thai_datetime($wallet['reconcile']['at']) }})</div>@endif
+                    @if (auth()->user()->hasPermission('wallet.manage'))<a href="{{ route('wallets.index') }}">เปิดหน้ากระเป๋าเงิน</a>@endif
+                </div>
+            </div>
+        </div>
         <div class="card">
             <div class="card-header"><i class="bi bi-person-badge"></i> บุคลากรวันนี้</div>
             <div class="card-body row g-3 ex-tile">

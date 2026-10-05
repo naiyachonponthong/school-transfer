@@ -13,7 +13,7 @@ class FeePlanItem extends Model
 
     protected function casts(): array
     {
-        return ['amount' => 'float'];
+        return ['amount' => 'decimal:2'];
     }
 
     public function feeItem(): BelongsTo

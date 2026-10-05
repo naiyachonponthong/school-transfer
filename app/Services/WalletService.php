@@ -58,6 +58,23 @@ class WalletService
         return $total;
     }
 
+    /**
+     * หมวดสินค้าที่เจ้าของกระเป๋า (ผู้ปกครอง) ไม่ให้ซื้อ
+     * ตรวจได้เฉพาะรายการที่เลือกจากสินค้าของร้าน บรรทัดที่คนขายกดจำนวนเงินเองไม่มีหมวด จึงไม่ถูกกัน
+     */
+    private static function refuseBlocked(Wallet $wallet, array $items): void
+    {
+        $blocked = $wallet->blocked_categories ?: [];
+        $ids = array_filter(array_column($items, 'product_id'));
+        if (! $blocked || ! $ids) {
+            return;
+        }
+        $hit = ShopProduct::whereIn('id', $ids)->whereIn('category', $blocked)->first();
+        if ($hit) {
+            throw new WalletException("ผู้ปกครองตั้งไว้ไม่ให้ซื้อสินค้าหมวด {$hit->category} ({$hit->name})");
+        }
+    }
+
     /** ตัดสต็อกของสินค้าที่นับสต็อก (เรียกภายในธุรกรรม) */
     private static function takeStock(array $items): void
     {
@@ -96,6 +113,7 @@ class WalletService
             if ($wallet->daily_limit !== null && $wallet->spentToday() + $total > (float) $wallet->daily_limit) {
                 throw new WalletException('เกินวงเงินต่อวันที่ตั้งไว้ (ใช้ได้อีก '.baht(max(0, (float) $wallet->daily_limit - $wallet->spentToday())).' บาท)');
             }
+            self::refuseBlocked($wallet, $items);
             self::takeStock($items);
             $sale = WalletSale::create(['shop_id' => $shop->id, 'wallet_id' => $wallet->id, 'total' => $total, 'items' => $items,
                 'cashier_id' => $cashier->id, 'client_key' => $clientKey, 'payment' => 'wallet']);

@@ -13,6 +13,6 @@ class InvoiceInstallment extends Model
 
     protected function casts(): array
     {
-        return ['due_date' => DateOnly::class, 'amount' => 'float'];
+        return ['due_date' => DateOnly::class, 'amount' => 'decimal:2'];
     }
 }

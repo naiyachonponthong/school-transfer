@@ -14,11 +14,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Wallet extends Model
 {
-    protected $fillable = ['student_id', 'user_id', 'balance', 'daily_limit', 'is_frozen', 'low_notified_on'];
+    protected $fillable = ['student_id', 'user_id', 'balance', 'daily_limit', 'is_frozen', 'low_notified_on', 'blocked_categories'];
 
     protected function casts(): array
     {
-        return ['balance' => 'decimal:2', 'daily_limit' => 'decimal:2', 'is_frozen' => 'boolean', 'low_notified_on' => DateOnly::class];
+        return ['balance' => 'decimal:2', 'daily_limit' => 'decimal:2', 'is_frozen' => 'boolean', 'blocked_categories' => 'array', 'low_notified_on' => DateOnly::class];
     }
 
     public function student(): BelongsTo

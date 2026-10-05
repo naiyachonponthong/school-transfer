@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Storage;
 
 /**
  * ลบข้อมูลส่วนบุคคลที่พ้นระยะเวลาเก็บ (PDPA: เก็บเท่าที่จำเป็น)
- * ไม่ได้ตั้งเวลาให้รันเอง — ผู้ดูแลระบบรันเมื่อพร้อม และควรดู --dry-run ก่อนเสมอ
+ * รันเองทุกเดือนเมื่อเปิดไว้ในหน้าตั้งค่า (ค่าเริ่มต้น = ปิด) หรือผู้ดูแลระบบรันเองได้ทุกเมื่อ ควรดู --dry-run ก่อนเสมอ
  *
  *   php artisan privacy:purge --dry-run
  *   php artisan privacy:purge --admission-years=2 --scan-years=2 --log-years=3
@@ -21,12 +21,16 @@ class PurgeOldData extends Command
         {--admission-years=2 : ลบใบสมัครที่ไม่ได้มอบตัวและเก่ากว่านี้ (ปี) พร้อมไฟล์แนบ}
         {--scan-years=2 : ลบภาพสแกนกระดาษคำตอบที่เก่ากว่านี้ (ปี) คะแนนยังอยู่}
         {--log-years=3 : ลบประวัติการแก้ไขที่เก่ากว่านี้ (ปี)}
-        {--dry-run : แสดงจำนวนที่จะลบโดยไม่ลบจริง}';
+        {--dry-run : แสดงจำนวนที่จะลบโดยไม่ลบจริง}
+        {--scheduled : รันตามเวลา (ทำเฉพาะเมื่อเปิดการลบอัตโนมัติในหน้าตั้งค่า)}';
 
     protected $description = 'ลบข้อมูลส่วนบุคคลที่พ้นระยะเวลาเก็บ (ใบสมัครที่ไม่มอบตัว ภาพสแกนข้อสอบ ประวัติการใช้งาน)';
 
     public function handle(): int
     {
+        if ($this->option('scheduled') && \App\Support\Settings::get('privacy_purge_auto') !== '1') {
+            return self::SUCCESS;
+        }
         $dry = (bool) $this->option('dry-run');
         $disk = Storage::disk('local');
 

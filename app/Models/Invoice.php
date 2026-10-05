@@ -24,9 +24,9 @@ class Invoice extends Model
         return [
             'due_date' => DateOnly::class,
             'last_reminded_at' => 'datetime',
-            'total' => 'float',
-            'discount' => 'float',
-            'paid' => 'float',
+            'total' => 'decimal:2',
+            'discount' => 'decimal:2',
+            'paid' => 'decimal:2',
         ];
     }
 

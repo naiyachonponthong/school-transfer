@@ -39,6 +39,9 @@ Artisan::command('users:disable-2fa {username : ชื่อผู้ใช้�
 // กระทบยอดกระเป๋าเงินทุกคืน: ยอดคงเหลือต้องตรงกับสมุดรายการ ไม่ตรง = แจ้งผู้จัดการกระเป๋าเงิน
 Schedule::command('wallet:reconcile')->dailyAt('01:30')->withoutOverlapping();
 
+// ลบข้อมูลส่วนบุคคลที่พ้นระยะเก็บ (ทำเฉพาะเมื่อเปิดไว้ในหน้าตั้งค่า)
+Schedule::command('privacy:purge --scheduled')->monthlyOn(1, '03:45')->withoutOverlapping();
+
 // แจ้งเตือนตามเวลา
 Schedule::command('attendance:remind-unchecked')->weekdays()->at('09:00');
 Schedule::command('fees:remind')->dailyAt('10:00');

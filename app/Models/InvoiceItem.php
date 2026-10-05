@@ -17,6 +17,6 @@ class InvoiceItem extends Model
 
     protected function casts(): array
     {
-        return ['amount' => 'float'];
+        return ['amount' => 'decimal:2'];
     }
 }

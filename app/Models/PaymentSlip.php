@@ -17,7 +17,7 @@ class PaymentSlip extends Model
 
     protected function casts(): array
     {
-        return ['amount' => 'float', 'transferred_at' => 'datetime', 'reviewed_at' => 'datetime'];
+        return ['amount' => 'decimal:2', 'transferred_at' => 'datetime', 'reviewed_at' => 'datetime'];
     }
 
     public function invoice(): BelongsTo

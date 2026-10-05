@@ -122,6 +122,20 @@
                         <input class="form-check-input" type="checkbox" role="switch" name="is_frozen" value="1" id="frozen" @checked($wallet->is_frozen)>
                         <label class="form-check-label" for="frozen">ระงับการใช้จ่าย (เช่น บัตรหาย)</label>
                     </div></div>
+                    @if ($categories->isNotEmpty())
+                        <div class="col-12">
+                            <label class="form-label">หมวดสินค้าที่ไม่ให้ซื้อ</label>
+                            <div class="d-flex flex-wrap gap-3">
+                                @foreach ($categories as $i => $category)
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="blocked_categories[]" value="{{ $category }}" id="block{{ $i }}" @checked(in_array($category, $wallet->blocked_categories ?? [], true))>
+                                        <label class="form-check-label" for="block{{ $i }}">{{ $category }}</label>
+                                    </div>
+                                @endforeach
+                            </div>
+                            <div class="form-text">ร้านจะตัดเงินค่าสินค้าในหมวดที่ติ๊กไม่ได้ ใช้ได้กับสินค้าที่ร้านกดจากรายการสินค้า ถ้าร้านกดจำนวนเงินเองระบบไม่รู้หมวด</div>
+                        </div>
+                    @endif
                 </div>
                 <div class="card-footer bg-transparent text-end"><button class="btn btn-primary"><i class="bi bi-check-lg"></i> บันทึก</button></div>
             </form>

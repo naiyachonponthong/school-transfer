@@ -2,9 +2,12 @@
 
 namespace App\Support;
 
+use App\Models\Assignment;
 use App\Models\Attendance;
+use App\Models\HealthMeasurement;
 use App\Models\PeriodAttendance;
 use App\Models\Student;
+use App\Models\Submission;
 use App\Models\Term;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -23,11 +26,15 @@ class RiskScan
 
     public const WEAK_COURSES = 2;       // ในกี่รายวิชาขึ้นไป
 
+    public const HOMEWORK_MISSING = 3;   // การบ้านเลยกำหนดที่ยังไม่ส่งกี่ชิ้นขึ้นไป (ภาคเรียนนี้)
+
     public const SIGNALS = [
         'absent' => ['ขาดเรียนติดกัน', 'bi-person-x', 'danger'],
         'period' => ['เวลาเรียนรายวิชาต่ำกว่า 80%', 'bi-clock-history', 'warning'],
         'score' => ['คะแนนต่ำหลายวิชา', 'bi-graph-down', 'warning'],
         'behavior' => ['ความประพฤติต่ำกว่าเกณฑ์', 'bi-exclamation-diamond', 'danger'],
+        'homework' => ['ค้างส่งการบ้าน', 'bi-journal-x', 'warning'],
+        'bmi' => ['น้ำหนักผิดเกณฑ์', 'bi-heart-pulse', 'warning'],
     ];
 
     /**
@@ -88,6 +95,36 @@ class RiskScan
             $score = Student::BASE_BEHAVIOR + (int) $p;
             if ($score < self::BEHAVIOR_MIN) {
                 $signals[$studentId]['behavior'] = "{$score} คะแนน";
+            }
+        }
+
+        // 5) การบ้านที่เลยกำหนดแล้วยังไม่ส่ง (ครูติ๊กว่าส่งกระดาษหรือให้คะแนนแล้ว = ส่งแล้ว)
+        if ($term) {
+            $assignments = Assignment::with(['course:id,classroom_id', 'course.members:students.id'])->whereNotNull('due_at')->where('due_at', '<', now())
+                ->whereHas('course', fn ($q) => $q->where('term_id', $term->id))->get(['id', 'course_id']);
+            $done = Submission::whereIn('assignment_id', $assignments->pluck('id'))->whereIn('student_id', $ids)
+                ->where(fn ($q) => $q->whereNotNull('submitted_at')->orWhereNotNull('score'))->get(['assignment_id', 'student_id'])
+                ->groupBy('student_id')->map(fn ($rows) => $rows->pluck('assignment_id')->flip());
+            foreach ($students as $studentId => $student) {
+                $missing = $assignments->filter(function (Assignment $a) use ($student, $done) {
+                    $members = $a->course->members;
+                    // รายวิชาที่มีรายชื่อเฉพาะ (วิชาเลือก/ชุมนุม) นับเฉพาะสมาชิก นอกนั้นนับทั้งห้อง
+                    $assigned = $members->isNotEmpty() ? $members->contains('id', $student->id) : $a->course->classroom_id === $student->classroom_id;
+
+                    return $assigned && ! isset($done[$student->id][$a->id]);
+                })->count();
+                if ($missing >= self::HOMEWORK_MISSING) {
+                    $signals[$studentId]['homework'] = "{$missing} ชิ้น";
+                }
+            }
+        }
+
+        // 6) ดัชนีมวลกายจากการชั่งน้ำหนัก-วัดส่วนสูงครั้งล่าสุด อยู่ในช่วงผอมหรืออ้วน
+        $latest = HealthMeasurement::whereIn('student_id', $ids)->orderByDesc('measured_on')->orderByDesc('id')->get()->unique('student_id');
+        foreach ($latest as $m) {
+            [$label] = $m->bmiLabel();
+            if (in_array($label, ['ผอม', 'อ้วน'], true)) {
+                $signals[$m->student_id]['bmi'] = "BMI {$m->bmi()} ({$label})";
             }
         }
 

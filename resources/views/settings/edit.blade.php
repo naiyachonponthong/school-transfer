@@ -65,6 +65,10 @@
                         <span class="text-muted">รับทราบฉบับปัจจุบันแล้ว {{ \Illuminate\Support\Facades\DB::table('privacy_consents')->where('version', (int) $settings['privacy_version'])->count() }} คน</span>
                     </div>
                 </div>
+                <div class="col-12">
+                    <label class="form-check form-switch"><input type="checkbox" class="form-check-input" name="privacy_purge_auto" value="1" @checked($settings['privacy_purge_auto'] === '1')> ลบข้อมูลที่พ้นระยะเก็บอัตโนมัติทุกวันที่ 1 ของเดือน</label>
+                    <div class="form-text">ลบใบสมัครที่ไม่ได้มอบตัวและภาพสแกนกระดาษคำตอบที่เก่ากว่า 2 ปี และประวัติการแก้ไขที่เก่ากว่า 3 ปี (คะแนนและข้อมูลนักเรียนไม่ถูกลบ) · ลบแล้วกู้คืนไม่ได้นอกจากจากไฟล์สำรอง · ดูจำนวนที่จะถูกลบก่อนได้ด้วย <code>php artisan privacy:purge --dry-run</code></div>
+                </div>
             </div>
             <div class="card-header border-top" id="security"><i class="bi bi-shield-check"></i> ความปลอดภัยของบัญชี</div>
             <div class="card-body row g-3">

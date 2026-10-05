@@ -66,7 +66,7 @@ class SettingController extends Controller
             $data['privacy_version'] = (string) ((int) Settings::get('privacy_version', 1) + 1);
         }
         $data['facility_manager_ids'] = implode(',', $data['facility_manager_ids'] ?? []);
-        foreach (['line_notify_gate', 'line_notify_absent', 'gps_required', 'two_factor_required'] as $flag) {
+        foreach (['line_notify_gate', 'line_notify_absent', 'gps_required', 'two_factor_required', 'privacy_purge_auto'] as $flag) {
             $data[$flag] = $request->boolean($flag) ? '1' : '0';
         }
         // ช่อง token/secret เว้นว่าง = ใช้ค่าเดิม (ไม่แสดงค่าจริงบนหน้าเว็บ)

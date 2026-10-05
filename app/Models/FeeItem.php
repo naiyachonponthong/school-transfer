@@ -10,6 +10,6 @@ class FeeItem extends Model
 
     protected function casts(): array
     {
-        return ['default_amount' => 'float', 'is_active' => 'boolean'];
+        return ['default_amount' => 'decimal:2', 'is_active' => 'boolean'];
     }
 }
