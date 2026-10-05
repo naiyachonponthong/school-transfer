@@ -296,6 +296,28 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
         Route::delete('/assessments/{assessment}', [GradebookController::class, 'destroyAssessment'])->name('assessments.destroy');
         Route::get('/courses/{course}/export', [GradebookController::class, 'export'])->name('gradebook.export');
 
+        // งบประมาณ โครงการ และใบขอซื้อ/ขอจ้าง: ครูทุกคนขอได้ · ผู้รับผิดชอบโครงการเห็นโครงการตัวเอง · สิทธิ์ดูทั้งหมดและขั้นอนุมัติตรวจใน controller
+        Route::get('/projects', [\App\Http\Controllers\BudgetController::class, 'projects'])->name('projects.index');
+        Route::get('/projects/{project}', [\App\Http\Controllers\BudgetController::class, 'showProject'])->name('projects.show')->whereNumber('project');
+        Route::get('/purchases', [\App\Http\Controllers\PurchaseRequestController::class, 'index'])->name('purchases.index');
+        Route::get('/purchases/create', [\App\Http\Controllers\PurchaseRequestController::class, 'create'])->name('purchases.create');
+        Route::post('/purchases', [\App\Http\Controllers\PurchaseRequestController::class, 'store'])->name('purchases.store');
+        Route::get('/purchases/{purchase}', [\App\Http\Controllers\PurchaseRequestController::class, 'show'])->name('purchases.show')->whereNumber('purchase');
+        Route::post('/purchases/{purchase}/decide', [\App\Http\Controllers\PurchaseRequestController::class, 'decide'])->name('purchases.decide');
+        Route::post('/purchases/{purchase}/cancel', [\App\Http\Controllers\PurchaseRequestController::class, 'cancel'])->name('purchases.cancel');
+        Route::middleware('permission:budget.manage')->group(function () {
+            Route::get('/budget', [\App\Http\Controllers\BudgetController::class, 'index'])->name('budget.index');
+            Route::post('/budget/sources', [\App\Http\Controllers\BudgetController::class, 'storeSource'])->name('budget.sources.store');
+            Route::put('/budget/sources/{source}', [\App\Http\Controllers\BudgetController::class, 'updateSource'])->name('budget.sources.update');
+            Route::delete('/budget/sources/{source}', [\App\Http\Controllers\BudgetController::class, 'destroySource'])->name('budget.sources.destroy');
+            Route::post('/budget/steps', [\App\Http\Controllers\BudgetController::class, 'steps'])->name('budget.steps');
+            Route::post('/projects', [\App\Http\Controllers\BudgetController::class, 'storeProject'])->name('projects.store');
+            Route::put('/projects/{project}', [\App\Http\Controllers\BudgetController::class, 'updateProject'])->name('projects.update');
+            Route::post('/projects/{project}/close', [\App\Http\Controllers\BudgetController::class, 'closeProject'])->name('projects.close');
+            Route::post('/projects/{project}/lines', [\App\Http\Controllers\BudgetController::class, 'saveLine'])->name('projects.lines.save');
+            Route::delete('/project-lines/{line}', [\App\Http\Controllers\BudgetController::class, 'destroyLine'])->name('projects.lines.destroy');
+        });
+
         // ทุนการศึกษา: ครูประจำชั้นเสนอชื่อนักเรียนในห้องตัวเอง · ผู้มีสิทธิ์ scholarships.manage ตั้งทุน พิจารณา และจ่ายทุน
         Route::get('/scholarships', [\App\Http\Controllers\ScholarshipController::class, 'index'])->name('scholarships.index');
         Route::get('/scholarships/{scholarship}', [\App\Http\Controllers\ScholarshipController::class, 'show'])->name('scholarships.show')->whereNumber('scholarship');

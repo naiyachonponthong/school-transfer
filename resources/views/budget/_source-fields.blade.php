@@ -1,0 +1,4 @@
+<div class="col-md-8"><label class="form-label">ชื่อแหล่งเงิน</label><input name="name" value="{{ $s?->name }}" class="form-control" maxlength="255" required placeholder="เช่น เงินอุดหนุนรายหัว"></div>
+<div class="col-md-4"><label class="form-label">ปีงบประมาณ</label><input type="number" name="fiscal_year" value="{{ $s?->fiscal_year ?? $year }}" class="form-control" min="2500" max="2700" required></div>
+<div class="col-md-5"><label class="form-label">วงเงิน (บาท)</label><input type="number" name="amount" value="{{ $s ? (float) $s->amount : '' }}" class="form-control" min="0" step="0.01" inputmode="decimal" required></div>
+<div class="col-md-7"><label class="form-label">หมายเหตุ <span class="text-muted small">(ไม่บังคับ)</span></label><input name="note" value="{{ $s?->note }}" class="form-control" maxlength="255"></div>

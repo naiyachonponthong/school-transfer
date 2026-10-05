@@ -68,6 +68,9 @@ class Menu
                     $user->canManageFacilities() ? Booking::where('status', 'pending')->count() : 0, ['bookings.*']),
                 self::item('requisitions', 'เบิกวัสดุ', 'bi-bag-check', route('requisitions.index'), 'teal',
                     $user->canManageFacilities() ? SupplyRequisition::where('status', 'pending')->count() : 0, ['requisitions.*']),
+                self::item('purchases', 'ขอซื้อ/ขอจ้าง', 'bi-cart-check', route('purchases.index'), 'teal', \App\Models\PurchaseRequest::awaiting($user)->count(), ['purchases.*']),
+                self::item('projects', 'โครงการ', 'bi-kanban', route('projects.index'), 'teal', 0, ['projects.*']),
+                self::item('budget', 'งบประมาณ', 'bi-bank', route('budget.index'), 'teal', 0, ['budget.*']),
                 $user->canManageFacilities() ? self::item('supplies', 'คลังวัสดุ', 'bi-boxes', route('supplies.index'), 'teal', 0, ['supplies.*']) : null,
                 $user->canManageFacilities() ? self::item('assets', 'ครุภัณฑ์', 'bi-box-seam', route('assets.index'), 'teal', 0, ['assets.*']) : null,
                 $user->canManageFacilities() ? self::item('assetcheck', 'ตรวจสอบพัสดุ', 'bi-clipboard-check', route('asset-checks.index'), 'teal', 0, ['asset-checks.*']) : null,
@@ -126,7 +129,7 @@ class Menu
         // เมนูที่ต้องมีสิทธิ์ตามตำแหน่งงาน (ที่ไม่อยู่ในรายการนี้ บุคลากรทุกคนเห็น)
         $needs = [
             'gate' => 'gate.use', 'cards' => 'gate.use', 'health' => 'health.manage', 'library' => 'library.manage', 'report' => 'reports.view',
-            'invoices' => 'finance.view', 'pos' => 'pos.use', 'wallets' => 'wallet.manage', 'slips' => 'finance.manage', 'fees' => 'finance.manage', 'closing' => 'finance.manage', 'finreports' => 'finance.view', 'admissions' => 'admissions.manage', 'admissionexams' => 'admissions.manage',
+            'invoices' => 'finance.view', 'pos' => 'pos.use', 'wallets' => 'wallet.manage', 'budget' => 'budget.manage', 'slips' => 'finance.manage', 'fees' => 'finance.manage', 'closing' => 'finance.manage', 'finreports' => 'finance.view', 'admissions' => 'admissions.manage', 'admissionexams' => 'admissions.manage',
             'line' => 'settings.manage', 'backups' => 'settings.manage', 'gatedevices' => 'settings.manage', 'settings' => 'settings.manage', 'users' => 'users.manage', 'roles' => 'users.manage',
             'classrooms' => 'academics.manage', 'approvals' => 'academics.manage', 'substitutions' => 'academics.manage', 'subjects' => 'academics.manage', 'terms' => 'academics.manage', 'staff' => 'staff.manage', 'stafflist' => 'staff.manage', 'audit' => 'audit.view', 'executive' => 'executive.view',
         ];
