@@ -22,23 +22,23 @@ body { font-family: 'Sarabun', sans-serif; background: #e5e7eb; color: #111; }
 /* วางข้อความตามแบบพิมพ์ ปพ.2 ของกระทรวง (A4 แนวนอน) · ทุกตำแหน่งเป็น มม. เลื่อนทั้งแผ่นได้ด้วย --dx / --dy */
 .diploma { width: 297mm; height: 210mm; margin: 0 auto 1rem; background: #fff; position: relative; box-shadow: 0 2px 12px rgba(16,24,40,.08); overflow: hidden; font-size: 16pt; color: #111; }
 .diploma-inner { position: absolute; inset: 0; transform: translate(var(--dx, 0mm), var(--dy, 0mm)); }
-.diploma.full .diploma-inner::before { content: ""; position: absolute; inset: 9mm; border: 1.6mm double #6b7280; }
-.dp { position: absolute; white-space: nowrap; line-height: 1.2; }
-.dp-code { top: 16mm; right: 22mm; text-align: right; font-size: 13pt; line-height: 1.5; }
-.dp-emblem { top: 17mm; left: 24mm; width: 34mm; height: 40mm; border: 1px dashed #9ca3af; display: grid; place-items: center; font-size: 10pt; color: #9ca3af; text-align: center; white-space: normal; }
-.dp-head { top: 26mm; left: 0; right: 0; text-align: center; font-size: 25pt; }
-.dp-sub { top: 40mm; left: 0; right: 0; text-align: center; font-size: 18pt; }
-.dp-name { top: 53mm; left: 0; right: 0; text-align: center; font-size: 19pt; font-weight: 700; }
-.dp-row { left: 86mm; width: 190mm; display: flex; align-items: baseline; gap: 2mm; font-size: 16pt; }
-.dp-row .v { border-bottom: 1px dotted #6b7280; text-align: center; padding: 0 2mm; }
-.dp-row .v.grow { flex: 1; text-align: left; }
-.row-birth { top: 68mm; } .row-grad { top: 80mm; } .row-from { top: 92mm; } .row-prov { top: 104mm; } .row-date { top: 116mm; }
-.dp-bless { top: 128mm; left: 0; right: 0; text-align: center; }
-.dp-sign { top: 152mm; left: 0; right: 0; text-align: center; line-height: 1.6; font-size: 15pt; }
-.w-day { width: 18mm; } .w-month { width: 46mm; } .w-year { width: 30mm; } .w-prov { width: 62mm; }
+.diploma.full .diploma-inner::before { content: ""; position: absolute; inset: 6mm; border: 1.4mm double #6b7280; }
+.dp { position: absolute; white-space: nowrap; line-height: 1; }
+/* ตำแหน่งวัดจากแบบพิมพ์ ปพ.2 ตัวอย่าง: top = เส้นฐานโดยประมาณของบรรทัด (มม. จากขอบกระดาษ) */
+.dp-code { top: 12mm; right: 15mm; text-align: left; font-size: 13pt; line-height: 1.45; }
+.dp-code .num { display: inline-block; min-width: 12mm; text-align: center; }
+.dp-emblem { top: 11mm; left: 16mm; width: 36mm; height: 44mm; border: 1px dashed #9ca3af; display: grid; place-items: center; font-size: 10pt; color: #9ca3af; text-align: center; white-space: normal; line-height: 1.4; }
+.dp-head { top: 20.5mm; left: 0; right: 0; text-align: center; font-size: 24pt; }
+.dp-sub { top: 34.5mm; left: 0; right: 0; text-align: center; font-size: 17pt; }
+.dp-name { top: 49.5mm; left: 0; right: 0; text-align: center; font-size: 18pt; font-weight: 700; }
+.dp-l, .dp-v { font-size: 16pt; }
+.dp-v { text-align: center; }
+.dp-v.left { text-align: left; padding-left: 2mm; }
+.diploma.full .dp-v { border-bottom: 1px dotted #6b7280; padding-bottom: .6mm; }
+.dp-bless { top: 131mm; left: 0; right: 0; text-align: center; font-size: 16pt; }
+.dp-sign { top: 158mm; left: 0; right: 0; text-align: center; font-size: 15pt; line-height: 1.55; }
 /* พิมพ์ลงแบบฟอร์มจริง: ซ่อนทุกอย่างที่พิมพ์มาแล้วบนแบบ เหลือเฉพาะข้อมูล */
 .diploma.overlay .static { visibility: hidden; }
-.diploma.overlay .dp-row .v { border-color: transparent; }
 .diploma.overlay .dp-emblem { display: none; }
 .diploma.overlay { box-shadow: 0 0 0 1px #d1d5db inset; }
 @media print {
@@ -97,28 +97,32 @@ body { font-family: 'Sarabun', sans-serif; background: #e5e7eb; color: #111; }
     @endphp
     <div class="diploma {{ $overlay ? 'overlay' : 'full' }}" style="--dx: {{ $dx }}mm; --dy: {{ $dy }}mm">
         <div class="diploma-inner">
-            <div class="dp dp-code"><span class="static">ปพ.๒ : {{ $letter[$stage] ?? 'บ' }}</span><br><span class="static">เลขที่</span> {{ $th($i->number) }}</div>
+            <div class="dp dp-code"><span class="static">ปพ.๒ : {{ $letter[$stage] ?? 'บ' }}</span><br><span class="static">เลขที่</span> <span class="num">{{ $th($i->number) }}</span></div>
             @if ($emblem = school('pp2_emblem'))<div class="dp dp-emblem has-img static"><img src="{{ asset('storage/'.$emblem) }}" alt="ตราครุฑ"></div>@else<div class="dp dp-emblem no-print-box">ตำแหน่งตราครุฑ<br>(อัปโหลดได้ที่ตั้งค่า)</div>@endif
             <div class="dp dp-head static">กระทรวงศึกษาธิการ</div>
             <div class="dp dp-sub static">ประกาศนียบัตรฉบับนี้ให้ไว้เพื่อแสดงว่า</div>
             <div class="dp dp-name">{{ $s['name'] }}</div>
 
-            <div class="dp dp-row row-birth">
-                <span class="static">เกิดวันที่</span><span class="v w-day">{{ $bd }}</span>
-                <span class="static">เดือน</span><span class="v w-month">{{ $bm }}</span>
-                <span class="static">พ.ศ.</span><span class="v w-year">{{ $by }}</span>
-            </div>
-            <div class="dp dp-row row-grad static">{{ $finish[$stage] ?? $finish['b'] }}</div>
-            <div class="dp dp-row row-from"><span class="static">จาก</span><span class="v grow">{{ school('school_name') }}</span></div>
-            <div class="dp dp-row row-prov">
-                <span class="static">จังหวัด</span><span class="v w-prov">{{ school('school_province') }}</span>
-                <span class="static">สังกัด</span><span class="v grow">{{ school('school_affiliation') }}</span>
-            </div>
-            <div class="dp dp-row row-date">
-                <span class="static">เมื่อวันที่</span><span class="v w-day">{{ $gd }}</span>
-                <span class="static">เดือน</span><span class="v w-month">{{ $gm }}</span>
-                <span class="static">พ.ศ.</span><span class="v w-year">{{ $gy }}</span>
-            </div>
+            @php
+                // [ชื่อ, ค่า, ซ้าย(มม.), กว้าง(มม.), ชิดซ้าย] ของแต่ละช่อง แถวละบรรทัด (top มม.)
+                $line = fn ($top, $items) => [$top, $items];
+                $lines = [
+                    $line(65.5, [['เกิดวันที่', 42], [$bd, 64, 28], ['เดือน', 94], [$bm, 106, 44], ['พ.ศ.', 152], [$by, 162, 30]]),
+                    $line(91, [['จาก', 42], [school('school_name'), 52, 180, true]]),
+                    $line(104.5, [['จังหวัด', 42], [school('school_province'), 57, 56, true], ['สังกัด', 115], [school('school_affiliation'), 129, 103, true]]),
+                    $line(118, [['เมื่อวันที่', 42], [$gd, 64, 28], ['เดือน', 94], [$gm, 106, 44], ['พ.ศ.', 152], [$gy, 162, 30]]),
+                ];
+            @endphp
+            @foreach ($lines as [$top, $items])
+                @foreach ($items as $it)
+                    @if (count($it) === 2)
+                        <div class="dp dp-l static" style="top: {{ $top }}mm; left: {{ $it[1] }}mm">{{ $it[0] }}</div>
+                    @else
+                        <div class="dp dp-v {{ ! empty($it[3]) ? 'left' : '' }}" style="top: {{ $top }}mm; left: {{ $it[1] }}mm; width: {{ $it[2] }}mm">{{ $it[0] }}&nbsp;</div>
+                    @endif
+                @endforeach
+            @endforeach
+            <div class="dp dp-l static" style="top: 78mm; left: 42mm">{{ $finish[$stage] ?? $finish['b'] }}</div>
             <div class="dp dp-bless static">ขอให้มีความสุขสวัสดิ์เจริญเทอญ</div>
             <div class="dp dp-sign">
                 <span class="static">.................................................</span><br>
