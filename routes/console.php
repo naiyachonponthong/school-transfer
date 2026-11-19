@@ -3,6 +3,7 @@
 use App\Models\User;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
@@ -35,3 +36,7 @@ Schedule::call(fn () => \App\Models\GateEvent::where('occurred_at', '<', now()->
 
 // ส่งข้อความ LINE ที่ค้างในคิว (งานจำนวนมาก/การส่งซ้ำ) — ถ้ารัน `queue:work` ค้างไว้อยู่แล้ว บรรทัดนี้ไม่มีผลเสีย
 Schedule::command('queue:work --stop-when-empty --tries=3 --max-time=50')->everyMinute()->withoutOverlapping(5);
+
+// heartbeat ของ cron จริง: เขียนทุกนาทีเมื่อโฮสต์รัน schedule:run ให้ WebCron (งานตั้งเวลาผ่านเว็บ) รู้ว่าไม่ต้องทำแทน
+Schedule::call(fn () => Cache::forever('school.scheduler_last', now()->toDateTimeString()))
+    ->everyMinute()->name('school-heartbeat');

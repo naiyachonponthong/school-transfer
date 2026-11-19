@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Support\DbBackup;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -11,7 +12,7 @@ use ZipArchive;
 
 /**
  * กู้คืนจากไฟล์สำรองใน storage/app/backups (หรือระบุ path เต็ม)
- * - .sql    → นำเข้า MySQL (ทับข้อมูลปัจจุบันทั้งหมด)
+ * - .sql / .sql.gz → นำเข้า MySQL (ทับข้อมูลปัจจุบันทั้งหมด) ด้วยโปรแกรม mysql ถ้ามี ไม่มีใช้ PHP ล้วน
  * - .sqlite → แทนที่ไฟล์ฐานข้อมูล SQLite
  * - .zip    → แตกไฟล์อัปโหลดกลับไปที่ storage/app (ทับไฟล์ชื่อเดียวกัน)
  * ก่อนกู้ฐานข้อมูล ระบบสำรองข้อมูลปัจจุบันไว้ก่อนเสมอ เผื่อกู้ผิดไฟล์
@@ -30,7 +31,7 @@ class RestoreBackup extends Command
         $dir = storage_path('app/backups');
         $file = $this->argument('file');
         if (! $file) {
-            $files = collect(['sql', 'sqlite', 'zip'])->flatMap(fn ($ext) => File::glob($dir.'/*.'.$ext))->sortByDesc(fn ($f) => File::lastModified($f))->map(fn ($f) => basename($f))->values();
+            $files = collect(['sql', 'sql.gz', 'sqlite', 'zip'])->flatMap(fn ($ext) => File::glob($dir.'/*.'.$ext))->sortByDesc(fn ($f) => File::lastModified($f))->map(fn ($f) => basename($f))->values();
             if ($files->isEmpty()) {
                 $this->error('ไม่พบไฟล์สำรองใน '.$dir);
 
@@ -45,7 +46,7 @@ class RestoreBackup extends Command
             return self::FAILURE;
         }
 
-        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $ext = str_ends_with(strtolower($path), '.sql.gz') ? 'sql' : strtolower(pathinfo($path, PATHINFO_EXTENSION));
         $what = $ext === 'zip' ? 'ไฟล์อัปโหลด (ทับไฟล์ชื่อเดียวกัน)' : 'ฐานข้อมูลทั้งหมด (ข้อมูลปัจจุบันจะถูกแทนที่)';
         if (! $this->option('force') && ! $this->confirm("กู้คืน{$what} จาก ".basename($path).' ?')) {
             return self::FAILURE;
@@ -54,7 +55,7 @@ class RestoreBackup extends Command
         return match ($ext) {
             'zip' => $this->restoreFiles($path),
             'sql', 'sqlite' => $this->restoreDatabase($path, $ext),
-            default => tap(self::FAILURE, fn () => $this->error('รองรับเฉพาะไฟล์ .sql .sqlite .zip')),
+            default => tap(self::FAILURE, fn () => $this->error('รองรับเฉพาะไฟล์ .sql .sql.gz .sqlite .zip')),
         };
     }
 
@@ -80,21 +81,28 @@ class RestoreBackup extends Command
             File::copy($path, $target);
         } else {
             $db = config('database.connections.mysql');
-            $mysql = BackupDatabase::findBinary('mysql');
-            if (! $mysql) {
-                $this->error('ไม่พบโปรแกรม mysql กรุณาติดตั้ง MySQL client หรือระบุ path ด้วย env MYSQL_PATH');
+            $mysql = BackupDatabase::canRunPrograms() && ! str_ends_with(strtolower($path), '.gz') ? BackupDatabase::findBinary('mysql') : null;
+            if ($mysql) {
+                $process = new Process([$mysql, '--host='.$db['host'], '--port='.(string) $db['port'], '--user='.$db['username'], '--default-character-set=utf8mb4', $db['database']],
+                    null, $db['password'] !== '' ? ['MYSQL_PWD' => $db['password']] : null);
+                $process->setInput(fopen($path, 'r'));
+                $process->setTimeout(1800);
+                $process->run();
+                if (! $process->isSuccessful()) {
+                    $this->error('กู้คืนไม่สำเร็จ: '.trim($process->getErrorOutput()));
 
-                return self::FAILURE;
-            }
-            $process = new Process([$mysql, '--host='.$db['host'], '--port='.(string) $db['port'], '--user='.$db['username'], '--default-character-set=utf8mb4', $db['database']],
-                null, $db['password'] !== '' ? ['MYSQL_PWD' => $db['password']] : null);
-            $process->setInput(fopen($path, 'r'));
-            $process->setTimeout(1800);
-            $process->run();
-            if (! $process->isSuccessful()) {
-                $this->error('กู้คืนไม่สำเร็จ: '.trim($process->getErrorOutput()));
+                    return self::FAILURE;
+                }
+            } else {
+                // ไม่มีโปรแกรม mysql (shared hosting) หรือเป็นไฟล์ .sql.gz: นำเข้าด้วย PHP
+                try {
+                    $n = DbBackup::restore($path);
+                    $this->comment("นำเข้า {$n} คำสั่ง");
+                } catch (\Throwable $e) {
+                    $this->error('กู้คืนไม่สำเร็จ: '.$e->getMessage());
 
-                return self::FAILURE;
+                    return self::FAILURE;
+                }
             }
         }
         Artisan::call('optimize:clear');

@@ -39,7 +39,8 @@ class ProductionReadinessTest extends TestCase
     {
         $dirs = array_map('basename', glob(public_path('*'), GLOB_ONLYDIR));
         $clashes = collect(app('router')->getRoutes()->getRoutes())
-            ->filter(fn ($r) => str_starts_with($r->getActionName(), 'App\\')) // route storage/{path} ของ Laravel เองตั้งใจให้ตรงกับ public/storage
+            // route storage/{path} (storage.file = ทางสำรองเมื่อโฮสต์ห้าม symlink) ตั้งใจให้ตรงกับ public/storage
+            ->filter(fn ($r) => str_starts_with($r->getActionName(), 'App\\') && $r->getName() !== 'storage.file')
             ->map(fn ($r) => $r->uri())
             ->filter(fn ($uri) => in_array(strtok($uri, '/'), $dirs, true))
             ->values()->all();

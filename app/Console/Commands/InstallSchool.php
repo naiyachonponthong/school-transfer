@@ -3,9 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
-use App\Support\Settings;
+use App\Support\Installer;
+use App\Support\SchoolSetup;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
@@ -70,21 +70,15 @@ class InstallSchool extends Command
 
         $this->call('migrate:fresh', ['--force' => true]);
 
-        DB::transaction(function () use ($schoolName, $adminName, $username, $password) {
-            Settings::set([
-                'school_name' => $schoolName,
-                'school_short' => $schoolName,
-            ]);
-
-            User::create([
-                'name' => $adminName,
-                'username' => $username,
-                'role' => 'admin',
-                'position' => 'ผู้ดูแลระบบ',
-                'is_active' => true,
-                'password' => Hash::make($password),
-            ]);
-        });
+        SchoolSetup::school($schoolName);
+        SchoolSetup::admin($adminName, $username, Hash::make($password));
+        // ติดตั้งผ่านคำสั่งแล้ว: เขียนไฟล์ล็อกให้ตัวติดตั้งผ่านเว็บรู้ว่าระบบพร้อมใช้ (ไม่เปิดหน้า /install อีก)
+        if (! app()->runningUnitTests()) { // เทสต์ใช้ฐานข้อมูลในหน่วยความจำ ห้ามเขียนไฟล์ล็อก/.env ของเครื่องจริง
+            Installer::writeLock(Installer::codeVersion(), ['login' => $username, 'via' => 'cli']);
+            if (is_file(base_path('.env'))) {
+                Installer::setEnv(['SCHOOL_INSTALL_PENDING' => false]);
+            }
+        }
 
         if (! file_exists(public_path('storage'))) {
             $this->call('storage:link');

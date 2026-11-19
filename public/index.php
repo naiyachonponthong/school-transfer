@@ -10,6 +10,9 @@ if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php'))
     require $maintenance;
 }
 
+// ตัวติดตั้ง: ตรวจเครื่อง สร้าง .env ครั้งแรก (ต้องอยู่ก่อน autoload)
+require __DIR__.'/../bootstrap/preboot.php';
+
 // Register the Composer autoloader...
 require __DIR__.'/../vendor/autoload.php';
 

@@ -11,6 +11,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // ตัวติดตั้งผ่านเว็บ: ยังไม่ติดตั้ง > /install, โค้ดใหม่กว่าฐานข้อมูล > /update · งานตั้งเวลาผ่านเว็บเมื่อโฮสต์ไม่มี cron
+        $middleware->web(prepend: [\App\Http\Middleware\InstallGate::class], append: [\App\Http\Middleware\RunWebCron::class]);
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureRole::class,
             'permission' => \App\Http\Middleware\EnsurePermission::class,

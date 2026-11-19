@@ -24,13 +24,18 @@ class AppServiceProvider extends ServiceProvider
 
         // ขึ้นเซิร์ฟเวอร์จริงแล้ว (APP_ENV=production): บังคับ https ทุกลิงก์ที่สร้างขึ้น
         // และตั้งให้คุกกี้เซสชันส่งผ่าน https เท่านั้น กันการดักข้อมูลระหว่างทาง
-        if ($this->app->isProduction()) {
+        // โฮสต์ที่ยังไม่มี SSL: ตัวติดตั้งตั้ง FORCE_HTTPS=false ให้ (ถ้าบังคับ https ทั้งที่ไม่มี SSL จะเข้าระบบไม่ได้เลย)
+        if ($this->app->isProduction() && config('school.force_https')) {
             URL::forceScheme('https');
             config(['session.secure' => true]);
         }
 
         // ตัวเลขบนเมนู/กระดิ่ง คำนวณครั้งเดียวต่อ request แล้วแชร์ให้ทุก view
         View::composer('*', function ($view) {
+            // หน้าตัวติดตั้ง/อัปเดต/ฐานข้อมูลล่ม ทำงานก่อนมีฐานข้อมูล ห้ามแตะฐานข้อมูล
+            if (str_starts_with($view->name(), 'install.')) {
+                return;
+            }
             $request = request();
             if (! $request->attributes->has('nav_shared')) {
                 $user = auth()->user();

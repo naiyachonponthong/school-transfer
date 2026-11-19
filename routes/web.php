@@ -77,6 +77,23 @@ use App\Http\Controllers\TranscriptController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
+// ---- ตัวติดตั้งผ่านเว็บ / อัปเดตเวอร์ชัน (InstallGate คุมว่าเปิดได้เมื่อไร) ----
+Route::prefix('install')->name('install.')->controller(\App\Http\Controllers\InstallController::class)->group(function () {
+    Route::get('/', 'index')->name('index');
+    Route::get('/database', 'database')->name('database');
+    Route::post('/database/test', 'testDatabase')->middleware('throttle:30,1')->name('database.test');
+    Route::post('/database', 'saveDatabase')->middleware('throttle:30,1')->name('database.save');
+    Route::get('/school', 'school')->name('school');
+    Route::post('/school', 'saveSchool')->name('school.save');
+    Route::get('/run', 'run')->name('run');
+    Route::post('/run/{step}', 'runStep')->name('step');
+    Route::get('/done', 'done')->name('done');
+});
+Route::get('/update', [\App\Http\Controllers\UpdateController::class, 'index'])->name('update.index');
+Route::post('/update', [\App\Http\Controllers\UpdateController::class, 'run'])->middleware('auth')->name('update.run');
+// โฮสต์ที่สร้างทางลัด public/storage ไม่ได้: ส่งไฟล์ใน storage/app/public ผ่าน route นี้แทน
+Route::get('/storage/{path}', \App\Http\Controllers\StorageFileController::class)->where('path', '.*')->name('storage.file');
+
 // ---- สาธารณะ: รับสมัครนักเรียนออนไลน์ + webhook ของ LINE ----
 Route::get('/app.webmanifest', ManifestController::class)->name('app.manifest');
 Route::get('/apply', [ApplyController::class, 'start'])->name('apply');

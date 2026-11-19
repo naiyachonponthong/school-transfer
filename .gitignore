@@ -35,3 +35,11 @@ Thumbs.db
 /storage/framework/sessions/*
 /storage/logs/*
 !*/.gitignore
+
+# zip สำหรับส่งลูกค้า (สร้างด้วย make_release.py)
+/release
+
+# สถานะตัวติดตั้งผ่านเว็บของเครื่องนี้ (ไม่ commit)
+/storage/installed
+/storage/installing
+/storage/framework/webcron

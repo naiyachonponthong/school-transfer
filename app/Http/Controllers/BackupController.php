@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\File;
 /** หน้าสำรองข้อมูล (ผู้ดูแลระบบ): ดูรายการ · ดาวน์โหลดไปเก็บนอกเครื่อง · สำรองทันที — การกู้คืนทำผ่านคำสั่งเท่านั้น */
 class BackupController extends Controller
 {
-    private const EXTENSIONS = ['sql' => 'ฐานข้อมูล', 'sqlite' => 'ฐานข้อมูล', 'zip' => 'ไฟล์อัปโหลด'];
+    private const EXTENSIONS = ['sql' => 'ฐานข้อมูล', 'gz' => 'ฐานข้อมูล', 'sqlite' => 'ฐานข้อมูล', 'zip' => 'ไฟล์อัปโหลด'];
 
     public function index()
     {

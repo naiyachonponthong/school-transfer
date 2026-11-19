@@ -1,0 +1,16 @@
+# ระบบบริหารโรงเรียน : วางทั้งโฟลเดอร์ไว้ใน public_html (หรือโฟลเดอร์ย่อย) ได้เลย
+# ไฟล์นี้ส่งทุกคำขอไปที่โฟลเดอร์ public/ จึงเปิดไฟล์ระบบ (.env, storage, vendor) จากเว็บไม่ได้
+# ถ้าชี้ document root ของโดเมนไปที่ public/ ได้ ไฟล์นี้จะไม่ถูกใช้ (แบบนั้นดีที่สุด)
+# ใช้ได้กับ Apache และ LiteSpeed (cPanel, DirectAdmin, Plesk ส่วนใหญ่) ต้องเปิด mod_rewrite
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # ส่งต่อ Authorization header (API token)
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # ทุกอย่างที่ไม่ได้อยู่ใน public/ ให้ไปหาใน public/
+    RewriteRule ^$ public/ [L]
+    RewriteRule ^((?!public/).*)$ public/$1 [L,NC]
+</IfModule>

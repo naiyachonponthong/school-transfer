@@ -2,13 +2,14 @@
 
 namespace App\Console\Commands;
 
+use App\Support\DbBackup;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Symfony\Component\Process\Process;
 
 /**
- * สำรองฐานข้อมูลด้วย mysqldump (SQLite = คัดลอกไฟล์ฐานข้อมูล) เก็บไว้ที่ storage/app/backups
+ * สำรองฐานข้อมูลด้วย mysqldump (ไม่มี mysqldump = PHP ล้วนเป็น .sql.gz, SQLite = คัดลอกไฟล์ฐานข้อมูล) เก็บไว้ที่ storage/app/backups
  * เก็บย้อนหลังตามจำนวนวันที่กำหนด (ค่าเริ่มต้น 14 วัน) ไฟล์เก่ากว่านั้นลบทิ้งอัตโนมัติ
  *
  *   php artisan backup:database
@@ -18,13 +19,12 @@ class BackupDatabase extends Command
 {
     protected $signature = 'backup:database {--keep-days=14 : ลบไฟล์สำรองที่เก่ากว่านี้ (วัน)}';
 
-    protected $description = 'สำรองฐานข้อมูล (MySQL เป็น .sql / SQLite เป็นสำเนาไฟล์)';
+    protected $description = 'สำรองฐานข้อมูล (MySQL เป็น .sql หรือ .sql.gz / SQLite เป็นสำเนาไฟล์)';
 
     public function handle(): int
     {
         $conn = config('database.default');
-        $dir = storage_path('app/backups');
-        File::ensureDirectoryExists($dir);
+        $dir = DbBackup::dir();
 
         if ($conn === 'sqlite') {
             return $this->backupSqlite($dir);
@@ -35,15 +35,14 @@ class BackupDatabase extends Command
             return self::FAILURE;
         }
         $db = config('database.connections.mysql');
-        $file = self::freshName($dir, $db['database'], 'sql');
 
-        $mysqldump = self::findBinary('mysqldump');
+        // shared hosting มักไม่มี mysqldump หรือปิดการสั่งโปรแกรมภายนอก: สำรองด้วย PHP ล้วนเป็น .sql.gz แทน
+        $mysqldump = self::canRunPrograms() ? self::findBinary('mysqldump') : null;
         if (! $mysqldump) {
-            $this->error('ไม่พบโปรแกรม mysqldump กรุณาติดตั้ง MySQL client หรือระบุ path ด้วย env MYSQLDUMP_PATH');
-
-            return self::FAILURE;
+            return $this->backupWithPhp($dir, $db['database']);
         }
 
+        $file = self::freshName($dir, $db['database'], 'sql');
         $process = new Process([
             $mysqldump,
             '--host='.$db['host'], '--port='.(string) $db['port'], '--user='.$db['username'],
@@ -51,23 +50,58 @@ class BackupDatabase extends Command
             $db['database'],
         ], null, $db['password'] !== '' ? ['MYSQL_PWD' => $db['password']] : null);
         $process->setTimeout(300);
-        $process->run(function ($type, $buffer) use ($file) {
-            if ($type === Process::OUT) {
-                File::append($file, $buffer);
-            }
-        });
+        try {
+            $process->run(function ($type, $buffer) use ($file) {
+                if ($type === Process::OUT) {
+                    File::append($file, $buffer);
+                }
+            });
+        } catch (\Throwable) {
+            // สั่งโปรแกรมไม่ได้ (เช่น proc_open ถูกปิด) ไปใช้ทาง PHP
+        }
 
         if (! $process->isSuccessful() || ! File::exists($file) || File::size($file) === 0) {
             File::exists($file) && File::delete($file);
-            $this->error('สำรองข้อมูลไม่สำเร็จ: '.trim($process->getErrorOutput()));
+            $this->warn('mysqldump ใช้ไม่ได้ ('.trim((string) $process->getErrorOutput()).') สำรองด้วย PHP แทน');
 
-            return self::FAILURE;
+            return $this->backupWithPhp($dir, $db['database']);
         }
 
         $this->info('สำรองข้อมูลแล้ว: '.$file.' ('.number_format(File::size($file) / 1024, 0).' KB)');
-        self::prune($this, $dir.'/*.sql', (int) $this->option('keep-days'));
+        $this->pruneDatabaseBackups($dir);
 
         return self::SUCCESS;
+    }
+
+    private function backupWithPhp(string $dir, string $database): int
+    {
+        $file = self::freshName($dir, $database, 'sql.gz');
+        try {
+            DbBackup::create($file);
+        } catch (\Throwable $e) {
+            $this->error('สำรองข้อมูลไม่สำเร็จ: '.$e->getMessage());
+
+            return self::FAILURE;
+        }
+        $this->info('สำรองข้อมูลแล้ว: '.$file.' ('.number_format(File::size($file) / 1024, 0).' KB)');
+        $this->pruneDatabaseBackups($dir);
+
+        return self::SUCCESS;
+    }
+
+    private function pruneDatabaseBackups(string $dir): void
+    {
+        foreach (['*.sql', '*.sql.gz'] as $pattern) {
+            self::prune($this, $dir.'/'.$pattern, (int) $this->option('keep-days'));
+        }
+    }
+
+    /** โฮสต์อนุญาตให้สั่งโปรแกรมภายนอก (proc_open) หรือไม่ */
+    public static function canRunPrograms(): bool
+    {
+        $disabled = array_map('trim', explode(',', (string) ini_get('disable_functions')));
+
+        return function_exists('proc_open') && ! in_array('proc_open', $disabled, true);
     }
 
     private function backupSqlite(string $dir): int
@@ -129,7 +163,10 @@ class BackupDatabase extends Command
         foreach (glob('C:/laragon/bin/mysql/*/bin/'.$name.'.exe') as $candidate) {
             return $candidate;
         }
-        $which = trim((string) shell_exec((str_starts_with(PHP_OS, 'WIN') ? 'where ' : 'which ').$name.' 2>NUL'));
+        if (! function_exists('shell_exec')) {
+            return null;
+        }
+        $which = trim((string) @shell_exec((str_starts_with(PHP_OS, 'WIN') ? 'where ' : 'which ').$name.' 2>NUL'));
 
         return $which !== '' ? strtok($which, "\r\n") : null;
     }

@@ -33,7 +33,8 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // ไฟล์ส่วนตัวส่งผ่าน controller ที่ตรวจสิทธิ์เท่านั้น และ /storage/{path} เป็นทางสำรองของ disk public (โฮสต์ที่ห้าม symlink)
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],
