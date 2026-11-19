@@ -15,7 +15,7 @@ class SettingController extends Controller
     /** ช่องของแต่ละหัวข้อ: ฟอร์มของหัวข้อส่ง section มาด้วย จะตรวจและบันทึกเฉพาะช่องของหัวข้อนั้น */
     private const FIELDS = [
         'school' => ['school_name', 'school_short', 'school_address', 'school_affiliation', 'school_province', 'school_phone',
-            'director_name', 'academic_deputy_name', 'measurement_head_name', 'registrar_name', 'logo', 'pp2_offset_x', 'pp2_offset_y'],
+            'director_name', 'academic_deputy_name', 'measurement_head_name', 'registrar_name', 'logo', 'pp2_offset_x', 'pp2_offset_y', 'pp2_emblem'],
         'schedule' => ['late_time', 'staff_late_time', 'periods_per_day', 'grade_scale', 'school_days', 'period_times'],
         'gate' => ['gate_checkout_after', 'gps_required', 'school_lat', 'school_lng', 'gps_radius'],
         'library' => ['library_loan_days'],
@@ -78,6 +78,7 @@ class SettingController extends Controller
             'registrar_name' => ['nullable', 'string', 'max:255'],
             'pp2_offset_x' => ['nullable', 'numeric', 'between:-40,40'],
             'pp2_offset_y' => ['nullable', 'numeric', 'between:-40,40'],
+            'pp2_emblem' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:4096'],
             'late_time' => ['required', 'date_format:H:i'],
             'staff_late_time' => ['required', 'date_format:H:i'],
             'periods_per_day' => ['required', 'integer', 'min:1', 'max:12'],
@@ -156,6 +157,20 @@ class SettingController extends Controller
         }
         if ($request->boolean('website_enabled') && Settings::get('website_enabled') !== '1') {
             \App\Support\SchoolSetup::website(); // เปิดครั้งแรก: สร้างหน้าเนื้อหาตั้งต้น
+        }
+        // ตราครุฑสำหรับพิมพ์ ปพ.2 ลงกระดาษเปล่า (แบบพิมพ์จริงมีตราพิมพ์มาแล้ว)
+        if ($request->hasFile('pp2_emblem')) {
+            $old = (string) Settings::get('pp2_emblem', '');
+            $data['pp2_emblem'] = \App\Support\Artwork::store($request->file('pp2_emblem'), 1000, 'documents');
+            if ($old && str_starts_with($old, 'documents/')) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($old);
+            }
+        } else {
+            unset($data['pp2_emblem']);
+        }
+        if ($request->boolean('pp2_emblem_remove')) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete((string) Settings::get('pp2_emblem', ''));
+            $data['pp2_emblem'] = '';
         }
         if ($request->hasFile('logo')) {
             $data['logo'] = $request->file('logo')->store('school', 'public');

@@ -34,6 +34,11 @@
         <div class="row g-3">
             <div class="col-md-3"><label class="form-label">เลื่อนซ้าย (-) / ขวา (+) มม.</label><input type="number" step="0.5" name="pp2_offset_x" value="{{ old('pp2_offset_x', $settings['pp2_offset_x']) }}" class="form-control @error('pp2_offset_x') is-invalid @enderror"></div>
             <div class="col-md-3"><label class="form-label">เลื่อนขึ้น (-) / ลง (+) มม.</label><input type="number" step="0.5" name="pp2_offset_y" value="{{ old('pp2_offset_y', $settings['pp2_offset_y']) }}" class="form-control @error('pp2_offset_y') is-invalid @enderror"></div>
+            <div class="col-md-6"><label class="form-label">ตราครุฑ (พิมพ์ลงกระดาษเปล่า)</label>
+                <div class="d-flex gap-2 align-items-center">@if ($settings['pp2_emblem'])<img src="{{ asset('storage/'.$settings['pp2_emblem']) }}" alt="" style="height:44px">@endif
+                <input type="file" name="pp2_emblem" accept="image/png,image/jpeg,image/webp" class="form-control @error('pp2_emblem') is-invalid @enderror"></div>
+                @if ($settings['pp2_emblem'])<label class="form-check small mt-1"><input type="checkbox" class="form-check-input" name="pp2_emblem_remove" value="1"> ลบตราที่อัปโหลด</label>@endif
+                <div class="form-text">ใช้ไฟล์ PNG พื้นหลังโปร่งใส แสดงเฉพาะ "ฉบับตรวจสอบ" โหมดพิมพ์ลงแบบฟอร์มจริงไม่พิมพ์ตรา เพราะมีบนแบบแล้ว</div></div>
             <div class="col-md-6 small text-muted d-flex align-items-end">พิมพ์โหมด "พิมพ์ลงแบบฟอร์มจริง" ลงกระดาษเปล่าหนึ่งแผ่น ซ้อนกับแบบพิมพ์ ปพ.2 แล้วปรับจนข้อความตรงช่อง ใช้กับเครื่องพิมพ์เครื่องเดิม</div>
         </div>
     </div>
