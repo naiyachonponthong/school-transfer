@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /** เอกสารที่ออกให้นักเรียน (ทะเบียนคุม) */
 class DocumentIssue extends Model
 {
-    public const TYPES = ['pp1' => 'ปพ.1 ระเบียนแสดงผลการเรียน', 'pp7' => 'ปพ.7 ใบรับรองผลการศึกษา'];
+    public const TYPES = ['pp1' => 'ปพ.1 ระเบียนแสดงผลการเรียน', 'pp2' => 'ปพ.2 ประกาศนียบัตร', 'pp7' => 'ปพ.7 ใบรับรองผลการศึกษา'];
 
     protected $fillable = ['type', 'year', 'number', 'student_id', 'student_name', 'purpose', 'issued_on', 'snapshot', 'issued_by', 'form_series', 'form_number'];
 

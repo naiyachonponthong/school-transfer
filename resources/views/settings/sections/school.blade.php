@@ -29,5 +29,13 @@
             <div class="col-12 small text-muted">พิมพ์ลงในเอกสาร ปพ.1 ปพ.5 ปพ.6 ปพ.7 เว้นว่างได้ จะเป็นเส้นประให้เขียนเอง</div>
         </div>
     </div>
+    <div class="set-block">
+        <div class="set-block-title"><i class="bi bi-arrows-move"></i>ตำแหน่งพิมพ์ ปพ.2 ลงแบบพิมพ์จริง</div>
+        <div class="row g-3">
+            <div class="col-md-3"><label class="form-label">เลื่อนซ้าย (-) / ขวา (+) มม.</label><input type="number" step="0.5" name="pp2_offset_x" value="{{ old('pp2_offset_x', $settings['pp2_offset_x']) }}" class="form-control @error('pp2_offset_x') is-invalid @enderror"></div>
+            <div class="col-md-3"><label class="form-label">เลื่อนขึ้น (-) / ลง (+) มม.</label><input type="number" step="0.5" name="pp2_offset_y" value="{{ old('pp2_offset_y', $settings['pp2_offset_y']) }}" class="form-control @error('pp2_offset_y') is-invalid @enderror"></div>
+            <div class="col-md-6 small text-muted d-flex align-items-end">พิมพ์โหมด "พิมพ์ลงแบบฟอร์มจริง" ลงกระดาษเปล่าหนึ่งแผ่น ซ้อนกับแบบพิมพ์ ปพ.2 แล้วปรับจนข้อความตรงช่อง ใช้กับเครื่องพิมพ์เครื่องเดิม</div>
+        </div>
+    </div>
     <div class="set-actions"><button class="btn btn-primary"><i class="bi bi-save"></i>บันทึกข้อมูลโรงเรียน</button></div>
 </form>

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BehaviorRecord extends Model
 {
-    protected $fillable = ['student_id', 'behavior_rule_id', 'title', 'points', 'note', 'date', 'recorded_by'];
+    protected $fillable = ['student_id', 'behavior_rule_id', 'title', 'points', 'note', 'date', 'recorded_by', 'auto_key'];
 
     protected function casts(): array
     {

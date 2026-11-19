@@ -171,6 +171,9 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
     Route::delete('/profile/line', [LineController::class, 'unlink'])->name('profile.line.unlink');
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');
     Route::get('/transcript/{student}', [TranscriptController::class, 'show'])->name('transcript');
+    // ระเบียนสะสม ปพ.8 (ครูและบุคลากร) รายคน / ทั้งห้อง
+    Route::get('/students/{student}/pp8', [\App\Http\Controllers\CumulativeRecordController::class, 'show'])->name('pp8.show');
+    Route::get('/classrooms/{classroom}/pp8', [\App\Http\Controllers\CumulativeRecordController::class, 'classroom'])->name('pp8.classroom');
     Route::post('/invoices/{invoice}/slips', [SlipController::class, 'store'])->name('slips.store');
 
     // แชท (ครู ↔ ผู้ปกครอง) — นักเรียนไม่ใช้
@@ -595,6 +598,8 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
         // ปพ.3 รายงานผู้สำเร็จการศึกษา
         Route::get('/graduates', [GraduateController::class, 'index'])->name('graduates.index')->middleware('permission:academics.manage');
         Route::post('/graduates/approve', [GraduateController::class, 'approve'])->name('graduates.approve')->middleware('permission:academics.manage');
+        Route::post('/graduates/pp2', [\App\Http\Controllers\DiplomaController::class, 'issue'])->name('diplomas.issue')->middleware('permission:academics.manage');
+        Route::get('/diplomas/print', [\App\Http\Controllers\DiplomaController::class, 'print'])->name('diplomas.print')->middleware('permission:academics.manage');
 
         Route::post('/courses', [CourseController::class, 'store'])->name('courses.store')->middleware('permission:academics.manage');
         Route::post('/courses/bulk', [CourseController::class, 'bulk'])->name('courses.bulk')->middleware('permission:academics.manage');

@@ -46,6 +46,10 @@ class Settings
         'website_hours' => 'จันทร์ถึงศุกร์ 08:00 - 16:30 น.',
         'website_facebook' => '', 'website_youtube' => '', 'website_line' => '',
         'website_map_url' => '',         // ลิงก์ Google Maps (แชร์ > ฝังแผนที่ หรือ ลิงก์ปกติ)
+        // หักคะแนนความประพฤติอัตโนมัติ (App\Support\AutoBehavior): every 0 = ปิด
+        'behavior_auto_late_every' => '0', 'behavior_auto_late_points' => '5',
+        'behavior_auto_absent_every' => '0', 'behavior_auto_absent_points' => '5',
+        'pp2_offset_x' => '0', 'pp2_offset_y' => '0', // เลื่อนตำแหน่งพิมพ์ ปพ.2 ลงแบบพิมพ์จริง (มม.)
         'brand_credit' => '',  // เครดิตท้ายหน้า (App\Support\Brand) ว่าง = ไม่แสดง
         // รูปภาพระบบ (App\Support\Artwork) ว่าง = ภาพเริ่มต้น
         'artwork_dashboard' => '', 'artwork_login' => '', 'artwork_pages' => '', 'artwork_settings' => '', 'artwork_website_footer' => '',

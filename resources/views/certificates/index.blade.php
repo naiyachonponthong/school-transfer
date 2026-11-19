@@ -22,6 +22,7 @@
                     <td class="small text-muted">{{ $i->issuer?->name ?? '-' }}</td>
                     <td class="text-end">
                         @if ($i->type === 'pp7')<a href="{{ route('certificates.show', $i) }}" class="btn btn-sm btn-light border"><i class="bi bi-printer"></i> พิมพ์ซ้ำ</a>
+                        @elseif ($i->type === 'pp2')<a href="{{ route('diplomas.print', ['ids' => $i->id]) }}" class="btn btn-sm btn-light border"><i class="bi bi-printer"></i> พิมพ์ซ้ำ</a>
                         @elseif ($i->student_id)<a href="{{ route('transcript', ['student' => $i->student_id, 'stage' => $i->snapshot['stage'] ?? null]) }}" class="btn btn-sm btn-light border"><i class="bi bi-file-earmark-text"></i> ปพ.1</a>@endif
                     </td>
                 </tr>

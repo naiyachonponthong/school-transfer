@@ -99,8 +99,22 @@
     @if ($eligible->isNotEmpty())
         <div class="d-flex gap-2 align-items-center mt-3 no-print">
             <button class="btn btn-success"><i class="bi bi-mortarboard"></i> อนุมัติการจบคนที่เลือก</button>
+            <button type="button" class="btn btn-light border" id="pp2Btn"><i class="bi bi-award"></i> ออก / พิมพ์ ปพ.2 คนที่เลือก</button>
             <span class="small text-muted">เปลี่ยนสถานะเป็น "จบการศึกษา" และบันทึกวันอนุมัติการจบ (ใช้ใน ปพ.1 และ ปพ.7) · เลือกได้เฉพาะคนที่ผ่านเกณฑ์</span>
         </div>
     @endif
 </form>
+<form method="POST" action="{{ route('diplomas.issue') }}" id="pp2Form" class="d-none">@csrf<input type="hidden" name="level" value="{{ $level }}"></form>
+@push('scripts')
+<script>
+document.getElementById('pp2Btn')?.addEventListener('click', () => {
+  const f = document.getElementById('pp2Form');
+  f.querySelectorAll('[name="student_ids[]"]').forEach((e) => e.remove());
+  const ids = [...document.querySelectorAll('.pick-grad:checked')].map((c) => c.value);
+  if (!ids.length) { alert('เลือกนักเรียนที่อนุมัติการจบแล้วอย่างน้อย 1 คน'); return; }
+  ids.forEach((id) => { const i = document.createElement('input'); i.type = 'hidden'; i.name = 'student_ids[]'; i.value = id; f.append(i); });
+  f.submit();
+});
+</script>
+@endpush
 @endsection

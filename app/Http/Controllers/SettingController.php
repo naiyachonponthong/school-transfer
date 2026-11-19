@@ -15,7 +15,7 @@ class SettingController extends Controller
     /** ช่องของแต่ละหัวข้อ: ฟอร์มของหัวข้อส่ง section มาด้วย จะตรวจและบันทึกเฉพาะช่องของหัวข้อนั้น */
     private const FIELDS = [
         'school' => ['school_name', 'school_short', 'school_address', 'school_affiliation', 'school_province', 'school_phone',
-            'director_name', 'academic_deputy_name', 'measurement_head_name', 'registrar_name', 'logo'],
+            'director_name', 'academic_deputy_name', 'measurement_head_name', 'registrar_name', 'logo', 'pp2_offset_x', 'pp2_offset_y'],
         'schedule' => ['late_time', 'staff_late_time', 'periods_per_day', 'grade_scale', 'school_days', 'period_times'],
         'gate' => ['gate_checkout_after', 'gps_required', 'school_lat', 'school_lng', 'gps_radius'],
         'library' => ['library_loan_days'],
@@ -25,6 +25,7 @@ class SettingController extends Controller
         'line-login' => ['line_login_channel_id', 'line_login_channel_secret'],
         'privacy' => ['privacy_notice'],
         'appearance' => ['theme_color', 'brand_credit'],
+        'behavior' => ['behavior_auto_late_every', 'behavior_auto_late_points', 'behavior_auto_absent_every', 'behavior_auto_absent_points'],
         'website' => ['website_enabled', 'website_tagline', 'website_greeting', 'website_director_photo', 'website_intro', 'website_video', 'website_email', 'website_hours', 'website_facebook', 'website_youtube', 'website_line', 'website_map_url'],
     ];
 
@@ -75,6 +76,8 @@ class SettingController extends Controller
             'academic_deputy_name' => ['nullable', 'string', 'max:255'],
             'measurement_head_name' => ['nullable', 'string', 'max:255'],
             'registrar_name' => ['nullable', 'string', 'max:255'],
+            'pp2_offset_x' => ['nullable', 'numeric', 'between:-40,40'],
+            'pp2_offset_y' => ['nullable', 'numeric', 'between:-40,40'],
             'late_time' => ['required', 'date_format:H:i'],
             'staff_late_time' => ['required', 'date_format:H:i'],
             'periods_per_day' => ['required', 'integer', 'min:1', 'max:12'],
@@ -87,6 +90,10 @@ class SettingController extends Controller
             'logo' => ['nullable', 'image', 'max:2048'],
             'theme_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'brand_credit' => ['nullable', 'string', 'max:150'],
+            'behavior_auto_late_every' => ['nullable', 'integer', 'min:0', 'max:50'],
+            'behavior_auto_late_points' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'behavior_auto_absent_every' => ['nullable', 'integer', 'min:0', 'max:50'],
+            'behavior_auto_absent_points' => ['nullable', 'integer', 'min:0', 'max:100'],
             'website_tagline' => ['nullable', 'string', 'max:200'],
             'website_greeting' => ['nullable', 'string', 'max:5000'],
             'website_director_photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
@@ -164,6 +171,16 @@ class SettingController extends Controller
                 ->mapWithKeys(fn ($k) => [$k => in_array($k, self::SECRETS, true) ? ['***', '***'] : [$old[$k] ?? null, $data[$k]]])->all());
         }
         Settings::set($data);
+
+        // เปลี่ยนเกณฑ์หักคะแนนอัตโนมัติ: คำนวณภาคเรียนปัจจุบันใหม่ทั้งหมด (ไม่ส่ง LINE ย้อนหลังให้ผู้ปกครอง)
+        if ($request->input('section') === 'behavior' && ($term = \App\Models\Term::current()) && $term->start_date && $term->end_date) {
+            \App\Models\Attendance::whereIn('status', array_keys(\App\Support\AutoBehavior::KINDS))
+                ->whereBetween('date', [$term->start_date->toDateString(), $term->end_date->toDateString()])
+                ->distinct()->pluck('student_id')
+                ->merge(\App\Models\BehaviorRecord::where('auto_key', 'like', '%:'.$term->id.':%')->distinct()->pluck('student_id'))
+                ->unique()
+                ->each(fn ($id) => \App\Support\AutoBehavior::sync((int) $id, $term->start_date->toDateString(), false));
+        }
 
         return $this->toWorkspace()->with('success', 'บันทึกการตั้งค่าแล้ว');
     }

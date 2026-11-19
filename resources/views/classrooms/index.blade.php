@@ -33,6 +33,7 @@
                     <td><select form="{{ $f }}" name="homeroom_teacher_id" class="form-select form-select-sm"><option value="">-</option>@foreach ($teachers as $t)<option value="{{ $t->id }}" @selected($c->homeroom_teacher_id === $t->id)>{{ $t->name }}</option>@endforeach</select></td>
                     <td><select form="{{ $f }}" name="co_teacher_id" class="form-select form-select-sm"><option value="">-</option>@foreach ($teachers as $t)<option value="{{ $t->id }}" @selected($c->co_teacher_id === $t->id)>{{ $t->name }}</option>@endforeach</select></td>
                     <td class="text-nowrap text-end">
+                        @if ($c->students_count > 0)<a href="{{ route('pp8.classroom', $c) }}" class="btn btn-sm btn-light border" title="พิมพ์ระเบียนสะสม ปพ.8 ทั้งห้อง">ปพ.8</a>@endif
                         <form id="{{ $f }}" method="POST" action="{{ route('classrooms.update', $c) }}" class="d-inline">
                             @csrf @method('PUT')
                             <button class="btn btn-sm btn-light border" title="บันทึก"><i class="bi bi-check-lg"></i></button>

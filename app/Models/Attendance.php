@@ -24,6 +24,23 @@ class Attendance extends Model
         return ['date' => DateOnly::class];
     }
 
+    protected static function booted(): void
+    {
+        // สถานะการมาเรียนเปลี่ยน (ครูเช็กชื่อ สแกนหน้าประตู อนุมัติใบลา) > คำนวณการหักคะแนนความประพฤติอัตโนมัติใหม่
+        $sync = function (Attendance $a) {
+            if (! \App\Support\AutoBehavior::enabled() && ! \App\Models\BehaviorRecord::whereNotNull('auto_key')->where('student_id', $a->student_id)->exists()) {
+                return; // ปิดอยู่และไม่เคยหักไว้ ไม่ต้องทำอะไร
+            }
+            rescue(fn () => \App\Support\AutoBehavior::sync($a->student_id, $a->date->toDateString()), null, true);
+        };
+        static::saved(function (Attendance $a) use ($sync) {
+            if ($a->wasRecentlyCreated || $a->wasChanged(['status', 'date'])) {
+                $sync($a);
+            }
+        });
+        static::deleted($sync);
+    }
+
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class);

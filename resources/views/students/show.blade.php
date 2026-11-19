@@ -27,6 +27,7 @@
         <div class="d-flex gap-2 flex-wrap">
             <a href="{{ route('report-card', ['student' => $student, 'term' => $term?->id]) }}" class="btn btn-light border"><i class="bi bi-file-earmark-text"></i> สมุดพก</a>
             <a href="{{ route('transcript', $student) }}" class="btn btn-light border"><i class="bi bi-journal-text"></i> ปพ.1</a>
+            <a href="{{ route('pp8.show', $student) }}" class="btn btn-light border"><i class="bi bi-journal-richtext"></i> ปพ.8</a>
             @if (auth()->user()->isAdmin())<a href="{{ route('certificates.create', $student) }}" class="btn btn-light border"><i class="bi bi-file-earmark-check"></i> ปพ.7</a>
                 <a href="{{ route('audit.index', ['subject' => 'Student:'.$student->id]) }}" class="btn btn-light border" title="ประวัติการแก้ไข"><i class="bi bi-clock-history"></i></a>@endif
             <a href="{{ route('portfolio.show', $student) }}" class="btn btn-light border"><i class="bi bi-folder2-open"></i> แฟ้มผลงาน</a>
