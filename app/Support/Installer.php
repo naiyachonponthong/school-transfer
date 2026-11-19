@@ -17,7 +17,19 @@ class Installer
 
     public static function lockPath(): string
     {
+        // เฉพาะตอนรันชุดทดสอบ: ย้ายไฟล์ล็อกไปไฟล์ชั่วคราว ไม่แตะไฟล์ล็อกจริงของเครื่อง
+        $test = config('school.test_lock_path');
+        if ($test && \App\Support\License\Guard::testing()) {
+            return (string) $test;
+        }
+
         return storage_path('installed');
+    }
+
+    /** ล้างค่าที่อ่านจากไฟล์ล็อกไว้ (ไฟล์ถูกแก้จากที่อื่น หรือในเทสต์) */
+    public static function flushLock(): void
+    {
+        static::$lock = null;
     }
 
     public static function markerPath(): string
@@ -88,7 +100,11 @@ class Installer
         try {
             DB::connection()->getPdo();
             if (Schema::hasTable('users') && DB::table('users')->exists()) {
-                static::writeLock(static::pendingMigrations() ? '0.0.0' : static::codeVersion(), ['adopted' => true]);
+                // ระบบเดิมก่อนมี License: ให้เวลาไปหาคีย์ (หน้า /update จะขอทดลองใช้ให้อัตโนมัติด้วย)
+                static::writeLock(static::pendingMigrations() ? '0.0.0' : static::codeVersion(), [
+                    'adopted' => true,
+                    'upgrade_grace_until' => time() + (int) config('license.upgrade_grace_days', 30) * 86400,
+                ]);
 
                 return true;
             }
@@ -167,7 +183,7 @@ class Installer
         foreach (['mbstring', 'openssl', 'tokenizer', 'ctype', 'fileinfo', 'dom', 'xml', 'simplexml', 'xmlreader', 'xmlwriter', 'gd', 'zip', 'zlib', 'iconv'] as $e) {
             $ext[] = $item($e, extension_loaded($e), extension_loaded($e) ? '' : 'ยังไม่เปิด');
         }
-        foreach (['intl' => 'จัดรูปแบบตัวเลขและวันที่', 'curl' => 'เชื่อมระบบภายนอก', 'bcmath' => 'คำนวณเลขทศนิยมละเอียด'] as $e => $why) {
+        foreach (['intl' => 'จัดรูปแบบตัวเลขและวันที่', 'curl' => 'เชื่อมระบบภายนอก', 'bcmath' => 'คำนวณเลขทศนิยมละเอียด', 'sodium' => 'ตรวจลายเซ็น License ในเครื่อง'] as $e => $why) {
             $ext[] = $item($e, extension_loaded($e), extension_loaded($e) ? '' : 'แนะนำให้เปิด ('.$why.')', false);
         }
 

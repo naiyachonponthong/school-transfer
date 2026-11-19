@@ -75,7 +75,7 @@ class AdmissionFormBuilderTest extends TestCase
     public function test_settings_page_links_to_builder_and_does_not_close_admissions(): void
     {
         Settings::set(['admission_open' => '1']);
-        $this->actingAs($this->admin())->get('/settings')->assertSee(route('admissions.form'));
+        $this->actingAs($this->admin())->get('/settings?s=library')->assertSee(route('admissions.form'));
         $this->assertTrue(AdmissionForm::isOpen());
     }
 

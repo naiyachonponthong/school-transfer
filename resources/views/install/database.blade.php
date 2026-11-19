@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="inst-head">
-    <div class="eyebrow">ขั้นตอนที่ 2 จาก 4</div>
+    <div class="eyebrow">ขั้นตอนที่ 3 จาก 5</div>
     <h1>เชื่อมต่อฐานข้อมูล</h1>
     <p>กรอกข้อมูลฐานข้อมูลที่สร้างไว้ในแผงควบคุมโฮสต์ แล้วกดทดสอบก่อนไปต่อ</p>
 </div>
@@ -54,7 +54,7 @@
     <div id="dbResult" class="d-none"></div>
 
     <div class="inst-actions">
-        <a href="{{ route('install.index') }}" class="btn btn-light btn-lg"><i class="bi bi-arrow-left"></i>ย้อนกลับ</a>
+        <a href="{{ route('install.license') }}" class="btn btn-light btn-lg"><i class="bi bi-arrow-left"></i>ย้อนกลับ</a>
         <div class="d-flex gap-2 flex-wrap">
             <button type="button" class="btn btn-soft btn-lg" id="dbTest"><i class="bi bi-plug"></i>ทดสอบการเชื่อมต่อ</button>
             <button type="submit" class="btn btn-primary btn-lg">บันทึกและไปต่อ <i class="bi bi-arrow-right"></i></button>

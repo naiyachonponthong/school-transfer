@@ -9,5 +9,5 @@
             <div class="section-hero-actions">{{ $slot }}</div>
         @endif
     </div>
-    <img class="section-hero-art" src="{{ asset('assets/img/school-pages.png') }}" alt="" aria-hidden="true" width="1536" height="1024">
+    <img class="section-hero-art" src="{{ \App\Support\Artwork::url('pages') }}" alt="" aria-hidden="true" width="1536" height="1024">
 </section>

@@ -80,6 +80,8 @@ use Illuminate\Support\Facades\Route;
 // ---- ตัวติดตั้งผ่านเว็บ / อัปเดตเวอร์ชัน (InstallGate คุมว่าเปิดได้เมื่อไร) ----
 Route::prefix('install')->name('install.')->controller(\App\Http\Controllers\InstallController::class)->group(function () {
     Route::get('/', 'index')->name('index');
+    Route::get('/license', 'license')->name('license');
+    Route::post('/license', 'saveLicense')->middleware('throttle:20,1')->name('license.save');
     Route::get('/database', 'database')->name('database');
     Route::post('/database/test', 'testDatabase')->middleware('throttle:30,1')->name('database.test');
     Route::post('/database', 'saveDatabase')->middleware('throttle:30,1')->name('database.save');
@@ -589,6 +591,13 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
         Route::post('/settings/demo', [\App\Http\Controllers\DemoController::class, 'settings'])->name('demo.settings')->middleware('permission:settings.manage');
         Route::post('/settings/demo/snapshot', [\App\Http\Controllers\DemoController::class, 'snapshot'])->name('demo.snapshot')->middleware('permission:settings.manage');
         Route::post('/settings/demo/reset', [\App\Http\Controllers\DemoController::class, 'reset'])->name('demo.reset')->middleware('permission:settings.manage');
+        // License (LicenseGate ยกเว้น settings/license* ให้ผู้ดูแลกรอกคีย์ได้แม้ระบบถูกล็อก)
+        Route::get('/settings/license', [SettingController::class, 'license'])->name('settings.license')->middleware('permission:settings.manage');
+        Route::post('/settings/license/activate', [\App\Http\Controllers\LicenseController::class, 'activate'])->name('settings.license.activate')->middleware(['permission:settings.manage', 'throttle:10,1']);
+        Route::post('/settings/license/trial', [\App\Http\Controllers\LicenseController::class, 'trial'])->name('settings.license.trial')->middleware(['permission:settings.manage', 'throttle:5,1']);
+        Route::post('/settings/license/refresh', [\App\Http\Controllers\LicenseController::class, 'refresh'])->name('settings.license.refresh')->middleware(['permission:settings.manage', 'throttle:10,1']);
+        Route::post('/settings/license/integrity', [\App\Http\Controllers\LicenseController::class, 'integrity'])->name('settings.license.integrity')->middleware(['permission:settings.manage', 'throttle:10,1']);
+        Route::post('/settings/images', [SettingController::class, 'saveImages'])->name('settings.images')->middleware('permission:settings.manage');
         Route::post('/settings/rules', [SettingController::class, 'storeRule'])->name('settings.rules.store')->middleware('permission:settings.manage');
         Route::put('/settings/rules/{rule}', [SettingController::class, 'updateRule'])->name('settings.rules.update')->middleware('permission:settings.manage');
         Route::delete('/settings/rules/{rule}', [SettingController::class, 'destroyRule'])->name('settings.rules.destroy')->middleware('permission:settings.manage');

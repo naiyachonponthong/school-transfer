@@ -5,7 +5,7 @@
     $bad = collect($groups)->flatten(1)->where('required', true)->where('ok', false)->count();
 @endphp
 <div class="inst-head">
-    <div class="eyebrow">ขั้นตอนที่ 1 จาก 4</div>
+    <div class="eyebrow">ขั้นตอนที่ 1 จาก 5</div>
     <h1>ตรวจความพร้อมของโฮสต์</h1>
     <p>ระบบตรวจให้อัตโนมัติ รายการสีแดงต้องแก้ก่อนไปต่อ สีเหลืองเป็นคำแนะนำ</p>
 </div>
@@ -43,7 +43,7 @@
 <div class="inst-actions">
     <a href="{{ route('install.index') }}" class="btn btn-light btn-lg"><i class="bi bi-arrow-repeat"></i>ตรวจอีกครั้ง</a>
     @if ($ok)
-        <a href="{{ route('install.database') }}" class="btn btn-primary btn-lg" id="goDb">ไปต่อ: ตั้งค่าฐานข้อมูล <i class="bi bi-arrow-right"></i></a>
+        <a href="{{ route('install.license') }}" class="btn btn-primary btn-lg" id="goDb">ไปต่อ: License <i class="bi bi-arrow-right"></i></a>
     @else
         <button class="btn btn-primary btn-lg" disabled>แก้รายการสีแดงก่อน</button>
     @endif

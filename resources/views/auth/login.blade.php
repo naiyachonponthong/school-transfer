@@ -23,7 +23,7 @@
             <h2 class="fw-bold mb-3">ทุกงานของโรงเรียน<br>จบในที่เดียว ง่ายกว่าเดิม</h2>
             <p>เชื่อมครู นักเรียน และผู้ปกครองไว้ในพื้นที่เดียว</p>
         </div>
-        <img class="login-hero-art" src="{{ asset('assets/img/school-community-hero.png') }}" alt="" aria-hidden="true" width="1536" height="1024" fetchpriority="high">
+        <img class="login-hero-art" src="{{ \App\Support\Artwork::url('login') }}" alt="" aria-hidden="true" width="1536" height="1024" fetchpriority="high">
         <div class="login-hero-footer">
             <span><i class="bi bi-check2-square"></i> เช็คชื่อรวดเร็ว</span>
             <span><i class="bi bi-journal-check"></i> คะแนนอัตโนมัติ</span>

@@ -40,3 +40,42 @@ Schedule::command('queue:work --stop-when-empty --tries=3 --max-time=50')->every
 // heartbeat ของ cron จริง: เขียนทุกนาทีเมื่อโฮสต์รัน schedule:run ให้ WebCron (งานตั้งเวลาผ่านเว็บ) รู้ว่าไม่ต้องทำแทน
 Schedule::call(fn () => Cache::forever('school.scheduler_last', now()->toDateTimeString()))
     ->everyMinute()->name('school-heartbeat');
+
+
+// License: ตรวจกับศูนย์ License + สแกนไฟล์ระบบแล้วรายงานไฟล์ที่ถูกแก้ (App\Support\License\Daily)
+Artisan::command('license:daily', function () {
+    \App\Support\License\Daily::run();
+    $this->info('ตรวจ License และไฟล์ระบบแล้ว');
+})->purpose('ตรวจ License กับศูนย์ License และรายงานไฟล์ระบบที่ถูกแก้');
+Schedule::command('license:daily')->dailyAt('04:20')->withoutOverlapping();
+
+// รายการไฟล์ของชุดติดตั้ง: --write ใช้ตอน build (make_release.py) ไม่ใส่ = ตรวจไฟล์ในเครื่องนี้
+Artisan::command('school:integrity
+    {--write : สร้างรายการไฟล์ใหม่ (ใช้ตอน build)}
+    {--root= : โฟลเดอร์ที่จะไล่หาไฟล์ ว่างไว้คือโปรเจกต์นี้}
+    {--out= : ไฟล์ปลายทางของรายการไฟล์}', function () {
+    if ($this->option('write')) {
+        $root = rtrim((string) ($this->option('root') ?: base_path()), '/\\');
+        $manifest = \App\Support\License\Integrity::build($root);
+        $path = (string) ($this->option('out') ?: $root.'/'.\App\Support\License\Integrity::MANIFEST);
+        file_put_contents($path, json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        $this->info('เขียนรายการไฟล์ '.count($manifest['files']).' ไฟล์ลง '.$path);
+        $this->line('ขั้นต่อไป เซ็นไฟล์นี้ที่ร้าน: php artisan license:sign '.$path);
+
+        return 0;
+    }
+
+    \App\Support\License\Integrity::flush();
+    $status = \App\Support\License\Integrity::status();
+    $this->line(match ($status['state']) {
+        'ok' => '<fg=green>ไฟล์ครบและตรงกับชุดที่ผู้พัฒนาส่งมา ('.$status['checked'].' ไฟล์)</>',
+        'changed' => '<fg=yellow>มีไฟล์ถูกแก้ '.count($status['changed']).' ไฟล์ (ไม่ใช่ไฟล์วิกฤต ระบบยังใช้งานได้)</>',
+        'tampered' => '<fg=red>ไฟล์วิกฤตถูกแก้ '.count($status['critical']).' ไฟล์ ระบบจะถูกล็อก</>',
+        default => '<fg=yellow>ตรวจไม่ได้: '.$status['reason'].'</>',
+    });
+    foreach (array_merge($status['critical'], $status['changed']) as $f) {
+        $this->line('  แก้ '.$f);
+    }
+
+    return $status['state'] === 'tampered' ? 1 : 0;
+})->purpose('ตรวจว่าไฟล์ของระบบยังตรงกับชุดที่ผู้พัฒนาส่งมา');

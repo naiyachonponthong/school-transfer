@@ -36,7 +36,7 @@ if (! function_exists('school_preboot_fail')) {
             .'.i{width:52px;height:52px;border-radius:16px;background:#fef3ed;color:#F26522;display:grid;place-items:center;font-size:28px;font-weight:700;margin-bottom:12px}'
             .'h1{font-size:1.35rem;margin:0 0 .6rem}li{margin:.45rem 0;line-height:1.6}code{background:#f3f4f6;border-radius:6px;padding:.1rem .35rem;font-size:.9em}'
             .'.f{margin-top:18px;color:#6b7280;font-size:.85rem}</style></head><body><div class="c"><div class="i">!</div>'
-            .'<h1>'.$title.'</h1><ul>'.$items.'</ul><div class="f">แก้แล้วกดรีเฟรชหน้านี้ | พัฒนาโดย Naiyachon Ponthong ห้ามจำหน่าย</div></div></body></html>';
+            .'<h1>'.$title.'</h1><ul>'.$items.'</ul><div class="f">แก้แล้วกดรีเฟรชหน้านี้</div></div></body></html>';
         exit;
     }
 }

@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Support\DbBackup;
 use App\Support\Installer;
+use App\Support\License\Client;
+use App\Support\License\Guard;
+use App\Support\License\Integrity;
 use App\Support\SchoolSetup;
 use App\Support\Settings;
 use Illuminate\Http\Request;
@@ -32,6 +35,7 @@ class InstallController extends Controller
         'migrate' => 'สร้างตารางในฐานข้อมูล',
         'seed'    => 'เตรียมข้อมูลเริ่มต้น',
         'admin'   => 'ตั้งชื่อโรงเรียนและบัญชีผู้ดูแลระบบ',
+        'license' => 'บันทึก License',
         'storage' => 'เตรียมโฟลเดอร์รูปภาพ',
         'finish'  => 'ปิดตัวติดตั้งและเปิดใช้ระบบ',
     ];
@@ -39,6 +43,56 @@ class InstallController extends Controller
     public function index()
     {
         return view('install.requirements', ['groups' => Installer::requirements(), 'ok' => Installer::requirementsOk(), 'step' => 1]);
+    }
+
+    /** ขั้นที่ 2: License (มีคีย์ / ทดลอง / ข้าม) ยังไม่มีฐานข้อมูล เก็บผลไว้ใน session แล้วบันทึกตอนติดตั้ง */
+    public function license(Request $request)
+    {
+        if (! Installer::requirementsOk()) {
+            return redirect()->route('install.index');
+        }
+        $saved = $request->session()->get('install.license');
+
+        return view('install.license', [
+            'domain' => Client::domain($request->getHost()),
+            'current' => $saved['license'] ?? null,
+            'skipped' => $request->session()->get('install.license_skipped', false),
+            'step' => 2,
+        ]);
+    }
+
+    public function saveLicense(Request $request)
+    {
+        $data = $request->validate([
+            'mode' => ['required', Rule::in(['key', 'trial', 'skip', 'keep'])],
+            'license_key' => ['exclude_unless:mode,key', 'required', 'string', 'min:10', 'max:50'],
+        ], [], ['mode' => 'วิธีเปิดใช้งาน', 'license_key' => 'คีย์ License']);
+
+        // ใช้ผลที่เปิดใช้งานไว้แล้วในขั้นนี้ (กลับมาแก้ขั้นอื่นแล้วกดไปต่อ)
+        if ($data['mode'] === 'keep' && $request->session()->has('install.license')) {
+            return redirect()->route('install.database');
+        }
+        // ติดตั้งก่อนแล้วค่อยเปิดใช้งานทีหลัง (ระบบจะถูกล็อกจนกว่าผู้ดูแลระบบจะกรอกคีย์)
+        if ($data['mode'] === 'skip' || $data['mode'] === 'keep') {
+            $request->session()->forget('install.license');
+            $request->session()->put('install.license_skipped', true);
+
+            return redirect()->route('install.database');
+        }
+
+        $domain = Client::domain($request->getHost());
+        $result = $data['mode'] === 'key'
+            ? Client::activate($data['license_key'], $domain, false)
+            : Client::trial($domain, null, false);
+
+        if (! $result['ok']) {
+            return back()->withInput($request->only('license_key', 'mode'))->withErrors(['license_key' => $result['message']]);
+        }
+
+        $request->session()->put('install.license', ['key' => $result['key'], 'json' => $result['json'], 'license' => $result['license']]);
+        $request->session()->forget('install.license_skipped');
+
+        return redirect()->route('install.database');
     }
 
     public function database(Request $request)
@@ -57,7 +111,7 @@ class InstallController extends Controller
             'username' => $db['username'] ?? ($mysql && config('database.connections.mysql.username') !== 'root' ? config('database.connections.mysql.username') : ''),
         ];
 
-        return view('install.database', ['cfg' => $cfg, 'step' => 2, 'sqliteOk' => extension_loaded('pdo_sqlite'), 'mysqlOk' => extension_loaded('pdo_mysql')]);
+        return view('install.database', ['cfg' => $cfg, 'step' => 3, 'sqliteOk' => extension_loaded('pdo_sqlite'), 'mysqlOk' => extension_loaded('pdo_mysql')]);
     }
 
     protected function dbInput(Request $request): array
@@ -112,7 +166,7 @@ class InstallController extends Controller
             return redirect()->route('install.database');
         }
 
-        return view('install.school', ['db' => $db, 'step' => 3, 'appUrl' => $this->detectUrl($request), 'school' => $request->session()->get('install.school', [])]);
+        return view('install.school', ['db' => $db, 'step' => 4, 'appUrl' => $this->detectUrl($request), 'school' => $request->session()->get('install.school', [])]);
     }
 
     public function saveSchool(Request $request)
@@ -164,7 +218,7 @@ class InstallController extends Controller
             $steps['seed'] = 'ใส่ข้อมูลตัวอย่าง (นักเรียน ครู คะแนน การเงิน ฯลฯ)';
         }
 
-        return view('install.run', ['steps' => $steps, 'step' => 4, 'school' => $school, 'db' => $request->session()->get('install.db')]);
+        return view('install.run', ['steps' => $steps, 'step' => 5, 'school' => $school, 'db' => $request->session()->get('install.db')]);
     }
 
     public function runStep(Request $request, string $step)
@@ -242,6 +296,18 @@ class InstallController extends Controller
         return 'บัญชีผู้ดูแลระบบ '.$school['username'];
     }
 
+    protected function stepLicense(Request $request, array $school): string
+    {
+        // ทำหลัง seed เพราะการลองใหม่อาจ migrate:fresh ล้างตาราง settings
+        $data = $request->session()->get('install.license');
+        if (! $data) {
+            return 'ยังไม่ได้เปิดใช้งาน เปิดใช้ได้ที่ ตั้งค่า > License หลังเข้าสู่ระบบ';
+        }
+        Client::remember($data['json'], $data['key'] ?? null);
+
+        return ! empty($data['license']['trial']) ? 'เริ่มทดลองใช้งาน '.config('license.trial_days').' วันแล้ว' : 'เปิดใช้งาน License แล้ว';
+    }
+
     protected function stepStorage(Request $request, array $school): string
     {
         foreach ([storage_path('app/public'), storage_path('app/private'), storage_path('fonts')] as $d) {
@@ -279,8 +345,9 @@ class InstallController extends Controller
         $login = $school['mode'] === 'keep' ? (User::query()->where('role', 'admin')->orderBy('id')->value('username') ?? '') : $school['username'];
         // หน้าสรุปเปิดได้เฉพาะลิงก์นี้ (มีชื่อผู้ใช้ผู้ดูแลและ path บนเซิร์ฟเวอร์)
         $done = \Illuminate\Support\Str::random(32);
-        Installer::writeLock(Installer::codeVersion(), ['login' => $login, 'demo' => (bool) $school['demo'], 'database' => $request->session()->get('install.db.server'), 'done_token' => hash('sha256', $done)]);
-        $request->session()->forget(['install.school', 'install.db', 'install.seeded', 'install.token']);
+        Installer::writeLock(Installer::codeVersion(), ['login' => $login, 'demo' => (bool) $school['demo'], 'database' => $request->session()->get('install.db.server'), 'done_token' => hash('sha256', $done), 'signed' => Integrity::hasManifest()]);
+        $request->session()->forget(['install.school', 'install.db', 'install.seeded', 'install.token', 'install.license']);
+        Guard::flush();
         $this->doneUrl = route('install.done', ['t' => $done]);
 
         return 'ติดตั้งเสร็จ';
@@ -297,7 +364,7 @@ class InstallController extends Controller
             return redirect()->route('login');
         }
 
-        return view('install.done', ['lock' => $lock, 'step' => 5, 'cron' => 'php '.base_path('artisan').' schedule:run >> /dev/null 2>&1']);
+        return view('install.done', ['lock' => $lock, 'step' => 6, 'license' => Guard::status(), 'cron' => 'php '.base_path('artisan').' schedule:run >> /dev/null 2>&1']);
     }
 
     protected function detectUrl(Request $request): string

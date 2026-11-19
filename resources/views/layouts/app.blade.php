@@ -94,7 +94,16 @@
 
     <main class="sb-content">
         @include('partials.flash')
+        @isset($licenseNotice)
+            <div class="alert alert-{{ $licenseNotice['tone'] ?? 'warning' }} d-flex gap-2 align-items-center"><i class="bi bi-patch-exclamation-fill"></i>
+                <div class="flex-grow-1">{{ $licenseNotice['text'] }}</div>
+                @if ($u->isAdmin())<a href="{{ \App\Support\SettingsMenu::url('license') }}" class="btn btn-sm btn-light border">จัดการ License</a>@endif
+            </div>
+        @endisset
         @yield('content')
+        @if (($brandCredit = \App\Support\Brand::credit()) !== '')
+            <footer class="text-center small text-muted mt-4 pb-2">{{ $brandCredit }}</footer>
+        @endif
     </main>
 </div>
 

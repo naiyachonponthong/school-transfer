@@ -35,6 +35,9 @@ class Settings
         'school_days' => '5', // 5 = จันทร์–ศุกร์, 6 = รวมวันเสาร์
         'period_times' => "08:30-09:20\n09:20-10:10\n10:20-11:10\n11:10-12:00\n13:00-13:50\n13:50-14:40\n14:40-15:30",
         'theme_color' => Theme::DEFAULT,
+        'brand_credit' => '',  // เครดิตท้ายหน้า (App\Support\Brand) ว่าง = ไม่แสดง
+        // รูปภาพระบบ (App\Support\Artwork) ว่าง = ภาพเริ่มต้น
+        'artwork_dashboard' => '', 'artwork_login' => '', 'artwork_pages' => '', 'artwork_settings' => '',
         'promptpay_id' => '',
         'bank_info' => '',
         'wallet_biller_id' => '',       // Biller ID 15 หลักของบัญชีรับชำระ (เติมเงินกระเป๋าอัตโนมัติ)
@@ -115,6 +118,13 @@ class Settings
             }
             DB::table('settings')->updateOrInsert(['key' => $key], ['value' => $value]);
         }
+        self::flush();
+    }
+
+    /** ลบค่าที่บันทึกไว้ (กลับไปใช้ค่าเริ่มต้น) */
+    public static function forget(array $keys): void
+    {
+        DB::table('settings')->whereIn('key', $keys)->delete();
         self::flush();
     }
 

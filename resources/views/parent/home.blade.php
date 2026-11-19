@@ -21,7 +21,7 @@
                 <a href="{{ route('profile') }}"><span class="sb-avatar sm" style="background:rgba(255,255,255,.25);color:#fff">@if($u->avatarUrl())<img src="{{ $u->avatarUrl() }}" alt="">@else{{ $u->initials() }}@endif</span></a>
             </div>
             <div class="hello">{{ $greet }}, คุณ{{ $u->firstName() }}<small>{{ \App\Support\Thai::fullDate(today()) }}</small></div>
-            <img class="m-hero-art" src="{{ asset('assets/img/school-community-hero.png') }}" alt="" aria-hidden="true" width="1536" height="1024">
+            <img class="m-hero-art" src="{{ \App\Support\Artwork::url('dashboard') }}" alt="" aria-hidden="true" width="1536" height="1024">
         </div>
 
         {{-- การ์ดลูกแต่ละคน ซ้อนบนหัวแอป เลื่อนซ้าย-ขวาได้ถ้ามีหลายคน --}}

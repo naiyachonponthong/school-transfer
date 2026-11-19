@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="inst-head">
-    <div class="eyebrow">ขั้นตอนที่ 4 จาก 4</div>
+    <div class="eyebrow">ขั้นตอนที่ 5 จาก 5</div>
     <h1 id="runTitle">กำลังติดตั้ง</h1>
     <p id="runSub">อย่าปิดหน้านี้ ใช้เวลาประมาณ 1 นาที{{ $school['demo'] ? ' (มีข้อมูลตัวอย่าง อาจนานกว่านี้เล็กน้อย)' : '' }}</p>
 </div>

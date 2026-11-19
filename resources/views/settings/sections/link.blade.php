@@ -1,0 +1,18 @@
+@php
+    $about = [
+        'users' => 'เพิ่ม แก้ไข และปิดบัญชีครู บุคลากร ผู้ปกครอง และนักเรียน รีเซ็ตรหัสผ่าน',
+        'roles' => 'กำหนดตำแหน่งงาน และสิทธิ์ที่แต่ละตำแหน่งเปิดเมนูได้',
+        'org' => 'ฝ่าย กลุ่มงาน และหัวหน้างาน ใช้กับการอนุมัติและเอกสาร',
+        'messages' => 'ประวัติการส่งข้อความ LINE ผลการส่ง และวิธีตั้งค่า LINE OA',
+        'backups' => 'สำรองฐานข้อมูลและไฟล์อัปโหลด ดาวน์โหลดเก็บนอกเครื่อง ระบบสำรองให้ทุกคืน',
+        'audit' => 'ดูว่าใครแก้ข้อมูลอะไร เมื่อไร ย้อนหลัง',
+    ];
+@endphp
+<div class="set-link">
+    <span class="ico"><i class="bi bi-{{ $icon }}"></i></span>
+    <div class="flex-grow-1">
+        <h3 class="fs-5 fw-bold mb-1">{{ $label }}</h3>
+        <p class="text-muted mb-0">{{ $about[$key] ?? '' }}</p>
+    </div>
+    <a href="{{ route($route) }}" class="btn btn-primary"><i class="bi bi-box-arrow-up-right"></i>เปิดหน้า{{ $label }}</a>
+</div>

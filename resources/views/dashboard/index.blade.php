@@ -29,7 +29,7 @@
             <a href="{{ route('profile') }}"><span class="sb-avatar sm" style="background:rgba(255,255,255,.25);color:#fff">@if($u->avatarUrl())<img src="{{ $u->avatarUrl() }}" alt="">@else{{ $u->initials() }}@endif</span></a>
         </div>
         <div class="hello">{{ $greet }}, {{ $u->firstName() }}<small>{{ $u->position ?: $u->roleLabel() }}</small></div>
-        <img class="m-hero-art" src="{{ asset('assets/img/school-community-hero.png') }}" alt="" aria-hidden="true" width="1536" height="1024">
+        <img class="m-hero-art" src="{{ \App\Support\Artwork::url('dashboard') }}" alt="" aria-hidden="true" width="1536" height="1024">
     </div>
 
     <div class="card m-float">
@@ -78,7 +78,7 @@
         <p>{{ \App\Support\Thai::fullDate(today()) }} @if($term) · {{ $term->label() }} @endif</p>
         <a href="{{ route('attendance.index') }}" class="btn btn-light"><i class="bi bi-check2-square"></i> เช็คชื่อวันนี้</a>
     </div>
-    <img class="school-dashboard-hero-art" src="{{ asset('assets/img/school-community-hero.png') }}" alt="" aria-hidden="true" width="1536" height="1024">
+    <img class="school-dashboard-hero-art" src="{{ \App\Support\Artwork::url('dashboard') }}" alt="" aria-hidden="true" width="1536" height="1024">
 </div>
 
 @if (! $term)

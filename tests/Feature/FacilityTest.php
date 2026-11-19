@@ -183,7 +183,7 @@ class FacilityTest extends TestCase
     {
         $admin = User::where('username', 'admin')->first();
         $teacher = $this->teacher();
-        $this->actingAs($admin)->get('/settings')->assertSee('งานพัสดุ / อาคารสถานที่');
+        $this->actingAs($admin)->get('/settings?s=facility')->assertSee('งานพัสดุและอาคารสถานที่');
         $this->actingAs($admin)->post('/settings', array_merge(Settings::all(), ['facility_manager_ids' => [$teacher->id]]))->assertRedirect();
         $this->assertSame([$teacher->id], User::facilityManagerIds());
         $this->assertTrue($teacher->fresh()->canManageFacilities());

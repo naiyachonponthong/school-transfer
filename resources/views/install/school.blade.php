@@ -6,7 +6,7 @@
     $demo = (string) old('demo', isset($school['demo']) ? (int) $school['demo'] : 0);
 @endphp
 <div class="inst-head">
-    <div class="eyebrow">ขั้นตอนที่ 3 จาก 4</div>
+    <div class="eyebrow">ขั้นตอนที่ 4 จาก 5</div>
     <h1>ข้อมูลโรงเรียนและบัญชีผู้ดูแลระบบ</h1>
     <p>เชื่อมต่อ {{ $db['server'] }} แล้ว กรอกข้อมูลด้านล่าง โลโก้ ที่อยู่ และสีธีม ตั้งภายหลังได้ในหน้าตั้งค่า</p>
 </div>

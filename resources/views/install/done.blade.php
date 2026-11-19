@@ -13,6 +13,18 @@
     <a href="{{ route('login') }}" class="btn btn-primary btn-lg w-100" id="goLogin"><i class="bi bi-box-arrow-in-right"></i>ไปหน้าเข้าสู่ระบบ</a>
 </div>
 
+@if ($license['state'] === 'locked')
+    <div class="alert alert-warning"><i class="bi bi-lock-fill"></i><div>
+        <b>ยังไม่ได้เปิดใช้งาน License</b> ระบบจะล็อกไว้ก่อน เข้าสู่ระบบด้วยบัญชีผู้ดูแลระบบ แล้วกรอกคีย์หรือขอทดลองใช้ที่ ตั้งค่า &gt; License (ระบบพาไปให้เอง)
+    </div></div>
+@else
+    <div class="alert alert-success"><i class="bi bi-patch-check-fill"></i><div>
+        <b>{{ $license['state'] === 'trial' ? 'ทดลองใช้งาน' : 'เปิดใช้งาน License แล้ว' }}</b>
+        @if ($license['days_left'] !== null) เหลืออีก {{ $license['days_left'] }} วัน @endif
+        · โดเมน {{ $license['domain'] }}
+    </div></div>
+@endif
+
 @if (! empty($lock['demo']))
     <div class="alert alert-warning"><i class="bi bi-exclamation-triangle-fill"></i><div>
         <b>มีบัญชีตัวอย่าง</b> ครู <code>teacher</code> / <code>teacher1234</code> · ผู้ปกครอง <code>0812345678</code> / <code>345678</code> · นักเรียน <code>69001</code> / <code>student1234</code>

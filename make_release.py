@@ -157,6 +157,32 @@ for f in os.listdir(os.path.join(REL, 'storage/logs')):
     if f.endswith('.log'):
         os.remove(os.path.join(REL, 'storage/logs', f))
 
+# รายการไฟล์ของชุดติดตั้ง + ลายเซ็นจากร้าน (ระบบลูกค้าใช้ตรวจว่าไฟล์ถูกแก้หรือไม่)
+# เซ็นไม่ผ่าน = ไม่ใส่รายการไฟล์ และไม่ออก zip (ใส่ --no-sign เพื่อออก zip ทดสอบที่ไม่มีลายเซ็น)
+STORE = os.environ.get('DIGITALSTORE_PATH', r'D:\code\digitalstore')
+manifest = os.path.join(REL, 'bootstrap', 'integrity.json')
+signature = os.path.join(REL, 'bootstrap', 'integrity.sig')
+if '--no-sign' in sys.argv:
+    warnings.append('สร้างโดยไม่เซ็นรายการไฟล์ (--no-sign) ใช้ทดสอบเท่านั้น ห้ามส่งลูกค้า')
+else:
+    php = shutil.which('php') or 'php'
+    r = subprocess.run([php, 'artisan', 'school:integrity', '--write', '--root=' + REL, '--out=' + manifest], cwd=SRC, capture_output=True)
+    if r.returncode != 0 or not os.path.isfile(manifest):
+        die('สร้างรายการไฟล์ไม่สำเร็จ: ' + (r.stdout + r.stderr).decode('utf-8', 'replace').strip()[-400:])
+    if not os.path.isdir(STORE):
+        os.remove(manifest)
+        die('ไม่พบโปรเจกต์ร้านที่ ' + STORE + ' (ตั้ง DIGITALSTORE_PATH) จึงเซ็นรายการไฟล์ไม่ได้')
+    r = subprocess.run([php, 'artisan', 'license:sign', manifest], cwd=STORE, capture_output=True, text=True, encoding='utf-8', errors='replace')
+    sig = (r.stdout or '').strip().splitlines()
+    if r.returncode != 0 or not sig:
+        os.remove(manifest)
+        die('เซ็นรายการไฟล์ไม่สำเร็จ (ร้านต้องมี release key และ PHP ต้องเปิด sodium): ' + (r.stderr or r.stdout or '').strip()[:300])
+    with open(signature, 'w', encoding='ascii', newline='\n') as fh:
+        fh.write(sig[-1].strip() + '\n')
+    with open(manifest, encoding='utf-8') as fh:
+        print('เซ็นรายการไฟล์แล้ว', len(json.load(fh)['files']), 'ไฟล์')
+
+
 # zip: ไฟล์อยู่ชั้นบนสุด แตกใน public_html แล้วใช้ได้ทันที
 os.makedirs(OUT, exist_ok=True)
 zpath = os.path.join(OUT, f'{SLUG}-v{ver}-install.zip')
@@ -189,6 +215,8 @@ FORBID = [
 REQUIRE = ['artisan', '.htaccess', 'public/index.php', 'bootstrap/preboot.php', 'bootstrap/app.php', 'config/' + SLUG + '.php',
            'app/Support/Installer.php', 'vendor/autoload.php', 'vendor/laravel/framework/src/Illuminate/Foundation/Application.php',
            'storage/framework/sessions/.gitignore', 'storage/framework/views/.gitignore', 'storage/logs/.gitignore']
+if '--no-sign' not in sys.argv:
+    REQUIRE += ['bootstrap/integrity.json', 'bootstrap/integrity.sig', 'app/Support/License/Guard.php']
 problems = []
 with zipfile.ZipFile(zpath) as z:
     names = z.namelist()

@@ -4,19 +4,57 @@ namespace App\Http\Controllers;
 
 use App\Models\BehaviorRule;
 use App\Models\User;
+use App\Support\Artwork;
 use App\Support\Audit;
 use App\Support\Settings;
+use App\Support\SettingsMenu;
 use Illuminate\Http\Request;
 
 class SettingController extends Controller
 {
-    public function edit()
+    /** ช่องของแต่ละหัวข้อ: ฟอร์มของหัวข้อส่ง section มาด้วย จะตรวจและบันทึกเฉพาะช่องของหัวข้อนั้น */
+    private const FIELDS = [
+        'school' => ['school_name', 'school_short', 'school_address', 'school_affiliation', 'school_province', 'school_phone',
+            'director_name', 'academic_deputy_name', 'measurement_head_name', 'registrar_name', 'logo'],
+        'schedule' => ['late_time', 'staff_late_time', 'periods_per_day', 'grade_scale', 'school_days', 'period_times'],
+        'gate' => ['gate_checkout_after', 'gps_required', 'school_lat', 'school_lng', 'gps_radius'],
+        'library' => ['library_loan_days'],
+        'facility' => ['facility_manager_ids'],
+        'payment' => ['promptpay_id', 'bank_info'],
+        'line' => ['line_channel_token', 'line_channel_secret', 'line_oa_id', 'line_notify_gate', 'line_notify_absent'],
+        'line-login' => ['line_login_channel_id', 'line_login_channel_secret'],
+        'privacy' => ['privacy_notice'],
+        'appearance' => ['theme_color', 'brand_credit'],
+    ];
+
+    private const FLAGS = ['line_notify_gate', 'line_notify_absent', 'gps_required'];
+
+    private const SECRETS = ['line_channel_token', 'line_channel_secret', 'line_login_channel_secret'];
+
+    public function edit(Request $request)
     {
+        $sections = SettingsMenu::sections($request->user());
+        $section = (string) $request->query('s', 'school');
+        if (! isset($sections[$section])) {
+            $section = array_key_first($sections);
+        }
+
         return view('settings.edit', [
             'settings' => Settings::all(),
+            'sections' => $sections,
+            'groups' => SettingsMenu::groups($request->user()),
+            'section' => $section,
             'staff' => User::whereIn('role', ['teacher'])->where('is_active', true)->orderBy('name')->get(),
             'rules' => BehaviorRule::orderByDesc('points')->get(),
         ]);
+    }
+
+    /** /settings/license: หน้าตั้งค่าหัวข้อ License (เปิดได้แม้ระบบถูกล็อก) */
+    public function license(Request $request)
+    {
+        $request->query->set('s', 'license');
+
+        return $this->edit($request);
     }
 
     public function update(Request $request)
@@ -25,7 +63,7 @@ class SettingController extends Controller
         if (is_string($request->input('facility_manager_ids'))) {
             $request->merge(['facility_manager_ids' => array_filter(explode(',', $request->input('facility_manager_ids')))]);
         }
-        $data = $request->validate([
+        $rules = [
             'school_name' => ['required', 'string', 'max:255'],
             'school_short' => ['nullable', 'string', 'max:100'],
             'school_address' => ['nullable', 'string', 'max:500'],
@@ -47,6 +85,7 @@ class SettingController extends Controller
             'bank_info' => ['nullable', 'string', 'max:500'],
             'logo' => ['nullable', 'image', 'max:2048'],
             'theme_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'brand_credit' => ['nullable', 'string', 'max:150'],
             'line_channel_token' => ['nullable', 'string', 'max:500'],
             'line_channel_secret' => ['nullable', 'string', 'max:100'],
             'line_oa_id' => ['nullable', 'string', 'max:40'],
@@ -59,18 +98,31 @@ class SettingController extends Controller
             'library_loan_days' => ['nullable', 'integer', 'min:1', 'max:60'],
             'facility_manager_ids' => ['nullable', 'array'],
             'facility_manager_ids.*' => ['integer', 'exists:users,id'],
-        ], ['theme_color.regex' => 'รหัสสีต้องเป็นรูปแบบ #RRGGBB']);
-        $data['theme_color'] = strtoupper($data['theme_color']);
+        ];
+        // ฟอร์มของแต่ละหัวข้อ: ตรวจเฉพาะช่องของหัวข้อนั้น (ไม่ส่ง section = ฟอร์มรวมแบบเดิม ตรวจทุกช่อง)
+        $fields = self::FIELDS[$request->input('section')] ?? null;
+        if ($fields !== null) {
+            $rules = array_filter($rules, fn ($k) => in_array(strtok($k, '.'), $fields, true), ARRAY_FILTER_USE_KEY);
+        }
+        $data = $request->validate($rules, ['theme_color.regex' => 'รหัสสีต้องเป็นรูปแบบ #RRGGBB']);
+
+        if (isset($data['theme_color'])) {
+            $data['theme_color'] = strtoupper($data['theme_color']);
+        }
         // แก้ประกาศความเป็นส่วนตัวแล้วต้องการให้ทุกคนรับทราบใหม่ = ขึ้นฉบับใหม่
         if ($request->boolean('privacy_bump')) {
             $data['privacy_version'] = (string) ((int) Settings::get('privacy_version', 1) + 1);
         }
-        $data['facility_manager_ids'] = implode(',', $data['facility_manager_ids'] ?? []);
-        foreach (['line_notify_gate', 'line_notify_absent', 'gps_required'] as $flag) {
-            $data[$flag] = $request->boolean($flag) ? '1' : '0';
+        if ($fields === null || in_array('facility_manager_ids', $fields, true)) {
+            $data['facility_manager_ids'] = implode(',', $data['facility_manager_ids'] ?? []);
+        }
+        foreach (self::FLAGS as $flag) {
+            if ($fields === null || in_array($flag, $fields, true)) {
+                $data[$flag] = $request->boolean($flag) ? '1' : '0';
+            }
         }
         // ช่อง token/secret เว้นว่าง = ใช้ค่าเดิม (ไม่แสดงค่าจริงบนหน้าเว็บ)
-        foreach (['line_channel_token', 'line_channel_secret', 'line_login_channel_secret'] as $secret) {
+        foreach (self::SECRETS as $secret) {
             if (blank($data[$secret] ?? null)) {
                 unset($data[$secret]);
             }
@@ -87,13 +139,43 @@ class SettingController extends Controller
         $changed = array_keys(array_filter($data, fn ($v, $k) => (string) ($old[$k] ?? '') !== (string) $v, ARRAY_FILTER_USE_BOTH));
         if ($changed) {
             // ไม่เก็บค่าของ token/secret ลงประวัติ เก็บแค่ว่ามีการเปลี่ยน
-            $secret = ['line_channel_token', 'line_channel_secret', 'line_login_channel_secret'];
             Audit::log('setting.update', null, 'แก้ตั้งค่าโรงเรียน: '.implode(', ', $changed), collect($changed)
-                ->mapWithKeys(fn ($k) => [$k => in_array($k, $secret, true) ? ['***', '***'] : [$old[$k] ?? null, $data[$k]]])->all());
+                ->mapWithKeys(fn ($k) => [$k => in_array($k, self::SECRETS, true) ? ['***', '***'] : [$old[$k] ?? null, $data[$k]]])->all());
         }
         Settings::set($data);
 
-        return back()->with('success', 'บันทึกการตั้งค่าแล้ว');
+        return $this->toWorkspace()->with('success', 'บันทึกการตั้งค่าแล้ว');
+    }
+
+    /** ตั้งค่า > รูปภาพระบบ */
+    public function saveImages(Request $request)
+    {
+        $rules = [];
+        foreach (array_keys(Artwork::SLOTS) as $slot) {
+            $rules[$slot] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:8192', 'dimensions:max_width=6000,max_height=6000'];
+            $rules['reset_'.$slot] = ['nullable', 'boolean'];
+        }
+        $request->validate($rules, ['*.max' => 'รูปภาพต้องไม่เกิน 8 MB', '*.mimes' => 'รองรับเฉพาะ JPG PNG และ WebP']);
+
+        $changed = [];
+        foreach (Artwork::SLOTS as $slot => [$label]) {
+            $key = 'artwork_'.$slot;
+            $old = (string) Settings::get($key, '');
+            if ($request->hasFile($slot)) {
+                Settings::set([$key => Artwork::store($request->file($slot))]);
+                Artwork::delete($old);
+                $changed[] = $label;
+            } elseif ($request->boolean('reset_'.$slot) && $old !== '') {
+                Settings::set([$key => '']);
+                Artwork::delete($old);
+                $changed[] = $label.' (กลับไปใช้รูปเริ่มต้น)';
+            }
+        }
+        if ($changed) {
+            Audit::log('setting.images', null, 'เปลี่ยนรูปภาพระบบ: '.implode(', ', $changed));
+        }
+
+        return $this->toWorkspace()->with('success', $changed ? 'บันทึกรูปภาพแล้ว' : 'ไม่มีรูปภาพที่เปลี่ยน');
     }
 
     public function storeRule(Request $request)
@@ -103,7 +185,7 @@ class SettingController extends Controller
             'points' => ['required', 'integer', 'between:-100,100', 'not_in:0'],
         ]));
 
-        return back()->with('success', 'เพิ่มหัวข้อพฤติกรรมแล้ว');
+        return $this->toWorkspace()->with('success', 'เพิ่มหัวข้อพฤติกรรมแล้ว');
     }
 
     public function updateRule(Request $request, BehaviorRule $rule)
@@ -114,13 +196,13 @@ class SettingController extends Controller
         ]);
         $rule->update($data + ['is_active' => $request->boolean('is_active')]);
 
-        return back()->with('success', 'บันทึกแล้ว');
+        return $this->toWorkspace()->with('success', 'บันทึกแล้ว');
     }
 
     public function destroyRule(BehaviorRule $rule)
     {
         $rule->delete();
 
-        return back()->with('success', 'ลบแล้ว');
+        return $this->toWorkspace()->with('success', 'ลบแล้ว');
     }
 }

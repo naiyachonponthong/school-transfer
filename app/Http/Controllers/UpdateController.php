@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Support\Audit;
 use App\Support\Installer;
+use App\Support\License\Client;
+use App\Support\License\Guard;
+use App\Support\License\Integrity;
 use App\Support\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -13,6 +16,9 @@ use Illuminate\Support\Facades\Artisan;
  */
 class UpdateController extends Controller
 {
+    /** เวอร์ชันแรกที่บังคับ License */
+    public const LICENSE_SINCE = '1.1.0';
+
     public function index(Request $request)
     {
         if (! Installer::needsUpdate()) {
@@ -57,7 +63,16 @@ class UpdateController extends Controller
             }
         }
         Settings::flush();
-        Installer::writeLock(Installer::codeVersion(), ['previous' => $from]);
+        $lock = ['previous' => $from, 'signed' => Integrity::hasManifest()];
+
+        // ระบบที่ติดตั้งไว้ก่อนรุ่นที่มี License: ขอสิทธิ์ทดลองให้เอง ติดต่อร้านไม่ได้ (หรือโดเมนเคยทดลองแล้ว) ผ่อนผันให้ไปหาคีย์
+        if (version_compare($from, self::LICENSE_SINCE, '<') && ! Settings::get('license.token')) {
+            if (! Client::trial(null, (string) Settings::get('school_name'))['ok'] && empty(Installer::lock()['upgrade_grace_until'])) {
+                $lock['upgrade_grace_until'] = time() + (int) config('license.upgrade_grace_days', 30) * 86400;
+            }
+        }
+        Installer::writeLock(Installer::codeVersion(), $lock);
+        Guard::flush();
         Audit::log('system.update', null, 'อัปเดตระบบจาก '.$from.' เป็น '.Installer::codeVersion().($backup ? ' สำรองข้อมูล '.$backup : ''));
 
         return redirect()->route('home')->with('success', 'อัปเดตเป็นเวอร์ชัน '.Installer::codeVersion().' แล้ว'.($backup ? ' (ไฟล์สำรองอยู่ที่เมนู สำรองข้อมูล)' : ''));

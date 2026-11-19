@@ -1,5 +1,5 @@
 @php
-    $labels = [1 => ['ตรวจเครื่อง', 'PHP และสิทธิ์ไฟล์'], 2 => ['ฐานข้อมูล', 'เชื่อมต่อฐานข้อมูล'], 3 => ['โรงเรียนและผู้ดูแล', 'ชื่อโรงเรียน บัญชีผู้ดูแล'], 4 => ['ติดตั้ง', 'สร้างตารางและเปิดระบบ']];
+    $labels = [1 => ['ตรวจเครื่อง', 'PHP และสิทธิ์ไฟล์'], 2 => ['License', 'คีย์ หรือทดลองใช้'], 3 => ['ฐานข้อมูล', 'เชื่อมต่อฐานข้อมูล'], 4 => ['โรงเรียนและผู้ดูแล', 'ชื่อโรงเรียน บัญชีผู้ดูแล'], 5 => ['ติดตั้ง', 'สร้างตารางและเปิดระบบ']];
     $step = $step ?? 1;
     // หน้านี้เปิดก่อนมีฐานข้อมูล และต้องไม่ล้มเพราะไฟล์หน้าตาของโปรเจ็คอยู่คนละที่: หาไฟล์ที่มีจริงก่อนใช้
     $pick = fn (array $paths) => collect($paths)->first(fn ($p) => is_file(public_path($p)));
@@ -46,7 +46,7 @@
                 @endforeach
             </ol>
         @endif
-        <div class="inst-credit">{{ config('school.credit') }} · เวอร์ชัน {{ config('school.version') }}</div>
+        <div class="inst-credit">@php($credit = \App\Support\Brand::credit()){{ $credit !== '' ? $credit.' · ' : '' }}เวอร์ชัน {{ config('school.version') }}</div>
     </aside>
     <main class="inst-main">
         <div class="inst-box">
