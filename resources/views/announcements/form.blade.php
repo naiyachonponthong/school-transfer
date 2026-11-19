@@ -43,6 +43,12 @@
                         <label class="form-check-label" for="pinned">ปักหมุดไว้ด้านบน</label>
                     </div>
                 @endif
+                @if (! $announcement->exists && auth()->user()->hasPermission('website.manage'))
+                    <div class="form-check form-switch mt-2">
+                        <input class="form-check-input" type="checkbox" name="to_website" value="1" id="to_website" @checked(old('to_website'))>
+                        <label class="form-check-label" for="to_website">ลงเว็บไซต์โรงเรียนด้วย (ข่าวประชาสัมพันธ์ คนทั่วไปเห็นได้ ใช้ได้เมื่อส่งถึง "ทุกคน")</label>
+                    </div>
+                @endif
             </div>
             <div class="card-footer bg-transparent d-flex gap-2">
                 <button class="btn btn-primary"><i class="bi bi-send"></i> {{ $announcement->exists ? 'บันทึก' : 'เผยแพร่' }}</button>

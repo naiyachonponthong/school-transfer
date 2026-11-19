@@ -25,9 +25,10 @@ class SettingController extends Controller
         'line-login' => ['line_login_channel_id', 'line_login_channel_secret'],
         'privacy' => ['privacy_notice'],
         'appearance' => ['theme_color', 'brand_credit'],
+        'website' => ['website_enabled', 'website_tagline', 'website_greeting', 'website_director_photo', 'website_intro', 'website_video', 'website_email', 'website_hours', 'website_facebook', 'website_youtube', 'website_line', 'website_map_url'],
     ];
 
-    private const FLAGS = ['line_notify_gate', 'line_notify_absent', 'gps_required'];
+    private const FLAGS = ['line_notify_gate', 'line_notify_absent', 'gps_required', 'website_enabled'];
 
     private const SECRETS = ['line_channel_token', 'line_channel_secret', 'line_login_channel_secret'];
 
@@ -86,6 +87,17 @@ class SettingController extends Controller
             'logo' => ['nullable', 'image', 'max:2048'],
             'theme_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'brand_credit' => ['nullable', 'string', 'max:150'],
+            'website_tagline' => ['nullable', 'string', 'max:200'],
+            'website_greeting' => ['nullable', 'string', 'max:5000'],
+            'website_director_photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
+            'website_hours' => ['nullable', 'string', 'max:150'],
+            'website_intro' => ['nullable', 'string', 'max:3000'],
+            'website_video' => ['nullable', 'url', 'max:300', fn ($a, $v, $fail) => $v && ! \App\Support\Website::youtubeId($v) ? $fail('ใส่ลิงก์วิดีโอจาก YouTube เช่น https://youtu.be/xxxx') : null],
+            'website_email' => ['nullable', 'email', 'max:150'],
+            'website_facebook' => ['nullable', 'url', 'max:300'],
+            'website_youtube' => ['nullable', 'url', 'max:300'],
+            'website_line' => ['nullable', 'url', 'max:300'],
+            'website_map_url' => ['nullable', 'url', 'max:1000'],
             'line_channel_token' => ['nullable', 'string', 'max:500'],
             'line_channel_secret' => ['nullable', 'string', 'max:100'],
             'line_oa_id' => ['nullable', 'string', 'max:40'],
@@ -129,6 +141,15 @@ class SettingController extends Controller
         }
         $data = array_map(fn ($v) => $v ?? '', $data);
 
+        if ($request->hasFile('website_director_photo')) {
+            \App\Support\Website::deleteFile((string) Settings::get('website_director_photo'));
+            $data['website_director_photo'] = \App\Support\Website::storeImage($request->file('website_director_photo'), 'director');
+        } else {
+            unset($data['website_director_photo']);
+        }
+        if ($request->boolean('website_enabled') && Settings::get('website_enabled') !== '1') {
+            \App\Support\SchoolSetup::website(); // เปิดครั้งแรก: สร้างหน้าเนื้อหาตั้งต้น
+        }
         if ($request->hasFile('logo')) {
             $data['logo'] = $request->file('logo')->store('school', 'public');
         } else {

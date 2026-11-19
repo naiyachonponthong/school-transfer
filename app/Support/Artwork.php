@@ -17,6 +17,7 @@ class Artwork
         'login' => ['เข้าสู่ระบบ', 'ภาพประกอบหน้าเข้าสู่ระบบ', 'assets/img/school-community-hero.png'],
         'pages' => ['แบนเนอร์หน้าต่าง ๆ', 'ภาพมุมขวาของแบนเนอร์หัวหน้า เช่น นักเรียน ห้องเรียน', 'assets/img/school-pages.png'],
         'settings' => ['หน้าตั้งค่า', 'ภาพประกอบส่วนหัวของหน้าตั้งค่า', 'assets/img/school-award.png'],
+        'website_footer' => ['พื้นหลังท้ายเว็บไซต์', 'ภาพถ่ายอาคารหรือบรรยากาศโรงเรียน ใช้เป็นพื้นหลังสีเข้มท้ายเว็บไซต์ ไม่ใส่ = พื้นสีเข้มไล่สี', ''],
     ];
 
     public static function url(string $slot): string
@@ -29,6 +30,14 @@ class Artwork
         return static::defaultUrl($slot);
     }
 
+    /** รูปที่ผู้ดูแลอัปโหลดเอง (ไม่มี = null) ใช้กับช่องที่ไม่มีภาพเริ่มต้น */
+    public static function uploaded(string $slot): ?string
+    {
+        $path = Settings::get('artwork_'.$slot);
+
+        return $path && Storage::disk('public')->exists($path) ? asset('storage/'.$path) : null;
+    }
+
     public static function defaultUrl(string $slot): string
     {
         $default = static::SLOTS[$slot][2] ?? 'assets/img/school-community-hero.png';
@@ -37,9 +46,9 @@ class Artwork
     }
 
     /** เก็บภาพ ย่อด้านยาวไม่เกิน 1600px (ถ้ามี GD) คงพื้นหลังโปร่งใส คืน path ใน disk public */
-    public static function store(UploadedFile $file, int $max = 1600): string
+    public static function store(UploadedFile $file, int $max = 1600, string $dir = 'artwork'): string
     {
-        $path = $file->store('artwork', 'public');
+        $path = $file->store($dir, 'public');
         $full = Storage::disk('public')->path($path);
         $info = @getimagesize($full);
         if (! $info || ! function_exists('imagecreatetruecolor') || max($info[0], $info[1]) <= $max) {

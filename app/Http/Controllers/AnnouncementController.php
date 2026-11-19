@@ -52,6 +52,11 @@ class AnnouncementController extends Controller
             'headline' => 'ประกาศ', 'title' => $a->title, 'body' => \Illuminate\Support\Str::limit($a->body, 280),
             'audience' => $a->audience, 'classroom_id' => $a->classroom_id,
         ]);
+        // ลงเว็บไซต์โรงเรียนด้วย (เฉพาะผู้มีสิทธิ์จัดการเว็บไซต์ และประกาศที่ทุกคนเห็นได้)
+        if ($request->boolean('to_website') && $request->user()->hasPermission('website.manage') && $a->audience === 'all') {
+            \App\Models\WebPost::create(['category' => 'news', 'title' => $a->title, 'body' => $a->body, 'published_at' => now(),
+                'announcement_id' => $a->id, 'author_id' => $a->author_id]);
+        }
         if ($request->boolean('send_line', true)) {
             \App\Services\Notifier::announcement($a);
         }

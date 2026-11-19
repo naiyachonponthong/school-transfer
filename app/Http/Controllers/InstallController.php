@@ -292,6 +292,7 @@ class InstallController extends Controller
         }
         SchoolSetup::school($school['school_name'], $school['school_short']);
         SchoolSetup::admin($school['admin_name'], $school['username'], $school['password_hash']);
+        SchoolSetup::website();
 
         return 'บัญชีผู้ดูแลระบบ '.$school['username'];
     }

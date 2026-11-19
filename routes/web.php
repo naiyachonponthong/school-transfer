@@ -96,6 +96,18 @@ Route::post('/update', [\App\Http\Controllers\UpdateController::class, 'run'])->
 // โฮสต์ที่สร้างทางลัด public/storage ไม่ได้: ส่งไฟล์ใน storage/app/public ผ่าน route นี้แทน
 Route::get('/storage/{path}', \App\Http\Controllers\StorageFileController::class)->where('path', '.*')->name('storage.file');
 
+// ---- เว็บไซต์โรงเรียน (หน้าบ้าน) · หน้า / ของคนที่ยังไม่เข้าสู่ระบบมาจาก ServeWebsiteHome ----
+Route::name('web.')->controller(\App\Http\Controllers\WebsiteController::class)->group(function () {
+    Route::get('/site', 'home')->name('home');
+    Route::get('/news', 'news')->name('news');
+    Route::get('/news/category/{category}', 'news')->name('news.category');
+    Route::get('/news/{post}', 'post')->name('post')->whereNumber('post');
+    Route::get('/page/{page}', 'page')->name('page');
+    Route::get('/personnel', 'personnel')->name('personnel');
+    Route::get('/contact', 'contact')->name('contact');
+    Route::post('/contact', 'sendContact')->name('contact.send')->middleware('throttle:5,10');
+});
+
 // ---- สาธารณะ: รับสมัครนักเรียนออนไลน์ + webhook ของ LINE ----
 Route::get('/app.webmanifest', ManifestController::class)->name('app.manifest');
 Route::get('/apply', [ApplyController::class, 'start'])->name('apply');
@@ -550,6 +562,25 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
         Route::resource('subjects', SubjectController::class)->only(['index', 'store', 'update', 'destroy'])->middleware('permission:academics.manage');
 
         Route::get('/audit', [AuditController::class, 'index'])->name('audit.index')->middleware('permission:audit.view');
+        // จัดการเว็บไซต์โรงเรียน (สิทธิ์ website.manage เช่นครูประชาสัมพันธ์)
+        Route::prefix('website-admin')->name('website.')->middleware('permission:website.manage')->controller(\App\Http\Controllers\WebsiteAdminController::class)->group(function () {
+            Route::get('/', 'index')->name('admin');
+            Route::post('/posts', 'savePost')->name('posts.store');
+            Route::put('/posts/{post}', 'savePost')->name('posts.update');
+            Route::delete('/posts/{post}', 'deletePost')->name('posts.destroy');
+            Route::post('/slides', 'saveSlide')->name('slides.store');
+            Route::put('/slides/{slide}', 'saveSlide')->name('slides.update');
+            Route::delete('/slides/{slide}', 'deleteSlide')->name('slides.destroy');
+            Route::post('/pages', 'savePage')->name('pages.store');
+            Route::put('/pages/{page:id}', 'savePage')->name('pages.update');
+            Route::delete('/pages/{page:id}', 'deletePage')->name('pages.destroy');
+            Route::post('/links', 'saveLink')->name('links.store');
+            Route::put('/links/{link}', 'saveLink')->name('links.update');
+            Route::delete('/links/{link}', 'deleteLink')->name('links.destroy');
+            Route::post('/personnel', 'savePersonnel')->name('personnel.save');
+            Route::post('/messages/{message}/read', 'readMessage')->name('messages.read');
+            Route::delete('/messages/{message}', 'deleteMessage')->name('messages.destroy');
+        });
         Route::get('/backups', [BackupController::class, 'index'])->name('backups.index')->middleware('permission:settings.manage');
         Route::post('/backups', [BackupController::class, 'run'])->name('backups.run')->middleware('permission:settings.manage');
         Route::get('/backups/{name}', [BackupController::class, 'download'])->name('backups.download')->where('name', '[A-Za-z0-9._-]+')->middleware('permission:settings.manage');

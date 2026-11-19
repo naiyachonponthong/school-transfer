@@ -33,6 +33,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
             'must_change_password' => 'boolean',
+            'public_profile' => 'boolean', // แสดงในทำเนียบบุคลากรบนเว็บไซต์โรงเรียน
             'notifications_seen_at' => 'datetime',
             'line_linked_at' => 'datetime',
             'line_link_expires_at' => 'datetime',

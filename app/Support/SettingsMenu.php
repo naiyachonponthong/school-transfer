@@ -21,6 +21,8 @@ class SettingsMenu
         'behavior' => ['คะแนนความประพฤติ', 'award', 'พฤติกรรม หักคะแนน', null, null],
         'library' => ['ห้องสมุดและรับสมัคร', 'book', 'ยืมหนังสือ รับสมัครนักเรียน', null, null],
         'facility' => ['พัสดุและอาคาร', 'tools', 'ครุภัณฑ์ แจ้งซ่อม เลขครุภัณฑ์ วัสดุ', null, null],
+        'website' => ['เว็บไซต์โรงเรียน', 'globe2', 'หน้าเว็บ หน้าแรก สารผู้อำนวยการ Facebook แผนที่ เปิดปิดเว็บไซต์', null, null],
+        'website-content' => ['ข่าวและเนื้อหาเว็บไซต์', 'newspaper', 'ข่าว สไลด์ หน้าเนื้อหา ทำเนียบ ลิงก์', 'website.admin', 'website.manage'],
         'payment' => ['ช่องทางรับชำระเงิน', 'bank', 'พร้อมเพย์ บัญชีธนาคาร ใบแจ้งหนี้', null, null],
         'line' => ['LINE แจ้งเตือน', 'chat-dots', 'LINE OA token webhook', null, null],
         'line-login' => ['เข้าสู่ระบบด้วย LINE', 'box-arrow-in-right', 'LINE Login channel', null, null],
@@ -39,7 +41,7 @@ class SettingsMenu
     public const GROUPS = [
         ['โรงเรียนและบุคลากร', 'ข้อมูลโรงเรียน ผู้ใช้ และสิทธิ์', 'building', ['school', 'users', 'roles', 'org']],
         ['การเรียนการสอน', 'เวลาเรียน เกรด ความประพฤติ และงานสนับสนุน', 'mortarboard', ['schedule', 'gate', 'behavior', 'library', 'facility']],
-        ['การเงินและการสื่อสาร', 'รับชำระเงิน LINE และความเป็นส่วนตัว', 'chat-dots', ['payment', 'line', 'line-login', 'messages', 'privacy']],
+        ['การเงินและการสื่อสาร', 'เว็บไซต์ รับชำระเงิน LINE และความเป็นส่วนตัว', 'chat-dots', ['website', 'website-content', 'payment', 'line', 'line-login', 'messages', 'privacy']],
         ['หน้าตาและระบบ', 'สี รูปภาพ License และเครื่องมือระบบ', 'sliders2', ['appearance', 'images', 'demo', 'backups', 'audit', 'license', 'system']],
     ];
 

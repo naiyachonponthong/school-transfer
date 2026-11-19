@@ -35,9 +35,20 @@ class Settings
         'school_days' => '5', // 5 = จันทร์–ศุกร์, 6 = รวมวันเสาร์
         'period_times' => "08:30-09:20\n09:20-10:10\n10:20-11:10\n11:10-12:00\n13:00-13:50\n13:50-14:40\n14:40-15:30",
         'theme_color' => Theme::DEFAULT,
+        // เว็บไซต์โรงเรียน (หน้าบ้าน) ปิดไว้ก่อนสำหรับระบบที่อัปเดตมา ติดตั้งใหม่เปิดให้ (SchoolSetup::website)
+        'website_enabled' => '0',
+        'website_tagline' => '',         // คำขวัญ / ข้อความใต้ชื่อโรงเรียน
+        'website_greeting' => '',        // สารจากผู้อำนวยการ
+        'website_intro' => '',           // ข้อมูลแนะนำโรงเรียนเบื้องต้น (หน้าแรก)
+        'website_video' => '',           // ลิงก์วิดีโอ YouTube แนะนำโรงเรียน (หน้าแรก)
+        'website_email' => '',
+        'website_director_photo' => '',
+        'website_hours' => 'จันทร์ถึงศุกร์ 08:00 - 16:30 น.',
+        'website_facebook' => '', 'website_youtube' => '', 'website_line' => '',
+        'website_map_url' => '',         // ลิงก์ Google Maps (แชร์ > ฝังแผนที่ หรือ ลิงก์ปกติ)
         'brand_credit' => '',  // เครดิตท้ายหน้า (App\Support\Brand) ว่าง = ไม่แสดง
         // รูปภาพระบบ (App\Support\Artwork) ว่าง = ภาพเริ่มต้น
-        'artwork_dashboard' => '', 'artwork_login' => '', 'artwork_pages' => '', 'artwork_settings' => '',
+        'artwork_dashboard' => '', 'artwork_login' => '', 'artwork_pages' => '', 'artwork_settings' => '', 'artwork_website_footer' => '',
         'promptpay_id' => '',
         'bank_info' => '',
         'wallet_biller_id' => '',       // Biller ID 15 หลักของบัญชีรับชำระ (เติมเงินกระเป๋าอัตโนมัติ)

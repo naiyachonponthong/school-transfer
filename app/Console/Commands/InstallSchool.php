@@ -72,6 +72,7 @@ class InstallSchool extends Command
 
         SchoolSetup::school($schoolName);
         SchoolSetup::admin($adminName, $username, Hash::make($password));
+        SchoolSetup::website();
         // ติดตั้งผ่านคำสั่งแล้ว: เขียนไฟล์ล็อกให้ตัวติดตั้งผ่านเว็บรู้ว่าระบบพร้อมใช้ (ไม่เปิดหน้า /install อีก)
         if (! app()->runningUnitTests()) { // เทสต์ใช้ฐานข้อมูลในหน่วยความจำ ห้ามเขียนไฟล์ล็อก/.env ของเครื่องจริง
             Installer::writeLock(Installer::codeVersion(), ['login' => $username, 'via' => 'cli']);
