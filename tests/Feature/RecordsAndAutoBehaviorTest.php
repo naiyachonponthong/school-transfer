@@ -139,7 +139,8 @@ class RecordsAndAutoBehaviorTest extends TestCase
         $this->post(route('diplomas.issue'), ['level' => $level, 'student_ids' => [$grad->id]]);
         $this->assertSame(1, DocumentIssue::where('type', 'pp2')->count());
 
-        $this->get(route('diplomas.print', ['ids' => $issue->id]))->assertOk()->assertSee('ประกาศนียบัตร')->assertSee($grad->fullName())->assertSee($issue->code());
+        $this->get(route('diplomas.print', ['ids' => $issue->id]))->assertOk()->assertSee('กระทรวงศึกษาธิการ')->assertSee('ปพ.๒ : บ')->assertSee($grad->fullName())
+            ->assertSee('เป็นผู้สำเร็จการศึกษาภาคบังคับ')->assertSee('เลขที่</span> ๑', false);
         $this->get(route('diplomas.print', ['ids' => $issue->id, 'mode' => 'overlay']))->assertOk()->assertSee('พิมพ์ลงแบบฟอร์มจริง');
         $this->post(route('diplomas.issue'), ['level' => $level, 'student_ids' => [$notYet->id]])->assertSessionHasErrors('student_ids');
     }
