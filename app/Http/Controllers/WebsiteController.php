@@ -39,6 +39,7 @@ class WebsiteController extends Controller
             'events' => SchoolEvent::where('audience', 'all')->whereDate('end_date', '>=', today())->orderBy('start_date')->limit(5)->get(),
             // หน้าเนื้อหาที่มีรูปประกอบ ขึ้นเป็นการ์ดข้างวิดีโอแนะนำ (เช่น หลักสูตร)
             'featurePages' => WebPage::where('is_published', true)->whereNotNull('cover')->orderBy('sort')->orderBy('id')->limit(2)->get(),
+            'ita' => \App\Models\ItaYear::where('is_published', true)->orderByDesc('year')->first(),
             'agencies' => WebLink::where('kind', 'agency')->orderBy('sort')->orderBy('id')->get(),
             'services' => WebLink::where('kind', 'service')->orderBy('sort')->orderBy('id')->get(),
             'admissionOpen' => rescue(fn () => AdmissionForm::isOpen(), false, false),
@@ -98,6 +99,18 @@ class WebsiteController extends Controller
         $departments = Department::whereIn('id', $groups->keys()->filter())->orderBy('sort')->orderBy('id')->get();
 
         return view('website.personnel', ['groups' => $groups, 'departments' => $departments]);
+    }
+
+    /** ITA / OIT: ผู้ชมทั่วไปเห็นเฉพาะปีที่เผยแพร่ ผู้ดูแลเว็บเห็นฉบับร่างด้วย */
+    public function ita(Request $request, ?int $year = null)
+    {
+        $this->guard($request);
+        $years = \App\Models\ItaYear::when(! Website::canManage($request->user()), fn ($q) => $q->where('is_published', true))
+            ->orderByDesc('year')->get();
+        $current = $year ? $years->firstWhere('year', $year) : $years->first();
+        abort_if($year && ! $current, 404);
+
+        return view('website.ita', ['years' => $years, 'year' => $current?->load('items.evidences.post')]);
     }
 
     public function contact(Request $request)

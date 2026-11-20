@@ -104,6 +104,7 @@ Route::name('web.')->controller(\App\Http\Controllers\WebsiteController::class)-
     Route::get('/news/{post}', 'post')->name('post')->whereNumber('post');
     Route::get('/page/{page}', 'page')->name('page');
     Route::get('/personnel', 'personnel')->name('personnel');
+    Route::get('/ita/{year?}', 'ita')->name('ita')->whereNumber('year');
     Route::get('/contact', 'contact')->name('contact');
     Route::post('/contact', 'sendContact')->name('contact.send')->middleware('throttle:5,10');
 });
@@ -581,6 +582,16 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
             Route::put('/links/{link}', 'saveLink')->name('links.update');
             Route::delete('/links/{link}', 'deleteLink')->name('links.destroy');
             Route::post('/personnel', 'savePersonnel')->name('personnel.save');
+            // ITA / OIT
+            Route::post('/ita', [\App\Http\Controllers\ItaAdminController::class, 'createYear'])->name('ita.years.store');
+            Route::put('/ita/{year:id}', [\App\Http\Controllers\ItaAdminController::class, 'updateYear'])->name('ita.years.update');
+            Route::delete('/ita/{year:id}', [\App\Http\Controllers\ItaAdminController::class, 'destroyYear'])->name('ita.years.destroy');
+            Route::post('/ita/{year:id}/items', [\App\Http\Controllers\ItaAdminController::class, 'saveItem'])->name('ita.items.store');
+            Route::put('/ita/{year:id}/items/{item}', [\App\Http\Controllers\ItaAdminController::class, 'saveItem'])->name('ita.items.update');
+            Route::post('/ita-items/{item}/toggle', [\App\Http\Controllers\ItaAdminController::class, 'toggleItem'])->name('ita.items.toggle');
+            Route::delete('/ita-items/{item}', [\App\Http\Controllers\ItaAdminController::class, 'destroyItem'])->name('ita.items.destroy');
+            Route::post('/ita-items/{item}/evidence', [\App\Http\Controllers\ItaAdminController::class, 'saveEvidence'])->name('ita.evidence.store');
+            Route::delete('/ita-evidence/{evidence}', [\App\Http\Controllers\ItaAdminController::class, 'destroyEvidence'])->name('ita.evidence.destroy');
             Route::post('/messages/{message}/read', 'readMessage')->name('messages.read');
             Route::delete('/messages/{message}', 'deleteMessage')->name('messages.destroy');
         });

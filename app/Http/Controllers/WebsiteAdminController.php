@@ -22,6 +22,7 @@ class WebsiteAdminController extends Controller
         'slides' => ['สไลด์หน้าแรก', 'images'],
         'pages' => ['หน้าเนื้อหา', 'file-earmark-richtext'],
         'links' => ['ลิงก์หน่วยงาน/บริการ', 'link-45deg'],
+        'ita' => ['ITA / OIT', 'patch-check'],
         'personnel' => ['ทำเนียบบุคลากร', 'people'],
         'messages' => ['ข้อความติดต่อ', 'envelope'],
     ];
@@ -44,6 +45,7 @@ class WebsiteAdminController extends Controller
             'links' => ['links' => WebLink::orderBy('kind')->orderBy('sort')->orderBy('id')->get()],
             'personnel' => ['staff' => User::whereIn('role', ['admin', 'teacher'])->where('is_active', true)->orderBy('name')->get(['id', 'name', 'position', 'avatar', 'public_profile'])],
             'messages' => ['messages' => WebMessage::latest()->paginate(20)],
+            'ita' => $this->itaData($request),
         };
 
         return view('website.admin.index', $data);
@@ -258,6 +260,19 @@ class WebsiteAdminController extends Controller
         $message->delete();
 
         return $this->back('messages')->with('success', 'ลบข้อความแล้ว');
+    }
+
+    private function itaData(Request $request): array
+    {
+        $years = \App\Models\ItaYear::orderByDesc('year')->get();
+        $year = $years->firstWhere('year', (int) $request->query('year')) ?? $years->first();
+
+        return [
+            'years' => $years,
+            'year' => $year?->load('items.evidences.post'),
+            'posts' => \App\Models\WebPost::whereNotNull('published_at')->latest('published_at')->limit(200)->get(['id', 'title', 'category', 'published_at']),
+            'suggestYear' => max(\App\Models\ItaYear::fiscalYearNow(), ($years->max('year') ?? 0) + 1),
+        ];
     }
 
     private function back(string $tab)

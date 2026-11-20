@@ -32,6 +32,12 @@ class Website
         return WebPage::where('is_published', true)->where('in_menu', true)->orderBy('sort')->orderBy('id')->get(['slug', 'title']);
     }
 
+    /** มี ITA ปีที่เผยแพร่แล้วหรือไม่ (ใช้ตัดสินว่าจะขึ้นเมนู ITA) */
+    public static function hasIta(): bool
+    {
+        return rescue(fn () => \App\Models\ItaYear::where('is_published', true)->exists(), false, false);
+    }
+
     /** เก็บรูป (ย่อด้านยาวไม่เกิน 1600px) ใน storage/app/public/web/... */
     public static function storeImage(UploadedFile $file, string $folder): string
     {

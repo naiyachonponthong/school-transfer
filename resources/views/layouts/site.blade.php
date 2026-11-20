@@ -1,6 +1,7 @@
 @php
     $siteName = school('school_name');
     $menuPages = \App\Support\Website::menuPages();
+    $hasIta = \App\Support\Website::hasIta();
     $logo = school('logo') ? asset('storage/'.school('logo')) : null;
     $pageTitle = trim($__env->yieldContent('title'));
     $desc = trim($__env->yieldContent('description')) ?: (school('website_tagline') ?: 'เว็บไซต์'.$siteName);
@@ -72,6 +73,7 @@
                 </div>
             </div>
             <a href="{{ route('web.personnel') }}" class="{{ request()->routeIs('web.personnel') ? 'active' : '' }}"><b>บุคลากร</b><small>PERSONNEL</small></a>
+            @if ($hasIta)<a href="{{ route('web.ita') }}" class="{{ request()->routeIs('web.ita') ? 'active' : '' }}"><b>ITA</b><small>OIT</small></a>@endif
             <a href="{{ route('web.contact') }}" class="{{ request()->routeIs('web.contact') ? 'active' : '' }}"><b>ติดต่อเรา</b><small>CONTACT</small></a>
             <a href="{{ auth()->check() ? route('home') : route('login') }}" class="site-nav-login"><b>{{ auth()->check() ? 'เข้าระบบโรงเรียน' : 'เข้าสู่ระบบ' }}</b><small>LOGIN</small></a>
         </nav>
@@ -123,6 +125,7 @@
                 <a href="{{ route('login') }}">ครูและบุคลากร</a>
                 <a href="{{ route('login') }}">ผู้ปกครองและนักเรียน</a>
                 <a href="{{ route('web.news.category', 'procurement') }}">ข่าวจัดซื้อจัดจ้าง</a>
+                @if ($hasIta)<a href="{{ route('web.ita') }}">ITA การเปิดเผยข้อมูลสาธารณะ</a>@endif
             </div>
             <div>
                 <h3>ที่ตั้งและเวลาทำการ</h3>

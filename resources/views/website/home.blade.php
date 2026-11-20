@@ -188,6 +188,19 @@
     </div>
 </section>
 
+{{-- แถบ ITA --}}
+@if ($ita)
+<section class="band">
+    <div class="site-wrap">
+        <a href="{{ route('web.ita', $ita->year) }}" class="ita-banner">
+            <i class="bi bi-patch-check-fill"></i>
+            <span><b>ITA การประเมินคุณธรรมและความโปร่งใส ปีงบประมาณ {{ $ita->year }}</b><small>การเปิดเผยข้อมูลสาธารณะ (OIT) ของโรงเรียน</small></span>
+            <span class="btn btn-light btn-sm ms-auto">ดูข้อมูล <i class="bi bi-arrow-right"></i></span>
+        </a>
+    </div>
+</section>
+@endif
+
 {{-- แถบ 6: หน่วยงานที่เกี่ยวข้อง --}}
 @if ($agencies->isNotEmpty())
 <section class="band band-tint">

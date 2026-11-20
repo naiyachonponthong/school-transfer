@@ -2,7 +2,7 @@
 
 return [
     // เวอร์ชันของโค้ด: เพิ่มเลขทุกครั้งที่ส่งชุดใหม่ที่มี migration ระบบจะพาผู้ดูแลระบบไปหน้า /update เอง
-    'version' => '1.3.0',
+    'version' => '1.4.0',
 
     // preboot ตั้งเป็น true ตอนสร้าง .env ให้ครั้งแรก ตัวติดตั้งตั้งกลับเป็น false ตอนติดตั้งเสร็จ
     'install_pending' => (bool) env('SCHOOL_INSTALL_PENDING', false),
