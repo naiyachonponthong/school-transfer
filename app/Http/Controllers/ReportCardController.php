@@ -55,8 +55,12 @@ class ReportCardController extends Controller
         $days = $attendance->sum();
         $came = ($attendance['present'] ?? 0) + ($attendance['late'] ?? 0);
 
+        $preschool = \App\Support\Preschool::isPreschoolLevel($student->classroom?->level);
+
         return [
             'student' => $student,
+            // ห้อง อ. ใช้ ปฐ.03 แทน ปพ.6
+            'preschool' => $preschool ? ($term ? \App\Models\PreschoolAssessment::where(['term_id' => $term->id, 'student_id' => $student->id])->first() : null) : false,
             'academic' => $academic->values(),
             'activities' => $activities->values(),
             'gpa' => Grade::gpa($academic->map(fn ($g) => ['grade' => $g['grade'], 'credit' => $credit($g)])),

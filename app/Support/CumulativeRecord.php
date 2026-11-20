@@ -29,6 +29,7 @@ class CumulativeRecord
         $behavior = BehaviorRecord::where('student_id', $student->id)->orderBy('date')->get(['date', 'points', 'title']);
         $health = HealthMeasurement::where('student_id', $student->id)->orderBy('measured_on')->get();
         $evaluations = StudentEvaluation::where('student_id', $student->id)->get()->keyBy('term_id');
+        $preschool = \App\Models\PreschoolAssessment::where('student_id', $student->id)->get()->keyBy('term_id');
         $visits = HomeVisit::with('visitor:id,name')->where('student_id', $student->id)->orderBy('visited_on')->get();
         $clubs = Club::whereHas('students', fn ($q) => $q->whereKey($student->id))->get(['id', 'name', 'term_id'])->groupBy('term_id');
 
@@ -48,11 +49,11 @@ class CumulativeRecord
 
         // ภาคเรียนที่นักเรียนมีข้อมูลอย่างใดอย่างหนึ่ง
         $terms = Term::orderBy('year')->orderBy('term')->get()->filter(fn (Term $t) => $byTerm->has($t->id)
-            || $evaluations->has($t->id) || $clubs->has($t->id) || $attByTerm->has($t->id) || $behByTerm->has($t->id) || $healthByTerm->has($t->id))->values();
+            || $evaluations->has($t->id) || $preschool->has($t->id) || $clubs->has($t->id) || $attByTerm->has($t->id) || $behByTerm->has($t->id) || $healthByTerm->has($t->id))->values();
 
         // คะแนนที่ลงไว้ก่อนภาคเรียนแรกที่มีข้อมูล นับรวมเป็นยอดตั้งต้น
         $running = Student::BASE_BEHAVIOR + (int) ($behByTerm[''] ?? collect())->sum('points');
-        $rows = $terms->map(function (Term $t) use ($byTerm, $attByTerm, $behByTerm, $healthByTerm, $evaluations, $clubs, $visits, &$running) {
+        $rows = $terms->map(function (Term $t) use ($byTerm, $attByTerm, $behByTerm, $healthByTerm, $evaluations, $preschool, $clubs, $visits, &$running) {
             $att = ($attByTerm[$t->id] ?? collect())->countBy('status');
             $points = (int) ($behByTerm[$t->id] ?? collect())->sum('points');
             $running += $points;
@@ -68,6 +69,8 @@ class CumulativeRecord
                 'behavior_change' => $points,
                 'behavior_total' => $running,
                 'weight' => $h?->weight, 'height' => $h?->height,
+                // ภาคเรียนที่อยู่ชั้น อ.: สรุปพัฒนาการ 4 ด้านแทนผลการเรียนเฉลี่ย
+                'preschool' => isset($preschool[$t->id]) ? $preschool[$t->id]->domains() : null,
                 'traits' => $ev ? Evaluation::label($ev->traitsSummary()) : null,
                 'rtw' => $ev && $ev->rtw !== null ? Evaluation::label($ev->rtw) : null,
                 'clubs' => ($clubs[$t->id] ?? collect())->pluck('name')->all(),

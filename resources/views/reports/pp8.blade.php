@@ -59,7 +59,11 @@
                         @foreach ($r['rows'] as $t)
                             <tr>
                                 <td class="text-start text-nowrap">{{ $t['term']->label() }}</td>
-                                <td>{{ $gpa($t['gpa']) }}</td>
+                                @if ($t['preschool'] && $t['gpa'] === null)
+                                    <td class="text-start small lh-sm" title="พัฒนาการ 4 ด้าน">@foreach ($t['preschool'] as $dk => $lv){{ \App\Support\Preschool::DOMAINS[$dk][2] }} {{ \App\Support\Preschool::label($lv) }}<br>@endforeach</td>
+                                @else
+                                    <td>{{ $gpa($t['gpa']) }}</td>
+                                @endif
                                 <td>{{ $t['attendance']['present'] }}</td><td>{{ $t['attendance']['late'] }}</td><td>{{ $t['attendance']['absent'] }}</td><td>{{ $t['attendance']['leave'] }}</td>
                                 <td>{{ $t['behavior_change'] > 0 ? '+' : '' }}{{ $t['behavior_change'] }}</td><td>{{ $t['behavior_total'] }}</td>
                                 <td>{{ $t['weight'] ? rtrim(rtrim(number_format((float) $t['weight'], 1), '0'), '.') : $dash }}</td>

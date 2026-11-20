@@ -426,6 +426,14 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
         Route::get('/evaluations', [EvaluationController::class, 'index'])->name('evaluations.index');
         Route::post('/evaluations/{classroom}', [EvaluationController::class, 'save'])->name('evaluations.save');
 
+        // ปฐมวัย: ประเมินพัฒนาการ 12 มาตรฐาน บันทึกประจำวัน และพิมพ์ ปฐ.03 (ครูประจำชั้นห้อง อ.)
+        Route::get('/preschool', [\App\Http\Controllers\PreschoolController::class, 'index'])->name('preschool.index');
+        Route::post('/preschool/standards', [\App\Http\Controllers\PreschoolController::class, 'saveStandards'])->name('preschool.standards');
+        Route::get('/preschool/daily', [\App\Http\Controllers\PreschoolController::class, 'daily'])->name('preschool.daily');
+        Route::post('/preschool/daily/{classroom}', [\App\Http\Controllers\PreschoolController::class, 'saveDaily'])->name('preschool.daily.save');
+        Route::get('/preschool/report/{classroom}', [\App\Http\Controllers\PreschoolController::class, 'report'])->name('preschool.report');
+        Route::post('/preschool/{classroom}', [\App\Http\Controllers\PreschoolController::class, 'save'])->name('preschool.save');
+
         Route::get('/timetable', [TimetableController::class, 'index'])->name('timetable.index');
         Route::get('/timetable/mine', [TimetableController::class, 'mine'])->name('timetable.mine');
 

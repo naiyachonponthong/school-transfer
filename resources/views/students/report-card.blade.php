@@ -1,5 +1,6 @@
 @extends('layouts.app')
-@section('title', isset($classroom) ? 'ปพ.6 ห้อง '.$classroom->name() : 'ปพ.6 '.$cards[0]['student']->fullName())
+@php($form = ($cards[0]['preschool'] ?? false) !== false ? 'ปฐ.03' : 'ปพ.6')
+@section('title', isset($classroom) ? $form.' ห้อง '.$classroom->name() : $form.' '.$cards[0]['student']->fullName())
 
 @section('content')
 <div class="d-flex gap-2 mb-3 no-print">
@@ -9,7 +10,7 @@
 </div>
 
 @forelse ($cards as $d)
-    @include('students._report-card', ['d' => $d, 'term' => $term])
+    @include($d['preschool'] !== false ? 'students._preschool-card' : 'students._report-card', ['d' => $d, 'term' => $term])
 @empty
     <div class="card"><div class="empty"><i class="bi bi-people"></i>ห้องนี้ยังไม่มีนักเรียน</div></div>
 @endforelse
