@@ -56,12 +56,15 @@ class WebsiteController extends Controller
         $this->guard($request);
         abort_if($category !== null && ! isset(WebPost::CATEGORIES[$category]), 404);
         $q = trim((string) $request->query('q', ''));
+        $tag = trim((string) $request->query('tag', ''));
 
         return view('website.news', [
             'category' => $category,
             'q' => $q,
+            'tag' => $tag,
             'posts' => WebPost::published()
                 ->when($category, fn ($w) => $w->where('category', $category))
+                ->when($tag !== '', fn ($w) => $w->withTag($tag))
                 ->when($q !== '', fn ($w) => $w->where(fn ($s) => $s->where('title', 'like', "%{$q}%")->orWhere('body', 'like', "%{$q}%")))
                 ->latestFirst()->paginate(12)->withQueryString(),
         ]);

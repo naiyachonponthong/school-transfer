@@ -177,6 +177,52 @@ class Menu
         );
     }
 
+    /** หมวดบนแถบซ้ายของบุคลากร: ชื่อกลุ่มใน groups() => [ชื่อสั้นใต้ไอคอน, ไอคอน] */
+    private const RAIL_GROUPS = [
+        'งานประจำวัน' => ['ประจำวัน', 'bi-check2-square'],
+        'วิชาการ' => ['วิชาการ', 'bi-mortarboard'],
+        'ปฐมวัย' => ['ปฐมวัย', 'bi-balloon'],
+        'บริหารทั่วไป' => ['บริหาร', 'bi-building'],
+        'บุคลากร' => ['บุคลากร', 'bi-person-badge'],
+        'สื่อสารและการเงิน' => ['สื่อสาร', 'bi-chat-square-text'],
+        'ผู้ดูแลระบบ' => ['ผู้ดูแล', 'bi-shield-lock'],
+    ];
+
+    /**
+     * แถบซ้ายแบบหมวด (บุคลากร): ไอคอนหนึ่งหมวด ชี้/กดแล้วเด้งเมนูย่อย
+     * [['key','label','title','icon','items','badge','active','url'?]] รายการที่มี url = ลิงก์ตรง ไม่มีเมนูย่อย
+     */
+    public static function railGroups(User $user, int $pendingLeaves = 0): array
+    {
+        $groups = self::groups($user, $pendingLeaves);
+        // ปฐมวัยแยกเป็นหมวดของตัวเอง (มีเฉพาะโรงเรียนที่มีห้อง อ.)
+        if ($ps = collect($groups['วิชาการ'] ?? [])->firstWhere('key', 'preschool')) {
+            $groups['วิชาการ'] = array_values(array_filter($groups['วิชาการ'], fn ($i) => $i['key'] !== 'preschool'));
+            $groups['ปฐมวัย'] = [
+                array_merge($ps, ['label' => 'ประเมินพัฒนาการ', 'icon' => 'bi-stars', 'routes' => ['preschool.index', 'preschool.report']]),
+                self::item('preschooldaily', 'บันทึกประจำวัน', 'bi-cup-straw', route('preschool.daily'), 'primary', 0, ['preschool.daily']),
+            ];
+        }
+
+        $out = [array_merge(self::item('home', 'ภาพรวม', 'bi-grid-1x2', route('home'), 'primary', 0, ['home']), ['title' => 'ภาพรวม', 'active' => request()->routeIs('home'), 'items' => []])];
+        foreach (self::RAIL_GROUPS as $name => [$short, $icon]) {
+            $items = $groups[$name] ?? [];
+            if (! $items) {
+                continue;
+            }
+            $out[] = [
+                'key' => 'g-'.md5($name), 'label' => $short, 'title' => $name, 'icon' => $icon, 'items' => $items, 'url' => null,
+                'badge' => array_sum(array_column($items, 'badge')),
+                'active' => collect($items)->contains(fn ($i) => self::isActive($i)),
+            ];
+        }
+        foreach ($groups['ช่วยเหลือ'] ?? [] as $help) {
+            $out[] = array_merge($help, ['label' => 'คู่มือ', 'title' => $help['label'], 'items' => [], 'active' => self::isActive($help)]);
+        }
+
+        return $out;
+    }
+
     /** ไอคอนตารางบนหน้าแรกมือถือ */
     public static function launcher(User $user, int $pendingLeaves = 0): array
     {

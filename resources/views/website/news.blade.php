@@ -1,10 +1,10 @@
 @extends('layouts.site')
-@php($label = $category ? \App\Models\WebPost::CATEGORIES[$category][0] : 'ข่าวสารทั้งหมด')
+@php($label = $tag !== '' ? '#'.$tag : ($category ? \App\Models\WebPost::CATEGORIES[$category][0] : 'ข่าวสารทั้งหมด'))
 @section('title', $label)
 
 @section('content')
 <div class="site-wrap">
-    @include('website.partials.pagehead', ['title' => $label, 'crumbs' => $category ? ['ข่าวสาร' => route('web.news'), $label => null] : ['ข่าวสาร' => null]])
+    @include('website.partials.pagehead', ['title' => $label, 'crumbs' => ($category || $tag !== '') ? ['ข่าวสาร' => route('web.news'), $label => null] : ['ข่าวสาร' => null]])
 
     <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between site-section mt-4">
         <nav class="settings-subnav border-0 p-0 m-0" aria-label="หมวดข่าว" style="display:flex;gap:.4rem;flex-wrap:wrap">

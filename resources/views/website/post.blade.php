@@ -13,7 +13,11 @@
             <article class="site-card site-article">
                 @unless ($post->isPublished())<div class="alert alert-warning small"><i class="bi bi-eye-slash"></i> ข่าวนี้ยังไม่เผยแพร่ เห็นได้เฉพาะผู้จัดการเว็บไซต์</div>@endunless
                 @if ($post->cover)<img class="cover" src="{{ asset('storage/'.(string) $post->cover) }}" alt="{{ $post->title }}">@endif
-                <div class="content">{!! \App\Support\Website::text($post->body) !!}</div>
+                @if ($post->urgent)<div class="mb-3"><span class="badge text-bg-danger fs-6"><i class="bi bi-exclamation-triangle-fill"></i> ข่าวด่วน</span></div>@endif
+                <div class="content {{ $post->is_html ? 'post-rich' : '' }}">{!! $post->bodyHtml() !!}</div>
+                @if ($post->tags)
+                    <div class="d-flex flex-wrap gap-2 mt-3">@foreach ($post->tags as $t)<a href="{{ route('web.news', ['tag' => $t]) }}" class="post-tag">#{{ $t }}</a>@endforeach</div>
+                @endif
 
                 @if ($post->images)
                     <h2 class="fs-5 fw-bold mt-4 mb-3"><i class="bi bi-images text-primary"></i> ภาพกิจกรรม ({{ count($post->images) }} ภาพ)</h2>
@@ -42,7 +46,7 @@
                     <a class="btn btn-sm btn-light border" href="https://social-plugins.line.me/lineit/share?url={{ urlencode(url()->current()) }}" target="_blank" rel="noopener"><i class="bi bi-line"></i> LINE</a>
                     <button type="button" class="btn btn-sm btn-light border" id="copyLink"><i class="bi bi-link-45deg"></i> คัดลอกลิงก์</button>
                     @if (\App\Support\Website::canManage(auth()->user()))
-                        <a class="btn btn-sm btn-soft ms-auto" href="{{ route('website.admin', ['tab' => 'posts', 'edit' => $post->id]) }}"><i class="bi bi-pencil"></i> แก้ไขข่าวนี้</a>
+                        <a class="btn btn-sm btn-soft ms-auto" href="{{ route('website.posts.edit', $post) }}"><i class="bi bi-pencil"></i> แก้ไขข่าวนี้</a>
                     @endif
                 </div>
             </article>

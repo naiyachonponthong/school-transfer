@@ -19,11 +19,11 @@ class WebPost extends Model
         'admission' => ['ข่าวรับสมัคร', 'person-plus'],
     ];
 
-    protected $fillable = ['category', 'title', 'body', 'cover', 'images', 'attachments', 'pinned', 'published_at', 'announcement_id', 'author_id'];
+    protected $fillable = ['category', 'title', 'excerpt', 'tags', 'body', 'is_html', 'cover', 'images', 'attachments', 'pinned', 'urgent', 'published_at', 'announcement_id', 'author_id'];
 
     protected function casts(): array
     {
-        return ['images' => 'array', 'attachments' => 'array', 'pinned' => 'boolean', 'published_at' => 'datetime'];
+        return ['images' => 'array', 'attachments' => 'array', 'tags' => 'array', 'pinned' => 'boolean', 'urgent' => 'boolean', 'is_html' => 'boolean', 'published_at' => 'datetime'];
     }
 
     public function author(): BelongsTo
@@ -59,8 +59,42 @@ class WebPost extends Model
         return $path ? asset('storage/'.(string) $path) : null;
     }
 
+    /** สรุปสั้น: ใช้ที่กรอกไว้ ถ้าไม่กรอกตัดจากเนื้อหา */
     public function excerpt(int $limit = 140): string
     {
-        return Str::limit(trim(preg_replace('/\s+/u', ' ', (string) $this->body)), $limit);
+        return Str::limit(trim((string) $this->excerpt) !== '' ? trim($this->excerpt) : $this->plainText(), $limit);
+    }
+
+    /** เนื้อหาแบบข้อความล้วน (ตัดแท็ก HTML) */
+    public function plainText(): string
+    {
+        $text = $this->is_html ? html_entity_decode(strip_tags(preg_replace('~<(br|/p|/h[2-4]|/li|/div)[^>]*>~i', ' ', (string) $this->body)), ENT_QUOTES | ENT_HTML5, 'UTF-8') : (string) $this->body;
+
+        return trim(preg_replace('/\s+/u', ' ', $text));
+    }
+
+    /** เนื้อหาพร้อมแสดงบนเว็บ (HTML ถูกกรองตอนบันทึกแล้ว ข่าวเก่าแปลงข้อความเป็น HTML) */
+    public function bodyHtml(): string
+    {
+        return $this->is_html ? (string) $this->body : \App\Support\Website::text($this->body);
+    }
+
+    public function scopeWithTag(Builder $q, string $tag): Builder
+    {
+        return $q->whereJsonContains('tags', $tag);
+    }
+
+    /** แท็กที่เคยใช้ทั้งหมด เรียงตามจำนวนข่าว ['แท็ก' => จำนวน] */
+    public static function usedTags(): array
+    {
+        $count = [];
+        foreach (self::whereNotNull('tags')->pluck('tags') as $tags) {
+            foreach ((array) $tags as $t) {
+                $count[$t] = ($count[$t] ?? 0) + 1;
+            }
+        }
+        arsort($count);
+
+        return $count;
     }
 }

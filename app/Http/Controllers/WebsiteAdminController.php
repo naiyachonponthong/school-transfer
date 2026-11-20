@@ -9,6 +9,7 @@ use App\Models\WebPage;
 use App\Models\WebPost;
 use App\Models\WebSlide;
 use App\Support\Audit;
+use App\Support\HtmlSanitizer;
 use App\Support\Website;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -53,6 +54,29 @@ class WebsiteAdminController extends Controller
 
     // ------------------------------------------------------------------ ข่าว
 
+    /** หน้าเขียน / แก้ไขข่าว (เต็มหน้า) */
+    public function postForm(Request $request, ?WebPost $post = null)
+    {
+        $post = $post?->exists ? $post : (new WebPost)->forceFill([
+            'category' => isset(WebPost::CATEGORIES[$request->query('category')]) ? $request->query('category') : 'news',
+            'title' => '', 'excerpt' => null, 'tags' => null, 'body' => '', 'is_html' => true, 'cover' => null, 'images' => null,
+            'attachments' => null, 'pinned' => false, 'urgent' => false, 'published_at' => null,
+        ]);
+
+        return view('website.admin.post-form', [
+            'post' => $post,
+            'usedTags' => WebPost::usedTags(),
+        ]);
+    }
+
+    /** อัปโหลดรูปแทรกในเนื้อหาข่าว (เรียกจากตัวแก้ไข) */
+    public function uploadPostImage(Request $request)
+    {
+        $request->validate(['image' => ['required', ...self::IMAGE]], ['image.max' => 'รูปต้องไม่เกิน 8 MB'], ['image' => 'รูป']);
+
+        return response()->json(['url' => asset('storage/'.Website::storeImage($request->file('image'), 'posts/inline'))]);
+    }
+
     public function savePost(Request $request, ?WebPost $post = null)
     {
         // route เพิ่มใหม่ไม่มี {post} Laravel จะส่ง model เปล่ามาให้ (exists = false)
@@ -62,7 +86,10 @@ class WebsiteAdminController extends Controller
         $data = $request->validate([
             'category' => ['required', Rule::in(array_keys(WebPost::CATEGORIES))],
             'title' => ['required', 'string', 'max:255'],
-            'body' => ['nullable', 'string', 'max:50000'],
+            'body' => ['nullable', 'string', 'max:200000'],
+            'excerpt' => ['nullable', 'string', 'max:300'],
+            'tags' => ['nullable', 'array', 'max:15'],
+            'tags.*' => ['nullable', 'string', 'max:40'],
             'status' => ['required', Rule::in(['draft', 'now', 'schedule'])],
             'publish_at' => ['exclude_unless:status,schedule', 'required', 'date'],
             'pinned' => ['nullable', 'boolean'],
@@ -77,7 +104,11 @@ class WebsiteAdminController extends Controller
             ['category' => 'หมวด', 'title' => 'หัวข้อ', 'publish_at' => 'วันเวลาเผยแพร่', 'cover' => 'รูปปก']);
 
         $post->fill([
-            'category' => $data['category'], 'title' => $data['title'], 'body' => $data['body'] ?? '', 'pinned' => $request->boolean('pinned'),
+            'category' => $data['category'], 'title' => $data['title'], 'pinned' => $request->boolean('pinned'), 'urgent' => $request->boolean('urgent'),
+            // ตัวแก้ไขส่ง HTML มา: กรองก่อนบันทึกทุกครั้ง
+            'body' => HtmlSanitizer::clean($data['body'] ?? ''), 'is_html' => true,
+            'excerpt' => trim((string) ($data['excerpt'] ?? '')) ?: null,
+            'tags' => collect($data['tags'] ?? [])->map(fn ($t) => trim(ltrim(trim((string) $t), '#')))->filter()->unique()->values()->all() ?: null,
             'published_at' => match ($data['status']) {
                 'draft' => null,
                 'now' => $post->published_at && $post->published_at->isPast() ? $post->published_at : now(),
@@ -111,7 +142,8 @@ class WebsiteAdminController extends Controller
         $post->save();
         Audit::log($isNew ? 'website.post_create' : 'website.post_update', $post, ($isNew ? 'เพิ่มข่าว ' : 'แก้ข่าว ').$post->title);
 
-        return $this->back('posts')->with('success', $post->published_at === null ? 'บันทึกเป็นฉบับร่างแล้ว' : ($post->isPublished() ? 'เผยแพร่ข่าวแล้ว' : 'ตั้งเวลาเผยแพร่แล้ว'));
+        // กลับไปรายการข่าวเสมอ (หน้าก่อนหน้าคือหน้าเขียนข่าว)
+        return redirect()->route('website.admin', ['tab' => 'posts', 'category' => $post->category])->with('success', $post->published_at === null ? 'บันทึกเป็นฉบับร่างแล้ว' : ($post->isPublished() ? 'เผยแพร่ข่าวแล้ว' : 'ตั้งเวลาเผยแพร่แล้ว'));
     }
 
     public function deletePost(WebPost $post)

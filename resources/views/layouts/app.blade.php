@@ -16,6 +16,35 @@
         <span class="sb-logo">@if (school('logo'))<img src="{{ asset('storage/'.school('logo')) }}" alt="">@else<i class="bi bi-mortarboard-fill"></i>@endif</span>
     </a>
     <nav class="rail-scroll">
+        @if (! $u->isParent() && ! $u->isStudent())
+        {{-- บุคลากร: ไอคอนตามหมวด ชี้หรือกดแล้วเด้งเมนูย่อย (สคริปต์ท้ายหน้า) --}}
+        @foreach (\App\Support\Menu::railGroups($u, $navPendingLeaves) as $g)
+            @if ($g['items'])
+                <div class="rail-group" data-rail-group>
+                    <button type="button" class="rail-item {{ $g['active'] ? 'active' : '' }}" aria-haspopup="true" aria-expanded="false" aria-controls="fly-{{ $g['key'] }}" title="{{ $g['title'] }}">
+                        <span class="ri"><i class="bi {{ $g['icon'] }}"></i></span>
+                        <span>{{ $g['label'] }}</span>
+                        @if ($g['badge'])<span class="rb">{{ $g['badge'] > 99 ? '99+' : $g['badge'] }}</span>@endif
+                    </button>
+                    <div class="rail-fly" id="fly-{{ $g['key'] }}" role="menu" aria-label="{{ $g['title'] }}" hidden>
+                        <div class="fly-head"><span class="fi"><i class="bi {{ $g['icon'] }}"></i></span><b>{{ $g['title'] }}</b></div>
+                        <div class="fly-list">
+                            @foreach ($g['items'] as $it)
+                                <a href="{{ $it['url'] }}" role="menuitem" class="fly-item {{ \App\Support\Menu::isActive($it) ? 'active' : '' }}">
+                                    <i class="bi {{ $it['icon'] }}"></i><span>{{ $it['label'] }}</span>
+                                    @if ($it['badge'])<span class="fb">{{ $it['badge'] }}</span>@endif
+                                </a>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            @else
+                <a href="{{ $g['url'] }}" class="rail-item {{ $g['active'] ? 'active' : '' }}" title="{{ $g['title'] }}">
+                    <span class="ri"><i class="bi {{ $g['icon'] }}"></i></span><span>{{ $g['label'] }}</span>
+                </a>
+            @endif
+        @endforeach
+        @else
         @foreach (\App\Support\Menu::rail($u, $navPendingLeaves) as $item)
             <a href="{{ $item['url'] }}" class="rail-item {{ \App\Support\Menu::isActive($item) ? 'active' : '' }}" title="{{ $item['label'] }}">
                 <span class="ri"><i class="bi {{ $item['icon'] }}"></i></span>
@@ -23,6 +52,7 @@
                 @if ($item['badge'])<span class="rb">{{ $item['badge'] }}</span>@endif
             </a>
         @endforeach
+        @endif
     </nav>
     <div class="rail-bottom">
         @if ($u->hasPermission('settings.manage'))

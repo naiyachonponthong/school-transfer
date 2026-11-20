@@ -577,6 +577,9 @@ Route::middleware(['auth', 'privacy.accepted'])->group(function () {
         // จัดการเว็บไซต์โรงเรียน (สิทธิ์ website.manage เช่นครูประชาสัมพันธ์)
         Route::prefix('website-admin')->name('website.')->middleware('permission:website.manage')->controller(\App\Http\Controllers\WebsiteAdminController::class)->group(function () {
             Route::get('/', 'index')->name('admin');
+            Route::get('/posts/create', 'postForm')->name('posts.create');
+            Route::get('/posts/{post}/edit', 'postForm')->name('posts.edit');
+            Route::post('/posts/upload-image', 'uploadPostImage')->name('posts.upload');
             Route::post('/posts', 'savePost')->name('posts.store');
             Route::put('/posts/{post}', 'savePost')->name('posts.update');
             Route::delete('/posts/{post}', 'deletePost')->name('posts.destroy');

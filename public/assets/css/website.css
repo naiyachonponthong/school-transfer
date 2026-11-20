@@ -307,3 +307,18 @@
 .ita-body { min-width: 0; }
 .ita-ev { display: flex; gap: .4rem; align-items: baseline; margin-top: .3rem; text-decoration: none; word-break: break-word; }
 @media (max-width: 575px) { .ita-search { max-width: none; margin-left: 0; } .ita-banner .btn { display: none; } }
+
+/* ข่าวแบบจัดรูปแบบ (ตัวแก้ไขข่าว) */
+.post-rich img { max-width: 100%; height: auto; border-radius: 12px; margin: .4em 0; }
+.post-rich h2 { font-size: 1.45rem; font-weight: 700; margin: 1.2em 0 .5em; }
+.post-rich h3 { font-size: 1.22rem; font-weight: 700; margin: 1.1em 0 .45em; }
+.post-rich h4 { font-size: 1.06rem; font-weight: 700; margin: 1em 0 .4em; }
+.post-rich p { margin: 0 0 .8em; }
+.post-rich ul, .post-rich ol { padding-left: 1.4em; margin-bottom: .8em; }
+.post-rich blockquote { border-left: 4px solid var(--sb-primary); padding: .3em 1em; color: #475467; background: #f9fafb; border-radius: 0 8px 8px 0; }
+.post-rich iframe { width: 100%; aspect-ratio: 16 / 9; height: auto; border: 0; border-radius: 12px; margin: .6em 0; }
+.post-rich table { width: 100%; border-collapse: collapse; margin-bottom: 1em; }
+.post-rich td, .post-rich th { border: 1px solid #e4e7ec; padding: .35em .6em; }
+.post-tag { display: inline-block; padding: .2rem .75rem; border-radius: 999px; background: #f2f4f7; color: #344054; font-size: .88rem; text-decoration: none; }
+.post-tag:hover { background: var(--sb-primary); color: #fff; }
+.news-urgent { display: inline-block; background: #dc2626; color: #fff; border-radius: 6px; font-size: .72rem; padding: 0 .4rem; margin-right: .3rem; vertical-align: 2px; }

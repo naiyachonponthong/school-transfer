@@ -1,0 +1,44 @@
+/* ตัวแก้ไขข้อความ (public/assets/js/editor.js) + หน้าเขียนข่าว */
+.rte { border-top: 1px solid var(--sb-border); }
+.rte-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px 10px; border-bottom: 1px solid var(--sb-border); background: #fff; position: sticky; top: 0; z-index: 2; }
+.rte-btn { width: 34px; height: 32px; display: inline-grid; place-items: center; border: 1px solid #d0d5dd; background: #fff; border-radius: 6px; color: #344054; font-size: .95rem; padding: 0; position: relative; cursor: pointer; }
+.rte-btn:hover { background: #f4f5f7; }
+.rte-btn.on { background: var(--sb-primary-50); border-color: var(--sb-primary); color: var(--sb-primary-700); }
+.rte-btn:disabled { opacity: .45; cursor: default; }
+.rte-btn[data-danger] { color: #dc2626; border-color: #fca5a5; }
+.rte-txt { width: auto; min-width: 34px; padding: 0 8px; font-size: .85rem; font-weight: 600; }
+.rte-size { width: 96px; height: 32px; font-size: .85rem; }
+.rte-sep { width: 1px; height: 22px; background: #e4e7ec; margin: 0 4px; }
+.rte-color { overflow: hidden; }
+.rte-color .bar { position: absolute; left: 7px; right: 7px; bottom: 4px; height: 3px; border-radius: 2px; }
+.rte-color i { margin-top: -4px; }
+.rte-color input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.rte-ask { padding: 10px; background: #f9fafb; border-bottom: 1px solid var(--sb-border); }
+.rte-area { min-height: 380px; padding: 18px 20px; outline: none; font-size: 1.02rem; line-height: 1.75; overflow-wrap: anywhere; }
+.rte-area:empty::before { content: attr(data-placeholder); color: #98a2b3; }
+.rte-source { min-height: 380px; border: 0 !important; border-radius: 0 !important; font: .85rem/1.6 ui-monospace, Consolas, monospace; box-shadow: none !important; }
+.rte-area img, .post-rich img { max-width: 100%; height: auto; border-radius: 10px; }
+.rte-area h2, .post-rich h2 { font-size: 1.45rem; font-weight: 700; margin: 1.2em 0 .5em; }
+.rte-area h3, .post-rich h3 { font-size: 1.22rem; font-weight: 700; margin: 1.1em 0 .45em; }
+.rte-area h4, .post-rich h4 { font-size: 1.06rem; font-weight: 700; margin: 1em 0 .4em; }
+.rte-area p, .post-rich p { margin: 0 0 .8em; }
+.rte-area blockquote, .post-rich blockquote { border-left: 4px solid var(--sb-primary); padding: .3em 1em; color: #475467; background: #f9fafb; border-radius: 0 8px 8px 0; }
+.rte-video, .post-rich .rte-video { position: relative; aspect-ratio: 16 / 9; margin: 1em 0; }
+.rte-video iframe, .post-rich iframe { width: 100%; height: 100%; border: 0; border-radius: 12px; aspect-ratio: 16 / 9; }
+
+/* หน้าเขียนข่าว */
+.post-editor .card { border: 0; border-radius: 14px; box-shadow: 0 1px 2px rgba(16,24,40,.04), 0 2px 8px rgba(16,24,40,.06); }
+.post-editor .card-title-row { padding: 14px 18px; border-bottom: 1px solid var(--sb-border); font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.post-editor .side-sticky { position: sticky; top: 76px; }
+.post-editor .title-input { font-size: 1.15rem; font-weight: 600; }
+.tag-chip { display: inline-flex; align-items: center; gap: 4px; border: 1px solid #d0d5dd; border-radius: 999px; padding: 3px 10px; font-size: .85rem; background: #fff; color: #344054; cursor: pointer; }
+.tag-chip:hover { border-color: var(--sb-primary); color: var(--sb-primary-700); }
+.tag-chip.sel { background: var(--sb-primary-50); border-color: var(--sb-primary); color: var(--sb-primary-700); }
+.tag-chip .x { border: 0; background: none; padding: 0; color: inherit; line-height: 1; }
+.tag-used { max-height: 120px; overflow: auto; }
+.tag-used.open { max-height: none; }
+.cover-preview { aspect-ratio: 16 / 9; border-radius: 10px; background: #f2f4f7 center / cover no-repeat; display: grid; place-items: center; color: #98a2b3; font-size: 2rem; border: 1px dashed #d0d5dd; }
+.cover-preview.has { border-style: solid; font-size: 0; }
+@media (max-width: 991px) { .post-editor .side-sticky { position: static; } }
+.existing-thumb { display: inline-flex; flex-direction: column; gap: .2rem; width: 92px; font-size: .78rem; }
+.existing-thumb img { width: 92px; height: 70px; object-fit: cover; border-radius: 10px; }

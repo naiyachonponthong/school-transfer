@@ -95,7 +95,7 @@
                     @foreach ($news as $p)
                         <a href="{{ route('web.post', $p) }}" class="news-row">
                             <span class="thumb">@if ($p->coverUrl())<img src="{{ $p->coverUrl() }}" alt="" loading="lazy">@else<i class="bi bi-megaphone"></i>@endif</span>
-                            <span class="body"><b>@if ($p->pinned)<i class="bi bi-pin-angle-fill"></i> @endif{{ $p->title }}</b><small>{{ thai_date($p->published_at) }}</small>@if ($p->body)<span>{{ $p->excerpt(90) }}</span>@endif</span>
+                            <span class="body"><b>@if ($p->pinned)<i class="bi bi-pin-angle-fill"></i> @endif @if ($p->urgent)<span class="news-urgent">ด่วน</span>@endif{{ $p->title }}</b><small>{{ thai_date($p->published_at) }}</small>@if ($p->body)<span>{{ $p->excerpt(90) }}</span>@endif</span>
                         </a>
                     @endforeach
                 </div>
